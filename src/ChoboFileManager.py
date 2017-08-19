@@ -2,13 +2,18 @@ from Tkinter import *
 import os
 
 '''
-2017.08.20
+Start  : 2017.08.20
+Update : 2017.08.20
 '''
 
 class ChoboFileManaer(Frame):
     def on_cmd(self):
         print "run command"
         os.system("start cmd")
+
+    def on_runexe(self, exefile):
+        print "run " + exefile
+        os.system("start " + exefile)
 
     def on_quit(self, event):
         print "Bye"
@@ -30,38 +35,53 @@ class ChoboFileManaer(Frame):
         else:
             self.selection = self.listBox.curselection()[0]
     
+    def update_filelist(self):
+        currdir = os.getcwd()
+        print currdir
+        self.fileList= []
+        fileList = os.listdir(currdir)
+        
+        for filename in fileList:
+            fullfilename = os.path.join(currdir, filename)
+            if os.path.isdir(fullfilename):
+                #print "[" + filename + "]"
+                self.fileList.append("[" + filename + "]")
+            else:
+                print filename
+                self.fileList.append(filename)
+        self.fileList.append("..") 
+        self.fileList.sort()
+        self.listBox.delete(0,END)
+        
+        for item in self.fileList:
+            self.listBox.insert(END, item)
+        
+        self.selection = 0
+
     def on_enter(self, event):
 
         try:
             firstIndex = self.listBox.curselection()[0]
             self.value = self.fileList[int(firstIndex)]
             print self.value
-            if (self.value == ".."):
+            if (self.value[0] == '['):
+                 currdir = os.getcwd()
+                 filename = self.value[1:-1]
+                 fullfilename = os.path.join(currdir, filename)
+                 print fullfilename
+                 if os.path.isdir(fullfilename):
+                    os.chdir(fullfilename)
+                    self.update_filelist()
+                    
+            elif (self.value == ".."):
                print "Move to .."
                self.fileList= []
                os.chdir("..")
-               currdir = os.getcwd()
-               print currdir
-               fileList = os.listdir(currdir)
-              
+               self.update_filelist()
+ 
+            elif ("exe." == self.value[:-5:-1]):
+               self.on_runexe(self.value)
 
-               for filename in fileList:
-                   fullfilename = os.path.join(currdir, filename)
-                   if os.path.isdir(fullfilename):
-                       #print "[" + filename + "]"
-                       self.fileList.append("[" + filename + "]")
-                   else:
-                       print filename
-                       self.fileList.append(filename)
-
-               self.fileList.append("..") 
-               self.fileList.sort()
-               self.listBox.delete(0,END)
-              
-               for item in self.fileList:
-                   self.listBox.insert(END, item)
-
-               self.selection = 0
         except IndexError:
             self.value = None
             #print "Error"
@@ -116,7 +136,16 @@ if __name__ == '__main__':
     root.wm_title("ChoboFileManaer")
 
     currdir = os.getcwd()
-    fileList = os.listdir(currdir)
+    tmpfileList = os.listdir(currdir)
+
+    fileList = []
+    for filename in tmpfileList:
+        fullfilename = os.path.join(currdir, filename)
+        if os.path.isdir(fullfilename):
+            fileList.append("[" + filename + "]")
+        else:
+            fileList.append(filename)
+
     fileList.append("..")
 
     app = ChoboFileManaer(master=root, list=fileList)

@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.20
+Update : 2017.08.20c
 '''
 
 class ChoboFileManaer(Frame):
@@ -14,6 +14,20 @@ class ChoboFileManaer(Frame):
     def on_runexe(self, exefile):
         print "run " + exefile
         os.system("start " + exefile)
+
+    def on_runcmd(self):
+        tmpCmd = self.cmdbox.get()
+        print "run cmd " + tmpCmd
+        os.system("start " + tmpCmd)
+
+    def on_runcmd_delete(self):
+        print "on_runcmd_delete"
+        self.cmdbox.delete(0,END)
+
+    def on_enter_runcmd(self, event):
+        tmpCmd = self.cmdbox.get()
+        print "run cmd enter" + tmpCmd
+        os.system("start " + tmpCmd)
 
     def on_quit(self, event):
         print "Bye"
@@ -47,7 +61,7 @@ class ChoboFileManaer(Frame):
                 #print "[" + filename + "]"
                 self.fileList.append("[" + filename + "]")
             else:
-                print filename
+                #print filename
                 self.fileList.append(filename)
         self.fileList.append("..") 
         self.fileList.sort()
@@ -116,11 +130,27 @@ class ChoboFileManaer(Frame):
 
         self.QUIT.pack({"side": "left"})
 
+        self.CMD = Button(self)
+        self.CMD["text"] = "Cmd",
+        self.CMD["command"] = self.on_cmd
+
+        self.CMD.pack({"side": "left"})
+
+        self.cmdStr = StringVar()
+        self.cmdbox = Entry(self, width=60, textvariable=self.cmdStr)
+        self.cmdbox.pack({"side": "left"})
+        self.cmdbox.bind("<Return>", self.on_enter_runcmd)
+
         self.RUN = Button(self)
         self.RUN["text"] = "Run",
-        self.RUN["command"] = self.on_cmd
-
+        self.RUN["command"] = self.on_runcmd
         self.RUN.pack({"side": "left"})
+
+        self.DELETE_CMD = Button(self)
+        self.DELETE_CMD["text"] = "Clear",
+        self.DELETE_CMD["command"] = self.on_runcmd_delete
+        self.DELETE_CMD.pack({"side": "left"})
+
 
     def __init__(self, master=None, list=[]):
         Frame.__init__(self, master)

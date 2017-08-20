@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.20c
+Update : 2017.08.20d
 '''
 
 class ChoboFileManaer(Frame):
@@ -63,13 +63,18 @@ class ChoboFileManaer(Frame):
             else:
                 #print filename
                 self.fileList.append(filename)
+        #print "End1"
         self.fileList.append("..") 
+        #print "End2"
         self.fileList.sort()
+        #print "End3"
         self.listBox.delete(0,END)
-        
+        #print "End4"
         for item in self.fileList:
+            #print item
+            item = unicode(item,'cp949')
             self.listBox.insert(END, item)
-        
+        #print "End5"
         self.selection = 0
 
     def on_enter(self, event):
@@ -116,11 +121,13 @@ class ChoboFileManaer(Frame):
         self.listBox.config(yscrollcommand=scrollBar.set)
         self.fileList.sort()
         for item in self.fileList:
+            item = unicode(item,'cp949')
             self.listBox.insert(END, item)
 
         self.listBox.bind("<Return>", self.on_enter)
         self.listBox.bind("<Down>", self.on_downkey)
         self.listBox.bind("<Up>", self.on_upkey)
+        self.listBox.bind("<Double-Button-1>", self.on_enter)
 
 
         self.QUIT = Button(self)

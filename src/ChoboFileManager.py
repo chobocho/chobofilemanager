@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.20d
+Update : 2017.08.22a
 '''
 
 class ChoboFileManaer(Frame):
@@ -15,19 +15,38 @@ class ChoboFileManaer(Frame):
         print "run " + exefile
         os.system("start " + exefile)
 
-    def on_runcmd(self):
-        tmpCmd = self.cmdbox.get()
-        print "run cmd " + tmpCmd
-        os.system("start " + tmpCmd)
+    def on_runtxt(self, txtfile):
+        print "run " + txtfile
+        os.system("start notepad " + txtfile)
+
+
+    def on_Paint(self):
+        print "run command"
+        os.system("start mspaint")
+
+    def on_Note(self):
+        print "run command"
+        os.system("start notepad")
 
     def on_runcmd_delete(self):
         print "on_runcmd_delete"
         self.cmdbox.delete(0,END)
 
+    def on_runcmd(self):
+        tmpCmd = self.cmdbox.get()
+        print "run cmd " + tmpCmd
+        if (tmpCmd.strip() == "update"):
+            self.update_filelist()
+        else:
+            os.system("start " + tmpCmd)
+
     def on_enter_runcmd(self, event):
         tmpCmd = self.cmdbox.get()
-        print "run cmd enter" + tmpCmd
-        os.system("start " + tmpCmd)
+        print "run cmd enter " + tmpCmd
+        if (tmpCmd.strip() == "update"):
+            self.update_filelist()
+        else:
+            os.system("start " + tmpCmd)
 
     def on_quit(self, event):
         print "Bye"
@@ -51,6 +70,8 @@ class ChoboFileManaer(Frame):
     
     def update_filelist(self):
         currdir = os.getcwd()
+        self.currDir = currdir
+        self.currfolder.config(text=self.currDir)
         print currdir
         self.fileList= []
         fileList = os.listdir(currdir)
@@ -78,7 +99,6 @@ class ChoboFileManaer(Frame):
         self.selection = 0
 
     def on_enter(self, event):
-
         try:
             firstIndex = self.listBox.curselection()[0]
             self.value = self.fileList[int(firstIndex)]
@@ -94,12 +114,14 @@ class ChoboFileManaer(Frame):
                     
             elif (self.value == ".."):
                print "Move to .."
-               self.fileList= []
                os.chdir("..")
                self.update_filelist()
  
             elif ("exe." == self.value[:-5:-1]):
                self.on_runexe(self.value)
+
+            elif ("txt." == self.value[:-5:-1] or "gol." == self.value[:-5:-1]):
+               self.on_runtxt(self.value)
 
         except IndexError:
             self.value = None
@@ -107,8 +129,8 @@ class ChoboFileManaer(Frame):
 
     def createWidgets(self):
         
-        #Label(self, text="ChoboFileManaer").pack(padx=5, pady=5)
-
+        self.currfolder = Label(self, text=self.currDir)
+        self.currfolder.pack(padx=5, pady=5)
 
         listFrame = Frame(self)
         listFrame.pack(side=TOP, padx=5, pady=5)
@@ -134,14 +156,23 @@ class ChoboFileManaer(Frame):
         self.QUIT["text"] = "QUIT"
         self.QUIT["fg"]   = "red"
         self.QUIT["command"] =  self.quit
-
         self.QUIT.pack({"side": "left"})
 
         self.CMD = Button(self)
-        self.CMD["text"] = "Cmd",
+        self.CMD["text"] = "Cmd"
+        self.CMD["fg"]   = "blue"
         self.CMD["command"] = self.on_cmd
-
         self.CMD.pack({"side": "left"})
+
+        self.PAINT = Button(self)
+        self.PAINT["text"] = "Paint",
+        self.PAINT["command"] = self.on_Paint
+        self.PAINT.pack({"side": "left"})
+
+        self.NOTE = Button(self)
+        self.NOTE["text"] = "Note",
+        self.NOTE["command"] = self.on_Note
+        self.NOTE.pack({"side": "left"})
 
         self.cmdStr = StringVar()
         self.cmdbox = Entry(self, width=60, textvariable=self.cmdStr)
@@ -159,10 +190,11 @@ class ChoboFileManaer(Frame):
         self.DELETE_CMD.pack({"side": "left"})
 
 
-    def __init__(self, master=None, list=[]):
+    def __init__(self, master=None, dir=None, list=[]):
         Frame.__init__(self, master)
         self.fileList = list[:]
         self.value = None
+        self.currDir = dir
         self.selection = 0
         self.pack()
         self.createWidgets()
@@ -185,5 +217,5 @@ if __name__ == '__main__':
 
     fileList.append("..")
 
-    app = ChoboFileManaer(master=root, list=fileList)
+    app = ChoboFileManaer(master=root, dir=currdir, list=fileList)
     app.mainloop()

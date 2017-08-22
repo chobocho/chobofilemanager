@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.22b
+Update : 2017.08.22c
 '''
 
 class ChoboFileManaer(Frame):
@@ -14,6 +14,10 @@ class ChoboFileManaer(Frame):
     def on_runexe(self, exefile):
         print "run " + exefile
         os.system("start " + exefile)
+
+    def on_runexplorer(self):
+        print "run explorer : " + self.currDir
+        os.system("explorer " + self.currDir)
 
     def on_runtxt(self, txtfile):
         print "run " + txtfile
@@ -192,6 +196,13 @@ class ChoboFileManaer(Frame):
         self.CMD["fg"]   = "blue"
         self.CMD["command"] = self.on_cmd
         self.CMD.pack({"side": "left"})
+
+        self.EXPLORER = Button(self)
+        self.EXPLORER["text"] = "Explorer"
+        self.EXPLORER["fg"]   = "blue"
+        self.EXPLORER["command"] = self.on_runexplorer
+        self.EXPLORER.pack({"side": "left"})
+
 
         self.PAINT = Button(self)
         self.PAINT["text"] = "Paint",

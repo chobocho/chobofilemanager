@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.22a
+Update : 2017.08.22b
 '''
 
 class ChoboFileManaer(Frame):
@@ -68,10 +68,28 @@ class ChoboFileManaer(Frame):
         else:
             self.selection = self.listBox.curselection()[0]
     
+    def on_enter_currfoler(self, event):
+        prevDir = self.currDir
+        nextDir = self.currfolder.get()
+        print "change currDir enter " + nextDir
+
+        if (nextDir.strip() != ""):
+            try:
+                os.chdir(nextDir)
+                self.update_filelist()
+            except:
+                print "Error : Unexpected folder!"
+                self.currDir = prevDir
+                os.chdir(self.currDir)
+                self.update_filelist()
+        else:
+            os.system("start " + nextDir)
+
     def update_filelist(self):
         currdir = os.getcwd()
         self.currDir = currdir
-        self.currfolder.config(text=self.currDir)
+        self.currfolder.delete(0,END)
+        self.currfolder.insert(END,self.currDir)
         print currdir
         self.fileList= []
         fileList = os.listdir(currdir)
@@ -120,7 +138,11 @@ class ChoboFileManaer(Frame):
             elif ("exe." == self.value[:-5:-1]):
                self.on_runexe(self.value)
 
-            elif ("txt." == self.value[:-5:-1] or "gol." == self.value[:-5:-1]):
+            elif ("txt." == self.value[:-5:-1].lower() or
+                  "pac." == self.value[:-5:-1].lower() or 
+                  "py."  == self.value[:-4:-1].lower() or 
+                  "lmx." == self.value[:-5:-1].lower() or 
+                  "gol." == self.value[:-5:-1].lower()):
                self.on_runtxt(self.value)
 
         except IndexError:
@@ -129,8 +151,11 @@ class ChoboFileManaer(Frame):
 
     def createWidgets(self):
         
-        self.currfolder = Label(self, text=self.currDir)
+        self.currfolder = Entry(self, width=100)
+        self.currfolder.insert(END, self.currDir)
         self.currfolder.pack(padx=5, pady=5)
+        self.currfolder.bind("<Return>", self.on_enter_currfoler)
+
 
         listFrame = Frame(self)
         listFrame.pack(side=TOP, padx=5, pady=5)

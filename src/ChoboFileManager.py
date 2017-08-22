@@ -19,7 +19,6 @@ class ChoboFileManaer(Frame):
         print "run " + txtfile
         os.system("start notepad " + txtfile)
 
-
     def on_Paint(self):
         print "run command"
         os.system("start mspaint")
@@ -121,29 +120,34 @@ class ChoboFileManaer(Frame):
             firstIndex = self.listBox.curselection()[0]
             self.value = self.fileList[int(firstIndex)]
             print self.value
-            if (self.value[0] == '['):
-                 currdir = os.getcwd()
-                 filename = self.value[1:-1]
-                 fullfilename = os.path.join(currdir, filename)
-                 print fullfilename
-                 if os.path.isdir(fullfilename):
-                    os.chdir(fullfilename)
-                    self.update_filelist()
-                    
+
+            currdir = os.getcwd()
+            filename = self.value[1:-1]
+            fullfilename = os.path.join(currdir, filename)
+            isFolder = os.path.isdir(fullfilename)
+
+            if (self.value[0] == '[' and isFolder == True):
+                 print "Folder> " + fullfilename
+                 os.chdir(fullfilename)
+                 self.update_filelist()
+
+            if (isFolder):
+                return
+    
             elif (self.value == ".."):
-               print "Move to .."
-               os.chdir("..")
-               self.update_filelist()
+                print "Move to .."
+                os.chdir("..")
+                self.update_filelist()
  
             elif ("exe." == self.value[:-5:-1]):
-               self.on_runexe(self.value)
+                self.on_runexe(self.value)
 
             elif ("txt." == self.value[:-5:-1].lower() or
                   "pac." == self.value[:-5:-1].lower() or 
                   "py."  == self.value[:-4:-1].lower() or 
                   "lmx." == self.value[:-5:-1].lower() or 
                   "gol." == self.value[:-5:-1].lower()):
-               self.on_runtxt(self.value)
+                self.on_runtxt(self.value)
 
         except IndexError:
             self.value = None

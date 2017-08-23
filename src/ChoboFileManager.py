@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.22c
+Update : 2017.08.23a
 '''
 
 class ChoboFileManaer(Frame):
@@ -130,24 +130,23 @@ class ChoboFileManaer(Frame):
             fullfilename = os.path.join(currdir, filename)
             isFolder = os.path.isdir(fullfilename)
 
-            if (self.value[0] == '[' and isFolder == True):
-                 print "Folder> " + fullfilename
-                 os.chdir(fullfilename)
-                 self.update_filelist()
-
-            if (isFolder):
-                return
     
-            elif (self.value == ".."):
+            if (self.value == ".."):
                 print "Move to .."
                 os.chdir("..")
                 self.update_filelist()
+
+            elif (self.value[0] == '[' and isFolder == True):
+                 print "Folder> " + fullfilename
+                 os.chdir(fullfilename)
+                 self.update_filelist()
  
             elif ("exe." == self.value[:-5:-1]):
                 self.on_runexe(self.value)
 
             elif ("txt." == self.value[:-5:-1].lower() or
                   "pac." == self.value[:-5:-1].lower() or 
+                  "ppc." == self.value[:-5:-1].lower() or
                   "py."  == self.value[:-4:-1].lower() or 
                   "lmx." == self.value[:-5:-1].lower() or 
                   "gol." == self.value[:-5:-1].lower()):
@@ -242,7 +241,7 @@ class ChoboFileManaer(Frame):
 
 if __name__ == '__main__':
     root = Tk()
-    root.wm_title("ChoboFileManaer")
+    root.wm_title("ChoboFileManaer V0.2017.08.24a")
 
     currdir = os.getcwd()
     tmpfileList = os.listdir(currdir)

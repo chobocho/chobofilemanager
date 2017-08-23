@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.23a
+Update : 2017.08.23b
 '''
 
 class ChoboFileManaer(Frame):
@@ -92,7 +92,7 @@ class ChoboFileManaer(Frame):
         currdir = os.getcwd()
         self.currDir = currdir
         self.currfolder.delete(0,END)
-        self.currfolder.insert(END,self.currDir)
+        self.currfolder.insert(END,unicode(self.currDir,'cp949'))
         print currdir
         self.fileList= []
         fileList = os.listdir(currdir)
@@ -159,7 +159,7 @@ class ChoboFileManaer(Frame):
     def createWidgets(self):
         
         self.currfolder = Entry(self, width=100)
-        self.currfolder.insert(END, self.currDir)
+        self.currfolder.insert(END, unicode(self.currDir,'cp949'))
         self.currfolder.pack(padx=5, pady=5)
         self.currfolder.bind("<Return>", self.on_enter_currfoler)
 

@@ -1,58 +1,58 @@
-from Tkinter import *
+from tkinter import *
 import os
 
 '''
 Start  : 2017.08.20
-Update : 2017.08.23b
+Update : 2018.04.29a
 '''
 
 class ChoboFileManaer(Frame):
     def on_cmd(self):
-        print "run command"
+        print ("run command")
         os.system("start cmd")
 
     def on_runexe(self, exefile):
-        print "run " + exefile
-        os.system("start " + exefile)
+        print ("run " + exefile)
+        os.system("start (" + exefile)
 
     def on_runexplorer(self):
-        print "run explorer : " + self.currDir
+        print ("run explorer : " + self.currDir)
         os.system("explorer " + self.currDir)
 
     def on_runtxt(self, txtfile):
-        print "run " + txtfile
+        print ("run " + txtfile)
         os.system("start notepad " + txtfile)
 
     def on_Paint(self):
-        print "run command"
+        print ("run command")
         os.system("start mspaint")
 
     def on_Note(self):
-        print "run command"
+        print ("run command")
         os.system("start notepad")
 
     def on_runcmd_delete(self):
-        print "on_runcmd_delete"
+        print ("on_runcmd_delete")
         self.cmdbox.delete(0,END)
 
     def on_runcmd(self):
         tmpCmd = self.cmdbox.get()
-        print "run cmd " + tmpCmd
+        print ("run cmd " + tmpCmd)
         if (tmpCmd.strip() == "update"):
             self.update_filelist()
         else:
-            os.system("start " + tmpCmd)
+            os.system("start (" + tmpCmd)
 
     def on_enter_runcmd(self, event):
         tmpCmd = self.cmdbox.get()
-        print "run cmd enter " + tmpCmd
+        print ("run cmd enter " + tmpCmd)
         if (tmpCmd.strip() == "update"):
             self.update_filelist()
         else:
-            os.system("start " + tmpCmd)
+            os.system("start (" + tmpCmd)
 
     def on_quit(self, event):
-        print "Bye"
+        print ("Bye")
         self.master.destroy()
 
     def on_downkey(self, event):
@@ -74,56 +74,51 @@ class ChoboFileManaer(Frame):
     def on_enter_currfoler(self, event):
         prevDir = self.currDir
         nextDir = self.currfolder.get()
-        print "change currDir enter " + nextDir
+        print ("change currDir enter " + nextDir)
 
         if (nextDir.strip() != ""):
             try:
                 os.chdir(nextDir)
                 self.update_filelist()
             except:
-                print "Error : Unexpected folder!"
+                print ("Error : Unexpected folder!")
                 self.currDir = prevDir
                 os.chdir(self.currDir)
                 self.update_filelist()
         else:
-            os.system("start " + nextDir)
+            os.system("start (" + nextDir)
 
     def update_filelist(self):
         currdir = os.getcwd()
         self.currDir = currdir
         self.currfolder.delete(0,END)
-        self.currfolder.insert(END,unicode(self.currDir,'cp949'))
-        print currdir
+        self.currfolder.insert(END,self.currDir)
         self.fileList= []
         fileList = os.listdir(currdir)
         
         for filename in fileList:
             fullfilename = os.path.join(currdir, filename)
             if os.path.isdir(fullfilename):
-                #print "[" + filename + "]"
+                #print ("[" + filename + "]"
                 self.fileList.append("[" + filename + "]")
             else:
                 #print filename
                 self.fileList.append(filename)
-        #print "End1"
         self.fileList.append("..") 
-        #print "End2"
         self.fileList.sort()
-        #print "End3"
         self.listBox.delete(0,END)
-        #print "End4"
         for item in self.fileList:
             #print item
-            item = unicode(item,'cp949')
+            #item = unicode(item,'cp949')
             self.listBox.insert(END, item)
-        #print "End5"
+        #print ("End5"
         self.selection = 0
 
     def on_enter(self, event):
         try:
             firstIndex = self.listBox.curselection()[0]
             self.value = self.fileList[int(firstIndex)]
-            print self.value
+            print (self.value)
 
             currdir = os.getcwd()
             filename = self.value[1:-1]
@@ -132,12 +127,12 @@ class ChoboFileManaer(Frame):
 
     
             if (self.value == ".."):
-                print "Move to .."
+                print ("Move to ..")
                 os.chdir("..")
                 self.update_filelist()
 
             elif (self.value[0] == '[' and isFolder == True):
-                 print "Folder> " + fullfilename
+                 print ("Folder> " + fullfilename)
                  os.chdir(fullfilename)
                  self.update_filelist()
  
@@ -154,12 +149,12 @@ class ChoboFileManaer(Frame):
 
         except IndexError:
             self.value = None
-            #print "Error"
+            #print ("Error"
 
     def createWidgets(self):
         
         self.currfolder = Entry(self, width=100)
-        self.currfolder.insert(END, unicode(self.currDir,'cp949'))
+        self.currfolder.insert(END, self.currDir)
         self.currfolder.pack(padx=5, pady=5)
         self.currfolder.bind("<Return>", self.on_enter_currfoler)
 
@@ -175,7 +170,7 @@ class ChoboFileManaer(Frame):
         self.listBox.config(yscrollcommand=scrollBar.set)
         self.fileList.sort()
         for item in self.fileList:
-            item = unicode(item,'cp949')
+            #item = unicode(item,'cp949')
             self.listBox.insert(END, item)
 
         self.listBox.bind("<Return>", self.on_enter)
@@ -241,7 +236,7 @@ class ChoboFileManaer(Frame):
 
 if __name__ == '__main__':
     root = Tk()
-    root.wm_title("ChoboFileManaer V0.2017.08.24a")
+    root.wm_title("ChoboFileManaer V0.2018.04.29a")
 
     currdir = os.getcwd()
     tmpfileList = os.listdir(currdir)

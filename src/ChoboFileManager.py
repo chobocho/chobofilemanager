@@ -3,7 +3,7 @@ import os
 
 '''
 Start  : 2017.08.20
-Update : 2018.04.29a
+Update : 2018.05.13a
 '''
 
 class ChoboFileManaer(Frame):
@@ -13,7 +13,7 @@ class ChoboFileManaer(Frame):
 
     def on_runexe(self, exefile):
         print ("run " + exefile)
-        os.system("start (" + exefile)
+        os.system("start " + exefile)
 
     def on_runexplorer(self):
         print ("run explorer : " + self.currDir)
@@ -41,7 +41,7 @@ class ChoboFileManaer(Frame):
         if (tmpCmd.strip() == "update"):
             self.update_filelist()
         else:
-            os.system("start (" + tmpCmd)
+            os.system("start " + tmpCmd)
 
     def on_enter_runcmd(self, event):
         tmpCmd = self.cmdbox.get()
@@ -49,7 +49,7 @@ class ChoboFileManaer(Frame):
         if (tmpCmd.strip() == "update"):
             self.update_filelist()
         else:
-            os.system("start (" + tmpCmd)
+            os.system("start " + tmpCmd)
 
     def on_quit(self, event):
         print ("Bye")
@@ -86,7 +86,7 @@ class ChoboFileManaer(Frame):
                 os.chdir(self.currDir)
                 self.update_filelist()
         else:
-            os.system("start (" + nextDir)
+            os.system("start " + nextDir)
 
     def update_filelist(self):
         currdir = os.getcwd()

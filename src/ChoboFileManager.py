@@ -15,6 +15,10 @@ class ChoboFileManaer(Frame):
         print ("run " + exefile)
         os.system("start " + exefile)
 
+    def on_runPython(sefl, pythonFile):
+        print ("run python " + pythonFile)
+        os.system("start python " + pythonFile)
+
     def on_runexplorer(self):
         print ("run explorer : " + self.currDir)
         os.system("explorer " + self.currDir)
@@ -138,11 +142,14 @@ class ChoboFileManaer(Frame):
  
             elif ("exe." == self.value[:-5:-1]):
                 self.on_runexe(self.value)
+     
+            elif ("yp." == self.value[:-4:-1].lower() or 
+                  "wyp." ==  self.value[:-5:-1].lower()):
+                self.on_runPython(self.value)
 
             elif ("txt." == self.value[:-5:-1].lower() or
                   "pac." == self.value[:-5:-1].lower() or 
-                  "ppc." == self.value[:-5:-1].lower() or
-                  "py."  == self.value[:-4:-1].lower() or 
+                  "ppc." == self.value[:-5:-1].lower() or                  
                   "lmx." == self.value[:-5:-1].lower() or 
                   "gol." == self.value[:-5:-1].lower()):
                 self.on_runtxt(self.value)

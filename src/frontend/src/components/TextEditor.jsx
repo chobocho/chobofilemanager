@@ -4,12 +4,13 @@ import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/TextEditor.module.css'
 
 export default function TextEditor({ path, onClose }) {
-  const [content, setContent]   = useState('')
-  const [original, setOriginal] = useState('')
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState(null)
-  const [cursor, setCursor]     = useState({ line: 1, col: 1 })
+  const [content, setContent]         = useState('')
+  const [original, setOriginal]       = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [error, setError]             = useState(null)
+  const [cursor, setCursor]           = useState({ line: 1, col: 1 })
+  const [confirmClose, setConfirmClose] = useState(false)
   const textareaRef = useRef(null)
   const { readFile, writeFile } = useFileStore.getState()
   const fileName = path?.split('/').pop() || path?.split('\\').pop() || 'file'
@@ -33,7 +34,14 @@ export default function TextEditor({ path, onClose }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        if (isDirty) {
+          setConfirmClose(true)
+        } else {
+          onClose()
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
         handleSave()
@@ -41,7 +49,7 @@ export default function TextEditor({ path, onClose }) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [content])
+  }, [content, isDirty])
 
   const handleSave = async () => {
     setSaving(true)
@@ -53,6 +61,11 @@ export default function TextEditor({ path, onClose }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleSaveAndClose = async () => {
+    await handleSave()
+    onClose()
   }
 
   const handleCursorChange = () => {
@@ -81,6 +94,21 @@ export default function TextEditor({ path, onClose }) {
 
   return (
     <div className={styles.overlay}>
+      {confirmClose && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <div className={styles.confirmTitle}>저장하지 않은 변경사항</div>
+            <div className={styles.confirmMsg}>
+              <strong>{fileName}</strong>의 변경사항을 저장하시겠습니까?
+            </div>
+            <div className={styles.confirmActions}>
+              <button className={styles.btnSaveConfirm} onClick={handleSaveAndClose}>저장</button>
+              <button className={styles.btnDiscard}     onClick={onClose}>저장 안 함</button>
+              <button className={styles.btnCancel}      onClick={() => setConfirmClose(false)}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={styles.editor}>
         {/* Header */}
         <div className={styles.header}>

@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-04-11 (31)
+
+### #19 내장 편집기 ESC 시 저장 확인 팝업
+
+- `src/frontend/src/components/TextEditor.jsx`
+  - `confirmClose` state 추가
+  - ESC 핸들러: `isDirty`이면 `setConfirmClose(true)`, 아니면 즉시 닫기
+  - `handleSaveAndClose`: 저장 후 닫기
+  - 인라인 확인 다이얼로그 렌더링 (저장 / 저장 안 함 / 취소)
+- `src/frontend/src/styles/TextEditor.module.css`
+  - `.confirmOverlay`, `.confirmDialog`, `.confirmTitle`, `.confirmMsg`, `.confirmActions` 추가
+  - 버튼 스타일: `.btnSaveConfirm` / `.btnDiscard` / `.btnCancel`
+
 ## 2026-04-11 (30)
 
 ### #17/#18 모든 탭 세션 저장 및 복원

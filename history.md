@@ -1,5 +1,24 @@
 # 변경 이력
 
+## 2026-04-11 (42)
+
+### #29 FTP 뷰 UX를 File View와 통일
+
+- `src/frontend/src/components/FTPManager.jsx`
+  - `FileListPanel` 공유 서브컴포넌트 추출: 로컬 패널과 FTP 패널이 동일한 렌더링 코드 사용
+  - 파일 아이콘: 이모지(📁📄) → lucide 아이콘 + 색상 (FilePanel 동일 아이콘 맵 적용)
+  - 날짜 형식: `toLocaleDateString()` → `YYYY-MM-DD HH:MM` (FilePanel과 동일)
+  - 컬럼 구조: Name·Size·Modified(3) → Name·Size·Modified·Ext(4)
+  - `[..]` 부모 행 추가: 로컬·FTP 양쪽 모두 상위 폴더 이동 가능
+  - 키보드 내비게이션 추가: `tabIndex={0}` + ArrowUp/Down·Enter·Backspace·Space(선택)
+  - 커서 상태 (`cursor`, `cursorOnParent`) 로컬·FTP 각각 관리
+  - FTP 선택 변수명 `selected` → `ftpSelected` (충돌 방지)
+- `src/frontend/src/styles/FTPManager.module.css`
+  - `.fileListPanel` 클래스 추가 (파일 패널 공통 스타일)
+  - `.cursor` 클래스 추가 (키보드 커서 하이라이트)
+  - `.colName/.colSize/.colDate/.colExt` 컬럼 클래스 추가 (FilePanel 레이아웃 통일)
+  - 날짜 컬럼 너비 140px → 130px (YYYY-MM-DD HH:MM 포맷에 맞춤)
+
 ## 2026-04-11 (41)
 
 ### #28 보완: 포커스 후 방향키 미작동 수정

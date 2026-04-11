@@ -32,13 +32,14 @@ export const useFileStore = create((set, get) => ({
   status: '',
 
   init: async () => {
-    const [home, drives] = await Promise.all([
+    const [home, drives, saved] = await Promise.all([
       api.GetHomeDirectory(),
       api.GetDrives(),
+      api.LoadPanelPaths(),
     ])
     set({ drives })
-    await get().navigate('left', home)
-    await get().navigate('right', home)
+    await get().navigate('left',  saved.leftPath  || home)
+    await get().navigate('right', saved.rightPath || home)
   },
 
   setActivePanel: (panel) => set({ activePanel: panel }),
@@ -62,6 +63,9 @@ export const useFileStore = create((set, get) => ({
           cursorOnParent: false,
         }
       }))
+      // 좌우 패널 경로 저장 (에러는 무시)
+      const st = get()
+      api.SavePanelPaths(st.left.path, st.right.path).catch(() => {})
     } catch (err) {
       set(s => ({
         [panel]: {

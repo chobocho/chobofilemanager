@@ -154,6 +154,7 @@ export default function App() {
       {deleteTarget && (
         <ConfirmDialog title="Delete Items"
           message={deleteError ? `삭제 실패: ${deleteError}` : `Permanently delete ${deleteTarget.count} item(s)?`}
+          items={deleteTarget.paths.map(p => p.split(/[/\\]/).pop())}
           confirmLabel="Delete" danger
           onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); setDeleteError(null); focusActivePanel() }} />
       )}

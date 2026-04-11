@@ -1,5 +1,40 @@
 # 변경 이력
 
+## 2026-04-11 (18)
+
+### Todo #10 - F8 삭제 팝업에 파일명 목록 표시
+
+- `src/frontend/src/components/ConfirmDialog.jsx`
+  - `ConfirmDialog`에 `items` prop 추가 (파일명 배열)
+  - `items`가 있으면 메시지 아래에 스크롤 가능한 파일명 목록 렌더링
+- `src/frontend/src/styles/Dialogs.module.css`
+  - `.deleteList`: 최대 높이 160px, 스크롤, 테두리
+  - `.deleteItem`: 각 행 패딩, 하단 구분선
+  - `.deleteItemName`: mono 폰트, 말줄임 처리
+- `src/frontend/src/App.jsx`
+  - 삭제 다이얼로그에 `items={deleteTarget.paths.map(p => p.split(/[/\\]/).pop())}` 전달
+
+**테스트 결과**: JS 73개 전체 통과
+
+## 2026-04-11 (17)
+
+### Todo #9 - 종료 시 패널 경로 저장 → 재시작 시 복원
+
+- `src/settings.go` 신규 생성
+  - `AppSettings` 구조체: `LeftPath`, `RightPath`
+  - `settingsFilePath()`: `~/.totalcmd/settings.json` 경로 반환
+  - `SavePanelPaths(left, right string) error`: JSON으로 저장
+  - `LoadPanelPaths() AppSettings`: JSON 로드, 경로 존재 여부 검증 (없으면 빈 문자열 반환)
+- `src/frontend/src/stores/fileStore.js`
+  - `init()`: `LoadPanelPaths()` 병렬 호출 → 저장된 경로가 있으면 해당 경로로, 없으면 홈으로 이동
+  - `navigate()`: 탐색 완료 후 `SavePanelPaths(left, right)` 비동기 호출 (에러 무시)
+- `src/filemanager_test.go`
+  - `TestSavePanelPaths_AndLoad`: 저장 후 로드 왕복 검증
+  - `TestLoadPanelPaths_NonexistentPathReturnsEmpty`: 존재하지 않는 경로는 빈 문자열로 반환
+  - `TestLoadPanelPaths_NoFileReturnsEmpty`: settings.json 없을 때 빈 구조체 반환
+
+**테스트 결과**: Go 전체 통과
+
 ## 2026-04-11 (16)
 
 ### Todo #8 - 압축 풀기 시 파일명으로 서브폴더 생성

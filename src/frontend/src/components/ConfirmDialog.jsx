@@ -28,7 +28,7 @@ function Modal({ children, onClose, width = 400 }) {
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
 
-export function ConfirmDialog({ title, message, confirmLabel = 'Confirm', danger, onConfirm, onClose }) {
+export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm', danger, onConfirm, onClose }) {
   return (
     <Modal onClose={onClose}>
       <div className={styles.header}>
@@ -38,6 +38,15 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Confirm', danger
       </div>
       <div className={styles.body}>
         <p className={styles.message}>{message}</p>
+        {items && items.length > 0 && (
+          <div className={styles.deleteList}>
+            {items.map((name, i) => (
+              <div key={i} className={styles.deleteItem} title={name}>
+                <span className={styles.deleteItemName}>{name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className={styles.footer}>
         <button className={styles.btnCancel} onClick={onClose}>Cancel</button>

@@ -736,3 +736,64 @@ func TestGetFileSize(t *testing.T) {
 		t.Errorf("expected 11 bytes, got %d", size)
 	}
 }
+
+// ─── SavePanelPaths / LoadPanelPaths ─────────────────────────────────────────
+
+func newTestApp(t *testing.T) *App {
+	t.Helper()
+	dir := t.TempDir()
+	// settingsFilePath()가 UserHomeDir를 쓰므로, 직접 경로를 조작하는 대신
+	// 헬퍼 함수를 통해 테스트용 App을 설정
+	_ = dir
+	return NewApp()
+}
+
+func TestSavePanelPaths_AndLoad(t *testing.T) {
+	a := NewApp()
+
+	leftPath := t.TempDir()
+	rightPath := t.TempDir()
+
+	if err := a.SavePanelPaths(leftPath, rightPath); err != nil {
+		t.Fatalf("SavePanelPaths error: %v", err)
+	}
+
+	loaded := a.LoadPanelPaths()
+	if loaded.LeftPath != leftPath {
+		t.Errorf("LeftPath: got %q, want %q", loaded.LeftPath, leftPath)
+	}
+	if loaded.RightPath != rightPath {
+		t.Errorf("RightPath: got %q, want %q", loaded.RightPath, rightPath)
+	}
+}
+
+func TestLoadPanelPaths_NonexistentPathReturnsEmpty(t *testing.T) {
+	a := NewApp()
+
+	// 존재하지 않는 경로를 저장
+	if err := a.SavePanelPaths("/no/such/path/left", "/no/such/path/right"); err != nil {
+		t.Fatalf("SavePanelPaths error: %v", err)
+	}
+
+	loaded := a.LoadPanelPaths()
+	// 존재하지 않는 경로는 빈 문자열로 반환되어야 함
+	if loaded.LeftPath != "" {
+		t.Errorf("LeftPath should be empty for nonexistent path, got %q", loaded.LeftPath)
+	}
+	if loaded.RightPath != "" {
+		t.Errorf("RightPath should be empty for nonexistent path, got %q", loaded.RightPath)
+	}
+}
+
+func TestLoadPanelPaths_NoFileReturnsEmpty(t *testing.T) {
+	// settings.json이 없을 때 빈 구조체 반환 (에러 없음)
+	a := NewApp()
+	// 저장 파일을 지워서 없는 상태 시뮬레이션
+	path, _ := settingsFilePath()
+	os.Remove(path)
+
+	loaded := a.LoadPanelPaths()
+	if loaded.LeftPath != "" || loaded.RightPath != "" {
+		t.Errorf("파일 없을 때 빈 경로가 반환되어야 함: got left=%q right=%q", loaded.LeftPath, loaded.RightPath)
+	}
+}

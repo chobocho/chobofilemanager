@@ -8,6 +8,7 @@ const SECTIONS = [
     rows: [
       { keys: ['F2', 'Ctrl+R'], desc: '이름 바꾸기' },
       { keys: ['F3'],           desc: '파일 보기 (텍스트/이미지)' },
+      { keys: ['F4'],           desc: '내장 에디터로 파일 편집' },
       { keys: ['F5'],           desc: '복사 (반대 패널로)' },
       { keys: ['F6'],           desc: '이동 (반대 패널로)' },
       { keys: ['F7'],           desc: '새 폴더 만들기' },

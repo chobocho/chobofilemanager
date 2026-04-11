@@ -1,12 +1,12 @@
 import React from 'react'
 import styles from '../styles/FKeyBar.module.css'
 
-export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onRename, onHelp, onView }) {
+export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onRename, onHelp, onView, onEdit }) {
   const keys = [
     { num: 'F1', label: 'Help',   action: onHelp,   active: !!onHelp },
     { num: 'F2', label: 'Rename', action: onRename, active: !!onRename },
     { num: 'F3', label: 'View',   action: onView,   active: !!onView },
-    { num: 'F4', label: 'Edit',   action: null,     active: false },
+    { num: 'F4', label: 'Edit',   action: onEdit,   active: !!onEdit },
     { num: 'F5', label: 'Copy',   action: onCopy,   active: !!onCopy },
     { num: 'F6', label: 'Move',   action: onMove,   active: !!onMove },
     { num: 'F7', label: 'NewDir', action: onNewDir, active: !!onNewDir },

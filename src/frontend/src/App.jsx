@@ -111,6 +111,14 @@ export default function App() {
           const file = visible[panel.cursor]
           if (file && !file.isDir) setViewerFile(file.path)
         }}
+        onEdit={() => {
+          const s = useFileStore.getState()
+          const panel = s[s.activePanel]
+          if (panel.cursorOnParent) return
+          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+          const file = visible[panel.cursor]
+          if (file && !file.isDir) setEditorFile(file.path)
+        }}
         onCopy={() => useFileStore.getState().copy()}
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
@@ -140,6 +148,14 @@ export default function App() {
           const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
           const file = visible[panel.cursor]
           if (file && !file.isDir) setViewerFile(file.path)
+        }}
+        onEdit={() => {
+          const s = useFileStore.getState()
+          const panel = s[s.activePanel]
+          if (panel.cursorOnParent) return
+          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+          const file = visible[panel.cursor]
+          if (file && !file.isDir) setEditorFile(file.path)
         }}
         onCopy={() => useFileStore.getState().copy()}
         onMove={() => useFileStore.getState().move()}

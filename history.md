@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-04-11 (26)
+
+### F4 키 내장 에디터 연결
+
+- `src/frontend/src/components/FKeyBar.jsx`: `onEdit` prop 추가, F4 버튼 활성화
+- `src/frontend/src/components/Toolbar.jsx`: `onEdit` prop 추가, 전역 keydown에 `F4` → `onEdit?.()` 추가
+- `src/frontend/src/App.jsx`:
+  - Toolbar와 FKeyBar 양쪽에 `onEdit` �핸들러 추가
+  - 활성 패널의 커서 위치 파일을 `setEditorFile`로 연결 (디렉토리/[..] 제외)
+- `src/frontend/src/components/HelpDialog.jsx`: F4 항목 추가
+
+**테스트 결과**: Vite 빌드 성공
+
 ## 2026-04-11 (25)
 
 ### 멀티 탭 지원 (Total Commander 스타일)

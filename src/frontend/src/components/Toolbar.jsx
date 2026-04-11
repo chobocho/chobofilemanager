@@ -9,7 +9,7 @@ import { useThemeStore } from '../stores/themeStore'
 export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
-  onRename, onCopy, onMove, onNewDir, onDelete, onView, onSwitchPanel, onBookmarks, onHelp,
+  onRename, onCopy, onMove, onNewDir, onDelete, onView, onEdit, onSwitchPanel, onBookmarks, onHelp,
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
@@ -23,6 +23,7 @@ export default function Toolbar({
         case 'Tab': e.preventDefault(); onSwitchPanel?.(); break
         case 'F2': e.preventDefault(); onRename();         break
         case 'F3': e.preventDefault(); onView?.();         break
+        case 'F4': e.preventDefault(); onEdit?.();         break
         case 'F5': e.preventDefault(); onCopy();           break
         case 'F6': e.preventDefault(); onMove();           break
         case 'F7': e.preventDefault(); onNewDir();         break
@@ -48,7 +49,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onHelp, onSearch, onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
+  }, [onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
 
   return (
     <div className={styles.toolbar}>

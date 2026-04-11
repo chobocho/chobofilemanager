@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-04-11 (39)
+
+### #27 도움말 업데이트
+
+- `src/frontend/src/components/HelpDialog.jsx`
+  - Ctrl+R 설명 수정: 이름 바꾸기 → 새로고침 (실제 동작과 일치하도록)
+  - **탭** 섹션 신규 추가: Ctrl+T(새 탭), Ctrl+W(탭 닫기), Ctrl+Tab(다음 탭), Ctrl+Shift+Tab(이전 탭)
+  - **파일 조작** 추가: F8/Delete(삭제), Ctrl+Shift+C(경로 복사)
+  - **탐색 및 선택** 추가: Insert(선택 후 이동), Ctrl+A(전체 선택)
+  - **기타** 추가: Ctrl+H(숨김 토글), 눈 아이콘 항목 제거(Ctrl+H로 통합)
+  - PgUp/PgDn, Home/End 항목 제거 (현재 미구현)
+- `src/frontend/src/components/Toolbar.jsx`
+  - Ctrl+R 글로벌 핸들러에서 rename 호출 제거 (FilePanel의 refresh와 충돌 방지)
+  - 이름 바꾸기는 F2 단독 사용
+
 ## 2026-04-11 (38)
 
 ### #26 Ctrl+Tab 시 포커스 패널의 탭만 전환

@@ -43,10 +43,7 @@ export default function Toolbar({
         case 'D':
           if (e.ctrlKey) { e.preventDefault(); onBookmarks?.(); }
           break
-        case 'r':
-        case 'R':
-          if (e.ctrlKey) { e.preventDefault(); onRename(); }
-          break
+        // Ctrl+R 는 FilePanel 에서 새로고침(refresh)으로 처리 — 여기서는 무시
         default: break
       }
     }

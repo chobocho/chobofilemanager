@@ -514,13 +514,84 @@ func TestExtractArchive_ValidZip(t *testing.T) {
 		t.Fatalf("ExtractArchive error: %v", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(destDir, "hello.txt"))
+	// makeTestZip이 "test.zip"을 생성하므로 서브폴더명은 "test"
+	subDir := filepath.Join(destDir, "test")
+	data, err := os.ReadFile(filepath.Join(subDir, "hello.txt"))
 	if err != nil || string(data) != "hello" {
 		t.Errorf("hello.txt content mismatch: %v", err)
 	}
-	data, err = os.ReadFile(filepath.Join(destDir, "sub", "world.txt"))
+	data, err = os.ReadFile(filepath.Join(subDir, "sub", "world.txt"))
 	if err != nil || string(data) != "world" {
 		t.Errorf("sub/world.txt content mismatch: %v", err)
+	}
+}
+
+func TestExtractArchive_CreatesSubfolder(t *testing.T) {
+	base := t.TempDir()
+	// "myarchive.zip" 이름으로 생성
+	zipPath := filepath.Join(base, "myarchive.zip")
+	zf, _ := os.Create(zipPath)
+	w := zip.NewWriter(zf)
+	fw, _ := w.Create("readme.txt")
+	fw.Write([]byte("content"))
+	w.Close()
+	zf.Close()
+
+	destDir := filepath.Join(base, "output")
+	os.MkdirAll(destDir, 0755)
+
+	fm := newTestFM()
+	if err := fm.ExtractArchive(zipPath, destDir); err != nil {
+		t.Fatalf("ExtractArchive error: %v", err)
+	}
+
+	// 서브폴더 "myarchive"가 생성되어야 함
+	subDir := filepath.Join(destDir, "myarchive")
+	if _, err := os.Stat(subDir); os.IsNotExist(err) {
+		t.Error("서브폴더 'myarchive'가 생성되지 않았습니다")
+	}
+	data, err := os.ReadFile(filepath.Join(subDir, "readme.txt"))
+	if err != nil || string(data) != "content" {
+		t.Errorf("readme.txt content mismatch: %v", err)
+	}
+}
+
+func TestExtractArchive_DuplicateFolderSuffix(t *testing.T) {
+	base := t.TempDir()
+	zipPath := filepath.Join(base, "myarchive.zip")
+	zf, _ := os.Create(zipPath)
+	w := zip.NewWriter(zf)
+	fw, _ := w.Create("file.txt")
+	fw.Write([]byte("data"))
+	w.Close()
+	zf.Close()
+
+	destDir := filepath.Join(base, "output")
+	os.MkdirAll(destDir, 0755)
+	fm := newTestFM()
+
+	// 1회 추출 → "myarchive" 생성
+	if err := fm.ExtractArchive(zipPath, destDir); err != nil {
+		t.Fatalf("1차 추출 실패: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "myarchive")); os.IsNotExist(err) {
+		t.Fatal("'myarchive' 폴더가 생성되지 않았습니다")
+	}
+
+	// 2회 추출 → "myarchive (1)" 생성
+	if err := fm.ExtractArchive(zipPath, destDir); err != nil {
+		t.Fatalf("2차 추출 실패: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "myarchive (1)")); os.IsNotExist(err) {
+		t.Fatal("'myarchive (1)' 폴더가 생성되지 않았습니다")
+	}
+
+	// 3회 추출 → "myarchive (2)" 생성
+	if err := fm.ExtractArchive(zipPath, destDir); err != nil {
+		t.Fatalf("3차 추출 실패: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "myarchive (2)")); os.IsNotExist(err) {
+		t.Fatal("'myarchive (2)' 폴더가 생성되지 않았습니다")
 	}
 }
 
@@ -542,10 +613,15 @@ func TestExtractArchive_ZipSlipBlocked(t *testing.T) {
 	fm := newTestFM()
 	fm.ExtractArchive(zipPath, destDir)
 
-	// destDir 밖에 파일이 생성되면 안 됨
-	escapePath := filepath.Join(base, "escape.txt")
-	if _, err := os.Stat(escapePath); err == nil {
-		t.Error("zip slip: file escaped outside destDir!")
+	// 서브폴더(malicious) 밖에 파일이 생성되면 안 됨
+	// 탈출 시도 경로: destDir/malicious/../escape.txt → destDir/escape.txt
+	escapePath1 := filepath.Join(base, "escape.txt")
+	escapePath2 := filepath.Join(destDir, "escape.txt")
+	if _, err := os.Stat(escapePath1); err == nil {
+		t.Error("zip slip: file escaped outside base dir!")
+	}
+	if _, err := os.Stat(escapePath2); err == nil {
+		t.Error("zip slip: file escaped outside subDir!")
 	}
 }
 

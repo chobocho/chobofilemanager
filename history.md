@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-04-11 (16)
+
+### Todo #8 - 압축 풀기 시 파일명으로 서브폴더 생성
+
+- `src/filemanager.go` — `ExtractArchive` 수정
+  - 압축 파일명에서 확장자를 제거한 이름으로 `destDir` 하위에 서브폴더 생성
+  - 예: `archive.zip` → `destDir/archive/` 에 압축 해제
+  - `os.MkdirAll`로 서브폴더 생성 실패 시 에러 반환
+- `src/filemanager_test.go` — 테스트 업데이트
+  - `TestExtractArchive_ValidZip`: `destDir/test/` 하위에서 파일 확인하도록 수정
+  - `TestExtractArchive_ZipSlipBlocked`: 서브폴더 경로 기준으로 탈출 방지 검증 강화
+  - `TestExtractArchive_CreatesSubfolder` 신규 추가: `myarchive.zip` → `output/myarchive/` 서브폴더 생성 검증
+
+**테스트 결과**: Go 전체 통과
+
 ## 2026-04-11 (15)
 
 ### 버그수정: F3 키로 파일 뷰어가 열리지 않는 문제

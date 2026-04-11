@@ -53,18 +53,22 @@ export default function App() {
     }
   }
 
-  const handleCompress = () => {
+  const handleCompress = async () => {
     const store = useFileStore.getState()
-    store.compress(store.activePanel)
+    await store.compress(store.activePanel)
+    focusActivePanel()
   }
 
-  const handleExtract = () => {
+  const handleExtract = async () => {
     const store = useFileStore.getState()
     const panel = store[store.activePanel]
-    const cursor = panel.files[panel.cursor]
+    if (panel.cursorOnParent) return
+    const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+    const cursor = visible[panel.cursor]
     if (cursor && !cursor.isDir) {
-      store.extract(store.activePanel, cursor.path)
+      await store.extract(store.activePanel, cursor.path)
     }
+    focusActivePanel()
   }
 
   const handleNewFile = async (name) => {

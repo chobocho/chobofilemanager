@@ -393,6 +393,24 @@ func (fm *FileManager) CompressItems(sources []string, destPath string) error {
 }
 
 func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
+	// 압축 파일명(확장자 제거)으로 서브폴더 생성, 이미 존재하면 (N) 접미사 추가
+	base := filepath.Base(archivePath)
+	folderName := strings.TrimSuffix(base, filepath.Ext(base))
+	subDir := filepath.Join(destDir, folderName)
+	if _, err := os.Stat(subDir); err == nil {
+		for n := 1; ; n++ {
+			candidate := filepath.Join(destDir, fmt.Sprintf("%s (%d)", folderName, n))
+			if _, err := os.Stat(candidate); os.IsNotExist(err) {
+				subDir = candidate
+				break
+			}
+		}
+	}
+	destDir = subDir
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
+
 	r, err := zip.OpenReader(archivePath)
 	if err != nil {
 		return err

@@ -3,6 +3,12 @@ import api from '../wailsjs/runtime'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
+// 경로에서 부모 디렉토리를 반환합니다.
+function parentDir(path) {
+  const last = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
+  return last > 0 ? path.substring(0, last) : path
+}
+
 export function joinPath(base, name) {
   const sep = base.includes('\\') ? '\\' : '/'
   return base.replace(/[/\\]+$/, '') + sep + name
@@ -240,7 +246,7 @@ export const useFileStore = create((set, get) => ({
     set({ status: `Copying ${selected.length} item(s)...` })
     try {
       await api.CopyItems(selected, dest)
-      await get().refresh(other)
+      await get()._refreshAffected([dest])
       set({ status: `Copied ${selected.length} item(s)` })
     } catch (err) {
       set({ status: `Copy failed: ${err}` })
@@ -261,7 +267,7 @@ export const useFileStore = create((set, get) => ({
       } else if (mode === 'skip') {
         await api.CopyItemsSkipConflicts(sources, dest)
       }
-      await get().refresh(other)
+      await get()._refreshAffected([dest])
       set({ status: `Copied ${sources.length} item(s)` })
     } catch (err) {
       set({ status: `Copy failed: ${err}` })
@@ -282,8 +288,8 @@ export const useFileStore = create((set, get) => ({
     set({ status: `Moving ${selected.length} item(s)...` })
     try {
       await api.MoveItems(selected, state[other].path)
-      await get().refresh(panel)
-      await get().refresh(other)
+      const affectedDirs = [...new Set([...selected.map(p => parentDir(p)), state[other].path])]
+      await get()._refreshAffected(affectedDirs)
       set({ status: `Moved ${selected.length} item(s)` })
     } catch (err) {
       set({ status: `Move failed: ${err}` })
@@ -310,7 +316,7 @@ export const useFileStore = create((set, get) => ({
     set({ status: `Deleting ${paths.length} item(s)...` })
     try {
       await api.DeleteItems(paths)
-      await get().refresh(panel)
+      await get()._refreshAffected([...new Set(paths.map(p => parentDir(p)))])
       set({ status: `Deleted ${paths.length} item(s)` })
     } catch (err) {
       set({ status: `Delete failed: ${err}` })
@@ -335,7 +341,7 @@ export const useFileStore = create((set, get) => ({
     const newPath = oldPath.substring(0, lastSep + 1) + newName
     try {
       await api.RenameItem(oldPath, newPath)
-      await get().refresh(panel)
+      await get()._refreshAffected([parentDir(oldPath)])
       set({ status: `Renamed → ${newName}` })
     } catch (err) {
       set({ status: `Rename failed: ${err}` })
@@ -373,9 +379,21 @@ export const useFileStore = create((set, get) => ({
 
   writeFile: async (path, content) => {
     await api.WriteTextFile(path, content)
+    await get()._refreshAffected([parentDir(path)])
   },
 
   setStatus: (status) => set({ status }),
+
+  // 영향 받은 디렉토리를 표시 중인 패널의 활성 탭을 모두 리프레시합니다.
+  _refreshAffected: async (dirs) => {
+    const lower = new Set(dirs.map(d => d.toLowerCase()))
+    const st = get()
+    await Promise.all(
+      ['left', 'right']
+        .filter(panel => lower.has(st[panel].path.toLowerCase()))
+        .map(panel => get().refresh(panel))
+    )
+  },
 
   // 현재 세션(양쪽 패널의 모든 탭 경로)을 백엔드에 저장합니다.
   _saveSession: () => {

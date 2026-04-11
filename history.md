@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-04-11 (37)
+
+### #25 파일 작업 후 영향 받는 경로의 탭 리프레시
+
+- `src/frontend/src/stores/fileStore.js`
+  - `parentDir(path)`: 경로에서 부모 디렉토리 반환 헬퍼 추가
+  - `_refreshAffected(dirs)`: 영향 받은 디렉토리를 표시 중인 양쪽 패널의 활성 탭을 동시 리프레시
+  - `confirmDelete`: 삭제된 파일들의 부모 디렉토리들을 `_refreshAffected`로 처리
+  - `copy` / `copyWithMode`: 복사 대상 디렉토리를 `_refreshAffected`로 처리
+  - `move`: 소스 파일들의 부모 디렉토리 + 대상 디렉토리 모두 처리
+  - `rename`: 이름 변경된 파일의 부모 디렉토리 처리
+  - `writeFile`: 에디터 저장 후 해당 파일의 부모 디렉토리 처리
+
 ## 2026-04-11 (36)
 
 ### #24 [..] 선택 시 첫 번째 파일도 함께 강조되는 버그 수정

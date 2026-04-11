@@ -20,6 +20,7 @@ const createPanelState = (side) => ({
   history: [],
   historyIndex: -1,
   cursor: 0,
+  cursorOnParent: false,
 })
 
 export const useFileStore = create((set, get) => ({
@@ -58,6 +59,7 @@ export const useFileStore = create((set, get) => ({
           history: newHistory,
           historyIndex: newHistory.length - 1,
           cursor: 0,
+          cursorOnParent: false,
         }
       }))
     } catch (err) {
@@ -146,7 +148,11 @@ export const useFileStore = create((set, get) => ({
   },
 
   setCursor: (panel, index) => {
-    set(s => ({ [panel]: { ...s[panel], cursor: index } }))
+    set(s => ({ [panel]: { ...s[panel], cursor: index, cursorOnParent: false } }))
+  },
+
+  setCursorOnParent: (panel, val) => {
+    set(s => ({ [panel]: { ...s[panel], cursorOnParent: val } }))
   },
 
   setSort: (panel, sortBy) => {
@@ -223,7 +229,10 @@ export const useFileStore = create((set, get) => ({
       const cursor = state[panel].files[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
-    if (!selected.length) return { paths: [], count: 0 }
+    if (!selected.length) {
+      set({ status: '삭제할 파일이 없습니다.' })
+      return { paths: [], count: 0 }
+    }
     return { paths: selected, count: selected.length }
   },
 
@@ -236,6 +245,7 @@ export const useFileStore = create((set, get) => ({
       set({ status: `Deleted ${paths.length} item(s)` })
     } catch (err) {
       set({ status: `Delete failed: ${err}` })
+      throw err
     }
   },
 

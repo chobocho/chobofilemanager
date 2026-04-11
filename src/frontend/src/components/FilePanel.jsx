@@ -122,12 +122,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
 
   const [pathInput, setPathInput] = useState('')
   const [editingPath, setEditingPath] = useState(false)
-  const [cursorOnParent, setCursorOnParent] = useState(false)
+  const cursorOnParent = panel.cursorOnParent
   const drives = store.drives
 
   useEffect(() => {
     setPathInput(panel.path)
-    setCursorOnParent(false)   // 디렉토리 이동 시 .. 커서 초기화
   }, [panel.path])
 
   const visibleFiles = panel.showHidden
@@ -185,14 +184,14 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
           store.setCursor(side, cur - 1)
           scrollToCursor(cur - 1, showParent)
         } else if (showParent) {
-          setCursorOnParent(true)
+          store.setCursorOnParent(side, true)
           scrollToParentRow()
         }
         break
       case 'ArrowDown':
         e.preventDefault()
         if (cursorOnParent) {
-          setCursorOnParent(false)
+          store.setCursorOnParent(side, false)
           store.setCursor(side, 0)
           scrollToCursor(0, showParent)
         } else if (cur < files.length - 1) {
@@ -390,7 +389,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
               ${cursorOnParent ? styles.cursor : ''}
               ${styles.even}
             `}
-            onClick={(e) => { e.stopPropagation(); store.setActivePanel(side); setCursorOnParent(true) }}
+            onClick={(e) => { e.stopPropagation(); store.setActivePanel(side); store.setCursorOnParent(side, true) }}
             onDoubleClick={(e) => { e.stopPropagation(); store.navigateUp(side) }}
             title="Parent directory"
           >

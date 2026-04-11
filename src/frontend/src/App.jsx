@@ -21,6 +21,7 @@ export default function App() {
   const [editorFile, setEditorFile] = useState(null)
   const [viewerFile, setViewerFile] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError]   = useState(null)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
@@ -41,9 +42,14 @@ export default function App() {
 
   const handleConfirmDelete = async () => {
     if (deleteTarget) {
-      await useFileStore.getState().confirmDelete(deleteTarget.paths)
-      setDeleteTarget(null)
-      focusActivePanel()
+      try {
+        await useFileStore.getState().confirmDelete(deleteTarget.paths)
+        setDeleteTarget(null)
+        setDeleteError(null)
+        focusActivePanel()
+      } catch (err) {
+        setDeleteError(String(err))
+      }
     }
   }
 
@@ -88,7 +94,9 @@ export default function App() {
         onView={() => {
           const s = useFileStore.getState()
           const panel = s[s.activePanel]
-          const file = panel.files[panel.cursor]
+          if (panel.cursorOnParent) return
+          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+          const file = visible[panel.cursor]
           if (file && !file.isDir) setViewerFile(file.path)
         }}
         onCopy={() => useFileStore.getState().copy()}
@@ -114,7 +122,9 @@ export default function App() {
         onView={() => {
           const s = useFileStore.getState()
           const panel = s[s.activePanel]
-          const file = panel.files[panel.cursor]
+          if (panel.cursorOnParent) return
+          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+          const file = visible[panel.cursor]
           if (file && !file.isDir) setViewerFile(file.path)
         }}
         onCopy={() => useFileStore.getState().copy()}
@@ -139,9 +149,9 @@ export default function App() {
       {modal === 'search' && <SearchDialog onClose={() => { setModal(null); focusActivePanel() }} />}
       {deleteTarget && (
         <ConfirmDialog title="Delete Items"
-          message={`Permanently delete ${deleteTarget.count} item(s)?`}
+          message={deleteError ? `삭제 실패: ${deleteError}` : `Permanently delete ${deleteTarget.count} item(s)?`}
           confirmLabel="Delete" danger
-          onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); focusActivePanel() }} />
+          onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); setDeleteError(null); focusActivePanel() }} />
       )}
       {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }} />}
       {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }} />}

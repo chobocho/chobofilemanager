@@ -1,5 +1,13 @@
 # 변경 이력
 
+## 2026-04-11 (36)
+
+### #24 [..] 선택 시 첫 번째 파일도 함께 강조되는 버그 수정
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - 파일 행 커서 조건: `isActive && isCursor` → `isActive && isCursor && !cursorOnParent`
+  - `cursorOnParent=true`일 때 `panel.cursor`가 0이어도 첫 번째 파일에 커서 클래스가 적용되지 않음
+
 ## 2026-04-11 (35)
 
 ### #23 비활성 패널 커서 숨기기

@@ -438,7 +438,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
               data-row={index}
               className={`
                 ${styles.fileRow}
-                ${isActive && isCursor ? styles.cursor : ''}
+                ${isActive && isCursor && !cursorOnParent ? styles.cursor : ''}
                 ${isSelected ? styles.selected : ''}
                 ${file.isHidden ? styles.hidden : ''}
                 ${index % 2 === 0 ? styles.even : styles.odd}

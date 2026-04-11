@@ -9,7 +9,7 @@ import { useThemeStore } from '../stores/themeStore'
 export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
-  onRename, onCopy, onMove, onNewDir, onDelete, onView, onSwitchPanel,
+  onRename, onCopy, onMove, onNewDir, onDelete, onView, onSwitchPanel, onBookmarks,
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
@@ -30,6 +30,10 @@ export default function Toolbar({
         case 'N':
           if (e.ctrlKey) { e.preventDefault(); onNewFile?.(); }
           break
+        case 'd':
+        case 'D':
+          if (e.ctrlKey) { e.preventDefault(); onBookmarks?.(); }
+          break
         case 'r':
         case 'R':
           if (e.ctrlKey) { e.preventDefault(); onRename(); }
@@ -39,7 +43,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile])
+  }, [onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
 
   return (
     <div className={styles.toolbar}>

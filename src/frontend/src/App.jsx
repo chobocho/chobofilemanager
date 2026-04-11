@@ -10,6 +10,7 @@ import FTPManager from './components/FTPManager'
 import TextEditor from './components/TextEditor'
 import FileViewer from './components/FileViewer'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './components/ConfirmDialog'
+import BookmarkDialog from './components/BookmarkDialog'
 import styles from './styles/App.module.css'
 
 export default function App() {
@@ -113,6 +114,7 @@ export default function App() {
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
         onSwitchPanel={handleSwitchPanel}
+        onBookmarks={() => setModal('bookmarks')}
       />
       <div className={styles.content}>
         {view === 'files' ? (
@@ -156,7 +158,8 @@ export default function App() {
           onConfirm={(oldPath, newName) => { const s=useFileStore.getState(); s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
           onClose={() => { setModal(null); focusActivePanel() }} />
       )}
-      {modal === 'search' && <SearchDialog onClose={() => { setModal(null); focusActivePanel() }} />}
+      {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} />}
+      {modal === 'bookmarks' && <BookmarkDialog onClose={() => { setModal(null); focusActivePanel() }} />}
       {deleteTarget && (
         <ConfirmDialog title="Delete Items"
           message={deleteError ? `삭제 실패: ${deleteError}` : `Permanently delete ${deleteTarget.count} item(s)?`}

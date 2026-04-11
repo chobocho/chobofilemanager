@@ -1,5 +1,51 @@
 # 변경 이력
 
+## 2026-04-11 (22)
+
+### 테스트 격리 수정 - 실제 사용자 config 디렉토리 오염 방지
+
+**문제**: Go 테스트 실행 후 앱 재시작 시 임시 경로가 `~/.chobocho-commander/settings.json`에 저장되어
+존재하지 않는 경로로 이동 시도 → `⚠ cannot read directory` 오류 발생
+
+**수정 내용**:
+- `src/app.go`: `App` 구조체에 `configDir string` 필드 추가
+  - 빈 문자열이면 기본값(`~/.chobocho-commander`) 사용
+  - 테스트에서 `t.TempDir()` 주입으로 격리 가능
+- `src/settings.go`:
+  - `settingsFilePath()` 패키지 함수 → `(a *App) settingsFilePath()` 메서드로 변경
+  - `resolvedConfigDir()` 헬퍼 메서드 추가 (`a.configDir` 우선, 없으면 `~/.chobocho-commander`)
+- `src/filebookmarks.go`:
+  - `fileBookmarksPath()`, `loadFileBookmarks()`, `saveFileBookmarks()` 모두 `App` 메서드로 변경
+  - `resolvedConfigDir()` 통해 테스트 격리 지원
+- `src/filemanager_test.go`:
+  - `newTestApp(t)` 헬퍼 함수 구현: `configDir: t.TempDir()` 설정
+  - `TestSavePanelPaths_AndLoad`, `TestLoadPanelPaths_*`, `TestFileBookmark_*` 모두 `newTestApp(t)` 사용
+  - `TestLoadPanelPaths_NoFileReturnsEmpty`: `settingsFilePath()` → `a.settingsFilePath()` 사용
+
+**테스트 결과**: Go 전체 통과 (모든 테스트 격리됨)
+
+## 2026-04-11 (21)
+
+### Ctrl+D 바로가기 목록 (추가/삭제/이동)
+
+- `src/filebookmarks.go` 신규 생성
+  - `FileBookmark` 구조체: ID, Name, Path, Created
+  - `~/.chobocho-commander/file_bookmarks.json`에 저장
+  - `GetFileBookmarks()`: 전체 목록 반환
+  - `AddFileBookmark(name, path)`: 경로 존재 여부 검증 후 추가
+  - `DeleteFileBookmark(id)`: ID로 삭제
+- `src/frontend/src/components/BookmarkDialog.jsx` 신규 생성
+  - "현재 폴더 추가" 버튼 → 이름 입력 폼 인라인 표시
+  - 북마크 목록: 클릭 시 해당 폴더로 이동 후 다이얼로그 닫힘
+  - 삭제 버튼: 행 hover 시 표시, 클릭 시 즉시 삭제
+  - 에러 메시지 인라인 표시
+- `src/frontend/src/styles/BookmarkDialog.module.css` 신규 생성
+- `src/frontend/src/components/Toolbar.jsx`: `Ctrl+D` → `onBookmarks?.()` 추가
+- `src/frontend/src/App.jsx`: BookmarkDialog 연결
+- `src/filemanager_test.go`: 북마크 테스트 3개 추가
+
+**테스트 결과**: Go 전체 통과, JS 73개 전체 통과
+
 ## 2026-04-11 (20)
 
 ### Ctrl+N 단축키로 새 파일 생성 팝업 연결

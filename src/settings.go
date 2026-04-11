@@ -11,20 +11,34 @@ type AppSettings struct {
 	RightPath string `json:"rightPath"`
 }
 
-func settingsFilePath() (string, error) {
+func defaultConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	configDir := filepath.Join(home, ".chobocho-commander")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	return filepath.Join(home, ".chobocho-commander"), nil
+}
+
+func (a *App) resolvedConfigDir() (string, error) {
+	if a.configDir != "" {
+		return a.configDir, nil
+	}
+	return defaultConfigDir()
+}
+
+func (a *App) settingsFilePath() (string, error) {
+	dir, err := a.resolvedConfigDir()
+	if err != nil {
 		return "", err
 	}
-	return filepath.Join(configDir, "settings.json"), nil
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "settings.json"), nil
 }
 
 func (a *App) SavePanelPaths(leftPath, rightPath string) error {
-	path, err := settingsFilePath()
+	path, err := a.settingsFilePath()
 	if err != nil {
 		return err
 	}
@@ -37,7 +51,7 @@ func (a *App) SavePanelPaths(leftPath, rightPath string) error {
 }
 
 func (a *App) LoadPanelPaths() AppSettings {
-	path, err := settingsFilePath()
+	path, err := a.settingsFilePath()
 	if err != nil {
 		return AppSettings{}
 	}

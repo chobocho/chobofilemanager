@@ -5,9 +5,10 @@ import (
 )
 
 type App struct {
-	ctx context.Context
+	ctx         context.Context
 	fileManager *FileManager
 	ftpManager  *FTPManager
+	configDir   string // 빈 문자열이면 기본값(~/.chobocho-commander) 사용; 테스트에서 격리된 임시 디렉토리 주입용
 }
 
 func NewApp() *App {

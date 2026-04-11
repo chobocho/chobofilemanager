@@ -6,6 +6,9 @@
 # Claude Code 세션 데이터
 .claude/
 
+# Node
+src/node_modules/
+
 # Node.js 의존성 및 빌드 결과물
 src/frontend/node_modules/
 src/frontend/dist/

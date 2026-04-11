@@ -756,17 +756,19 @@ func TestGetFileSize(t *testing.T) {
 
 // ─── SavePanelPaths / LoadPanelPaths ─────────────────────────────────────────
 
+// newTestApp은 격리된 임시 configDir를 사용하는 App을 반환합니다.
+// 이를 통해 테스트가 실제 ~/.chobocho-commander/ 를 오염시키지 않습니다.
 func newTestApp(t *testing.T) *App {
 	t.Helper()
-	dir := t.TempDir()
-	// settingsFilePath()가 UserHomeDir를 쓰므로, 직접 경로를 조작하는 대신
-	// 헬퍼 함수를 통해 테스트용 App을 설정
-	_ = dir
-	return NewApp()
+	return &App{
+		fileManager: NewFileManager(),
+		ftpManager:  NewFTPManager(),
+		configDir:   t.TempDir(),
+	}
 }
 
 func TestSavePanelPaths_AndLoad(t *testing.T) {
-	a := NewApp()
+	a := newTestApp(t)
 
 	leftPath := t.TempDir()
 	rightPath := t.TempDir()
@@ -785,7 +787,7 @@ func TestSavePanelPaths_AndLoad(t *testing.T) {
 }
 
 func TestLoadPanelPaths_NonexistentPathReturnsEmpty(t *testing.T) {
-	a := NewApp()
+	a := newTestApp(t)
 
 	// 존재하지 않는 경로를 저장
 	if err := a.SavePanelPaths("/no/such/path/left", "/no/such/path/right"); err != nil {
@@ -804,13 +806,71 @@ func TestLoadPanelPaths_NonexistentPathReturnsEmpty(t *testing.T) {
 
 func TestLoadPanelPaths_NoFileReturnsEmpty(t *testing.T) {
 	// settings.json이 없을 때 빈 구조체 반환 (에러 없음)
-	a := NewApp()
+	a := newTestApp(t)
 	// 저장 파일을 지워서 없는 상태 시뮬레이션
-	path, _ := settingsFilePath()
+	path, _ := a.settingsFilePath()
 	os.Remove(path)
 
 	loaded := a.LoadPanelPaths()
 	if loaded.LeftPath != "" || loaded.RightPath != "" {
 		t.Errorf("파일 없을 때 빈 경로가 반환되어야 함: got left=%q right=%q", loaded.LeftPath, loaded.RightPath)
+	}
+}
+
+// ─── FileBookmarks ────────────────────────────────────────────────────────────
+
+func TestFileBookmark_AddAndGet(t *testing.T) {
+	dir := t.TempDir()
+	a := newTestApp(t)
+
+	if err := a.AddFileBookmark("테스트폴더", dir); err != nil {
+		t.Fatalf("AddFileBookmark error: %v", err)
+	}
+
+	bms := a.GetFileBookmarks()
+	found := false
+	for _, bm := range bms {
+		if bm.Path == dir && bm.Name == "테스트폴더" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("추가한 북마크가 목록에 없습니다")
+	}
+}
+
+func TestFileBookmark_Delete(t *testing.T) {
+	dir := t.TempDir()
+	a := newTestApp(t)
+
+	if err := a.AddFileBookmark("삭제대상", dir); err != nil {
+		t.Fatalf("AddFileBookmark error: %v", err)
+	}
+	bms := a.GetFileBookmarks()
+	var id string
+	for _, bm := range bms {
+		if bm.Path == dir {
+			id = bm.ID
+		}
+	}
+	if id == "" {
+		t.Fatal("추가한 북마크 ID를 찾지 못했습니다")
+	}
+
+	if err := a.DeleteFileBookmark(id); err != nil {
+		t.Fatalf("DeleteFileBookmark error: %v", err)
+	}
+	bms = a.GetFileBookmarks()
+	for _, bm := range bms {
+		if bm.ID == id {
+			t.Error("삭제된 북마크가 여전히 목록에 있습니다")
+		}
+	}
+}
+
+func TestFileBookmark_NonexistentPathReturnsError(t *testing.T) {
+	a := newTestApp(t)
+	if err := a.AddFileBookmark("없는경로", "/no/such/path"); err == nil {
+		t.Error("존재하지 않는 경로 추가 시 에러가 반환되어야 합니다")
 	}
 }

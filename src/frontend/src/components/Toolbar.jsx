@@ -1,9 +1,10 @@
 import React, { useEffect, useCallback } from 'react'
 import {
   Copy, Scissors, Trash2, FolderPlus, FilePlus,
-  Edit3, Search, Archive, Globe, Monitor
+  Edit3, Search, Archive, Globe, Monitor, Sun, Moon
 } from 'lucide-react'
 import styles from '../styles/Toolbar.module.css'
+import { useThemeStore } from '../stores/themeStore'
 
 const TOOL_BUTTONS = [
   { key: 'F3', label: 'View',    icon: null,       action: 'view' },
@@ -19,6 +20,8 @@ export default function Toolbar({
   onNewDir, onNewFile, onRename, onDelete,
   onSearch, onCopy, onMove
 }) {
+  const theme       = useThemeStore(s => s.theme)
+  const toggleTheme = useThemeStore(s => s.toggleTheme)
 
   const handleAction = useCallback((action) => {
     switch(action) {
@@ -87,6 +90,18 @@ export default function Toolbar({
       </div>
 
       <div className={styles.spacer} />
+
+      {/* 테마 전환 버튼 */}
+      <button
+        className={styles.themeBtn}
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      </button>
+
+      <div className={styles.divider} />
 
       {/* FKey hint strip */}
       <div className={styles.fkeys}>

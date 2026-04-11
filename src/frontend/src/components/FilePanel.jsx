@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react'
 import { useFileStore } from '../stores/fileStore'
+import { useThemeStore } from '../stores/themeStore'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
   FileCode, ArrowUp, RefreshCw, ChevronRight, HardDrive
 } from 'lucide-react'
 
-const FILE_ICONS = {
+const FILE_ICONS_DARK = {
   '.txt':  { icon: FileText,    color: '#c8d0e0' },
   '.md':   { icon: FileText,    color: '#60d0ff' },
   '.js':   { icon: FileCode,    color: '#f0c040' },
@@ -40,6 +41,40 @@ const FILE_ICONS = {
   '.7z':   { icon: FileArchive, color: '#ff8040' },
 }
 
+const FILE_ICONS_LIGHT = {
+  '.txt':  { icon: FileText,    color: '#506070' },
+  '.md':   { icon: FileText,    color: '#0080b0' },
+  '.js':   { icon: FileCode,    color: '#c09000' },
+  '.jsx':  { icon: FileCode,    color: '#0090a0' },
+  '.ts':   { icon: FileCode,    color: '#1050c0' },
+  '.tsx':  { icon: FileCode,    color: '#1050c0' },
+  '.go':   { icon: FileCode,    color: '#007890' },
+  '.py':   { icon: FileCode,    color: '#207040' },
+  '.rs':   { icon: FileCode,    color: '#c04020' },
+  '.c':    { icon: FileCode,    color: '#3060a0' },
+  '.cpp':  { icon: FileCode,    color: '#3060a0' },
+  '.html': { icon: FileCode,    color: '#b04000' },
+  '.css':  { icon: FileCode,    color: '#1060c0' },
+  '.json': { icon: FileCode,    color: '#c09000' },
+  '.xml':  { icon: FileCode,    color: '#306030' },
+  '.yaml': { icon: FileCode,    color: '#6030a0' },
+  '.yml':  { icon: FileCode,    color: '#6030a0' },
+  '.sh':   { icon: FileCode,    color: '#207040' },
+  '.bat':  { icon: FileCode,    color: '#2060a0' },
+  '.png':  { icon: FileImage,   color: '#c02080' },
+  '.jpg':  { icon: FileImage,   color: '#c03060' },
+  '.jpeg': { icon: FileImage,   color: '#c03060' },
+  '.gif':  { icon: FileImage,   color: '#c020a0' },
+  '.webp': { icon: FileImage,   color: '#8020c0' },
+  '.svg':  { icon: FileImage,   color: '#c05020' },
+  '.ico':  { icon: FileImage,   color: '#2050c0' },
+  '.zip':  { icon: FileArchive, color: '#c09000' },
+  '.tar':  { icon: FileArchive, color: '#b06000' },
+  '.gz':   { icon: FileArchive, color: '#b06000' },
+  '.rar':  { icon: FileArchive, color: '#c02000' },
+  '.7z':   { icon: FileArchive, color: '#b04000' },
+}
+
 function formatSize(bytes, isDir) {
   if (isDir) return '<DIR>'
   if (bytes === 0) return '0 B'
@@ -56,11 +91,14 @@ function formatDate(dateStr) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function getFileIcon(file) {
-  if (file.isDir) return { icon: Folder, color: '#f0c040' }
-  const entry = FILE_ICONS[file.extension]
+function getFileIcon(file, theme) {
+  const icons = theme === 'light' ? FILE_ICONS_LIGHT : FILE_ICONS_DARK
+  const folderColor = theme === 'light' ? '#b07800' : '#f0c040'
+  const defaultColor = theme === 'light' ? '#4a5068' : '#7080a0'
+  if (file.isDir) return { icon: Folder, color: folderColor }
+  const entry = icons[file.extension]
   if (entry) return entry
-  return { icon: File, color: '#7080a0' }
+  return { icon: File, color: defaultColor }
 }
 
 const COLUMNS = [
@@ -74,6 +112,7 @@ export default function FilePanel({ side, onEdit }) {
   const store = useFileStore()
   const panel = store[side]
   const isActive = store.activePanel === side
+  const theme = useThemeStore(s => s.theme)
   const listRef = useRef(null)
   const [pathInput, setPathInput] = useState('')
   const [editingPath, setEditingPath] = useState(false)
@@ -314,7 +353,7 @@ export default function FilePanel({ side, onEdit }) {
         {!panel.loading && !panel.error && visibleFiles.map((file, index) => {
           const isCursor = panel.cursor === index
           const isSelected = panel.selected.has(file.path)
-          const { icon: Icon, color } = getFileIcon(file)
+          const { icon: Icon, color } = getFileIcon(file, theme)
 
           return (
             <div

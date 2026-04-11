@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useFileStore } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
+import { useThemeStore } from './stores/themeStore'
 import Toolbar from './components/Toolbar'
 import FilePanel from './components/FilePanel'
 import StatusBar from './components/StatusBar'
@@ -12,6 +13,7 @@ import styles from './styles/App.module.css'
 export default function App() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
+  const theme       = useThemeStore(s => s.theme)
   const [view, setView]             = useState('files')
   const [modal, setModal]           = useState(null)
   const [editorFile, setEditorFile] = useState(null)
@@ -44,7 +46,7 @@ export default function App() {
   }
 
   return (
-    <div className={styles.app}>
+    <div className={styles.app} data-theme={theme}>
       <Toolbar
         view={view} onViewChange={setView}
         onNewDir={() => setModal('newdir')}

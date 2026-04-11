@@ -67,7 +67,7 @@
 .toolBtn:hover {
   background: var(--bg-row-hover);
   border-color: var(--border-active);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .toolBtnDanger:hover {
@@ -95,6 +95,26 @@
 }
 
 .spacer { flex: 1; }
+
+.themeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.themeBtn:hover {
+  background: var(--bg-row-hover);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
 
 /* F-Key strip */
 .fkeys {

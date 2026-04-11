@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-04-11 (2)
+
+### Todo #1 - Light Theme 구현 (관리자/기획/디자인/개발/검증 에이전트 협업)
+
+**기획**: CSS 변수 기반 테마 시스템 분석 → data-theme 방식 + Zustand store + localStorage 영속성으로 방향 결정
+
+**디자인**: 라이트 테마 색상값 설계 (흰색~회백색 배경, 진한 남색 텍스트, 파란 액센트 유지), 변수 누락/하드코딩 위치 파악
+
+**개발**:
+- `src/frontend/src/stores/themeStore.js` 신규 생성
+  - dark/light 토글, localStorage 저장/복원, 유효하지 않은 값 방어
+- `src/frontend/src/stores/themeStore.test.js` 신규 생성 (TDD, 8개 테스트 전체 통과)
+- `src/frontend/src/styles/global.css`
+  - `--bg-editor`, `--text-accent-hover`, `--scrollbar-thumb` 등 신규 변수 추가
+  - `[data-theme="light"]` 블록 추가 (배경/텍스트/경계선/그림자 전체 오버라이드)
+  - 스크롤바 하드코딩 색상 → CSS 변수로 교체
+- `src/frontend/src/styles/FilePanel.module.css` - `#7ab8ff` → `var(--text-accent-hover)`
+- `src/frontend/src/styles/TextEditor.module.css` - `#0a0a10` 2곳 → `var(--bg-editor)`
+- `src/frontend/src/App.jsx` - `useThemeStore` import, 최상위 div에 `data-theme={theme}` 바인딩
+- `src/frontend/src/components/Toolbar.jsx` - Sun/Moon 아이콘 테마 토글 버튼 추가
+- `src/frontend/src/styles/Toolbar.module.css` - `.themeBtn` 스타일 추가, 호버 색상 변수화
+- `src/frontend/vite.config.js` - vitest 테스트 환경 설정 (jsdom)
+- `src/frontend/package.json` - vitest, @testing-library/react, jsdom 개발 의존성 추가
+
+**검증**: 8개 테스트 전체 통과, T-02(localStorage 복원) 테스트 누락 발견 후 추가 완료
+
 ## 2026-04-11
 
 ### TDD 테스트 코드 추가

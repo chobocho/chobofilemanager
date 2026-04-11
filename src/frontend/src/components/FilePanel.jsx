@@ -4,7 +4,8 @@ import { useThemeStore } from '../stores/themeStore'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
-  FileCode, ArrowUp, RefreshCw, ChevronRight, HardDrive
+  FileCode, ArrowUp, RefreshCw, ChevronRight, HardDrive,
+  Eye, EyeOff
 } from 'lucide-react'
 
 const FILE_ICONS_DARK = {
@@ -292,9 +293,9 @@ export default function FilePanel({ side, onEdit }) {
           <button
             className={`${styles.iconBtn} ${panel.showHidden ? styles.iconBtnActive : ''}`}
             onClick={(e) => { e.stopPropagation(); store.toggleHidden(side) }}
-            title="Toggle hidden files (Ctrl+H)"
+            title={panel.showHidden ? 'Hide dotfiles (Ctrl+H)' : 'Show dotfiles (Ctrl+H)'}
           >
-            .
+            {panel.showHidden ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
         </div>
       </div>

@@ -428,10 +428,7 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 func isHiddenFile(name string) bool {
-	if runtime.GOOS != "windows" {
-		return strings.HasPrefix(name, ".")
-	}
-	return false
+	return strings.HasPrefix(name, ".")
 }
 
 func copyFile(src, dst string) error {

@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-04-11 (4)
+
+### 버그수정: Windows에서 Eye 버튼 클릭해도 dot 파일이 숨겨지지 않던 문제
+
+- `src/filemanager.go` — `isHiddenFile()` 수정
+  - 기존: Windows에서 항상 `false` 반환 (`.`으로 시작하는 파일을 hidden 처리 안 함)
+  - 변경: OS와 무관하게 이름이 `.`으로 시작하면 `true` 반환
+- `src/filemanager_test.go` — `TestIsHiddenFile` 테스트 수정
+  - Windows 분기(항상 false 기대) 제거
+  - 모든 플랫폼에서 dot-prefix 파일이 hidden 처리되는지 검증하도록 변경
+
+**Go 테스트 결과**: 전체 통과
+
+## 2026-04-11 (3)
+
+### 눈 아이콘으로 숨김 파일 토글 버튼 교체
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `Eye`, `EyeOff` 아이콘 import 추가 (lucide-react)
+  - 각 패널 헤더의 `.` 텍스트 버튼 → `<Eye>` / `<EyeOff>` 아이콘 버튼으로 교체
+  - 숨김 표시 중일 때 `EyeOff`, 숨김 처리 중일 때 `Eye` 아이콘 표시
+  - tooltip도 현재 상태에 맞게 동적 변경 ("Show dotfiles" / "Hide dotfiles")
+- 기존 Ctrl+H 단축키 및 `toggleHidden` 동작 유지
+
+**테스트 결과**: 8개 통과
+
 ## 2026-04-11 (2)
 
 ### Todo #1 - Light Theme 구현 (관리자/기획/디자인/개발/검증 에이전트 협업)

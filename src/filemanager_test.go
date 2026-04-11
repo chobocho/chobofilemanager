@@ -610,15 +610,11 @@ func TestGetPathParts_Root(t *testing.T) {
 // ─── isHiddenFile ─────────────────────────────────────────────────────────────
 
 func TestIsHiddenFile(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// Windows는 현재 항상 false 반환 (syscall 미구현)
-		if isHiddenFile(".hidden") {
-			t.Error("Windows: isHiddenFile always returns false (not yet implemented)")
-		}
-		return
-	}
 	if !isHiddenFile(".dotfile") {
-		t.Error("dotfiles should be hidden on non-Windows")
+		t.Error("dot-prefixed files should be hidden on all platforms")
+	}
+	if !isHiddenFile(".hidden") {
+		t.Error("dot-prefixed files should be hidden on all platforms")
 	}
 	if isHiddenFile("visible.txt") {
 		t.Error("regular files should not be hidden")
@@ -652,7 +648,7 @@ func TestGetParentPath(t *testing.T) {
 
 func TestGetFileSize(t *testing.T) {
 	base := t.TempDir()
-	os.WriteFile(filepath.Join(base, "a.txt"), []byte("hello"), 0644) // 5 bytes
+	os.WriteFile(filepath.Join(base, "a.txt"), []byte("hello"), 0644)  // 5 bytes
 	os.WriteFile(filepath.Join(base, "b.txt"), []byte("world!"), 0644) // 6 bytes
 
 	fm := newTestFM()

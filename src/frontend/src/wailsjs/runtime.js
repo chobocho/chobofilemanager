@@ -72,7 +72,7 @@ export const getAPI = () => {
   if (isWails() && window.go?.main?.App) {
     return window.go.main.App
   }
-  console.warn('[TotalCmd] Running in browser mock mode')
+  console.warn('[Chobocho Commander] Running in browser mock mode')
   return createMockAPI()
 }
 

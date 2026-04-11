@@ -16,7 +16,7 @@ func settingsFilePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	configDir := filepath.Join(home, ".totalcmd")
+	configDir := filepath.Join(home, ".chobocho-commander")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return "", err
 	}

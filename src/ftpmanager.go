@@ -24,33 +24,33 @@ type FTPConfig struct {
 }
 
 type FTPBookmark struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name"`
-	Config   FTPConfig `json:"config"`
-	Created  time.Time `json:"created"`
+	ID      string    `json:"id"`
+	Name    string    `json:"name"`
+	Config  FTPConfig `json:"config"`
+	Created time.Time `json:"created"`
 }
 
 type FTPConnectionInfo struct {
-	ID       string    `json:"id"`
-	Host     string    `json:"host"`
-	Port     int       `json:"port"`
-	Username string    `json:"username"`
-	Connected bool     `json:"connected"`
+	ID          string    `json:"id"`
+	Host        string    `json:"host"`
+	Port        int       `json:"port"`
+	Username    string    `json:"username"`
+	Connected   bool      `json:"connected"`
 	ConnectedAt time.Time `json:"connectedAt"`
 }
 
 type ftpConnection struct {
-	id     string
-	client *ftp.ServerConn
-	config FTPConfig
+	id          string
+	client      *ftp.ServerConn
+	config      FTPConfig
 	connectedAt time.Time
 }
 
 type FTPManager struct {
-	ctx         context.Context
-	mu          sync.RWMutex
-	connections map[string]*ftpConnection
-	bookmarks   []FTPBookmark
+	ctx          context.Context
+	mu           sync.RWMutex
+	connections  map[string]*ftpConnection
+	bookmarks    []FTPBookmark
 	bookmarkFile string
 }
 
@@ -62,7 +62,7 @@ func NewFTPManager() *FTPManager {
 	// Set bookmark file path
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		configDir := filepath.Join(homeDir, ".totalcmd")
+		configDir := filepath.Join(homeDir, ".chobocho-commander")
 		os.MkdirAll(configDir, 0755)
 		fm.bookmarkFile = filepath.Join(configDir, "ftp_bookmarks.json")
 		fm.loadBookmarks()
@@ -102,9 +102,9 @@ func (fm *FTPManager) Connect(config FTPConfig) error {
 
 	fm.mu.Lock()
 	fm.connections[id] = &ftpConnection{
-		id:     id,
-		client: client,
-		config: config,
+		id:          id,
+		client:      client,
+		config:      config,
 		connectedAt: time.Now(),
 	}
 	fm.mu.Unlock()

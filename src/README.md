@@ -23,7 +23,7 @@
 
 ### FTP 클라이언트
 - FTP 서버 연결
-- 북마크 관리 (`~/.totalcmd/ftp_bookmarks.json`에 저장)
+- 북마크 관리 (`~/.chobocho-commander/ftp_bookmarks.json`에 저장)
 - 파일 다운로드 (원격 → 로컬)
 - 파일 업로드 (로컬 → 원격)
 - 원격 파일 / 디렉토리 삭제
@@ -171,4 +171,4 @@ src/
 
 ## 설정 파일
 
-FTP 북마크는 `~/.totalcmd/ftp_bookmarks.json`에 자동 저장됩니다.
+FTP 북마크는 `~/.chobocho-commander/ftp_bookmarks.json`에 자동 저장됩니다.

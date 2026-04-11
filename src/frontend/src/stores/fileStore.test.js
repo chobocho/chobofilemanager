@@ -1,5 +1,26 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { joinPath } from './fileStore.js'
+
+// wailsjs/runtime mock (store 동기 테스트에 필요)
+vi.mock('../wailsjs/runtime', () => ({
+  default: {
+    GetHomeDirectory: vi.fn(),
+    GetDrives: vi.fn(),
+    ListDirectory: vi.fn(),
+    GetParentPath: vi.fn(),
+    CopyItems: vi.fn(),
+    MoveItems: vi.fn(),
+    DeleteItems: vi.fn(),
+    CreateDirectory: vi.fn(),
+    CreateFile: vi.fn(),
+    RenameItem: vi.fn(),
+    CompressItems: vi.fn(),
+    ExtractArchive: vi.fn(),
+    OpenFile: vi.fn(),
+    ReadTextFile: vi.fn(),
+    WriteTextFile: vi.fn(),
+  }
+}))
 
 // ─── BreadcrumbPath 경로 구성 로직 (FilePanel.jsx와 동일) ──────────────────────
 function buildBreadcrumbParts(path) {
@@ -133,5 +154,189 @@ describe('rename 경로 구성', () => {
 
   it('RP-06: 디렉토리 이름을 교체한다 (Windows)', () => {
     expect(buildRenamePath('C:\\Users\\user\\old_folder', 'new_folder')).toBe('C:\\Users\\user\\new_folder')
+  })
+})
+
+// ─── [..] 상위 디렉토리 표시 여부 (isAtRoot / showParent) ──────────────────────
+
+describe('[..] 표시 로직 (isAtRoot)', () => {
+  function isAtRoot(path) {
+    return path === '/' || /^[A-Za-z]:[\\/]?$/.test(path)
+  }
+  const showParent = (path) => !isAtRoot(path)
+
+  it('PR-01: Unix 루트("/")에서는 [..] 를 표시하지 않는다', () => {
+    expect(showParent('/')).toBe(false)
+  })
+
+  it('PR-02: Windows 드라이브 루트("C:\\")에서는 [..] 를 표시하지 않는다', () => {
+    expect(showParent('C:\\')).toBe(false)
+  })
+
+  it('PR-03: Windows 드라이브 루트("C:/")에서는 [..] 를 표시하지 않는다', () => {
+    expect(showParent('C:/')).toBe(false)
+  })
+
+  it('PR-04: Windows 드라이브 루트("C:")에서는 [..] 를 표시하지 않는다', () => {
+    expect(showParent('C:')).toBe(false)
+  })
+
+  it('PR-05: Unix 하위 디렉토리에서는 [..] 를 표시한다', () => {
+    expect(showParent('/home/user')).toBe(true)
+  })
+
+  it('PR-06: Windows 하위 디렉토리에서는 [..] 를 표시한다', () => {
+    expect(showParent('C:\\Users\\user')).toBe(true)
+  })
+})
+
+// ─── fileStore 동기 작업 단위 테스트 ────────────────────────────────────────────
+
+describe('fileStore 동기 작업', () => {
+  let useFileStore
+
+  const makeFiles = (...names) => names.map((name, i) => ({
+    name,
+    path: `/test/${name}`,
+    isDir: name.endsWith('/'),
+    isHidden: name.startsWith('.'),
+    size: 100 * (i + 1),
+    modified: '2026-01-01T00:00:00Z',
+    extension: name.includes('.') ? '.' + name.split('.').pop() : '',
+  }))
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    useFileStore = mod.useFileStore
+    // 왼쪽 패널에 테스트 파일 세팅
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: {
+        ...s.left,
+        path: '/test',
+        files: makeFiles('alpha.txt', 'beta.js', 'gamma.go'),
+        selected: new Set(),
+        cursor: 0,
+        showHidden: false,
+        sortBy: 'name',
+        sortDir: 'asc',
+      }
+    }))
+  })
+
+  // toggleSelect
+  it('SS-01: toggleSelect - 파일 경로를 selected에 추가한다', () => {
+    const { toggleSelect } = useFileStore.getState()
+    toggleSelect('left', '/test/alpha.txt')
+    expect(useFileStore.getState().left.selected.has('/test/alpha.txt')).toBe(true)
+  })
+
+  it('SS-02: toggleSelect - 이미 선택된 경로를 다시 호출하면 선택 해제된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(['/test/alpha.txt']) } }))
+    useFileStore.getState().toggleSelect('left', '/test/alpha.txt')
+    expect(useFileStore.getState().left.selected.has('/test/alpha.txt')).toBe(false)
+  })
+
+  it('SS-03: toggleSelect - 복수 파일을 각각 선택할 수 있다', () => {
+    useFileStore.getState().toggleSelect('left', '/test/alpha.txt')
+    useFileStore.getState().toggleSelect('left', '/test/beta.js')
+    expect(useFileStore.getState().left.selected.size).toBe(2)
+  })
+
+  // selectAll
+  it('SS-04: selectAll - 패널의 모든 파일이 selected에 추가된다', () => {
+    useFileStore.getState().selectAll('left')
+    const selected = useFileStore.getState().left.selected
+    expect(selected.size).toBe(3)
+    expect(selected.has('/test/alpha.txt')).toBe(true)
+    expect(selected.has('/test/gamma.go')).toBe(true)
+  })
+
+  // clearSelection
+  it('SS-05: clearSelection - selected가 빈 Set이 된다', () => {
+    useFileStore.setState(s => ({
+      left: { ...s.left, selected: new Set(['/test/alpha.txt', '/test/beta.js']) }
+    }))
+    useFileStore.getState().clearSelection('left')
+    expect(useFileStore.getState().left.selected.size).toBe(0)
+  })
+
+  // setCursor
+  it('SS-06: setCursor - 커서 인덱스가 갱신된다', () => {
+    useFileStore.getState().setCursor('left', 2)
+    expect(useFileStore.getState().left.cursor).toBe(2)
+  })
+
+  it('SS-07: setCursor - 0으로 다시 이동할 수 있다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursor: 2 } }))
+    useFileStore.getState().setCursor('left', 0)
+    expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+
+  // toggleHidden
+  it('SS-08: toggleHidden - showHidden이 false → true로 전환된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: false } }))
+    useFileStore.getState().toggleHidden('left')
+    expect(useFileStore.getState().left.showHidden).toBe(true)
+  })
+
+  it('SS-09: toggleHidden - showHidden이 true → false로 전환된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: true } }))
+    useFileStore.getState().toggleHidden('left')
+    expect(useFileStore.getState().left.showHidden).toBe(false)
+  })
+
+  // setSort
+  it('SS-10: setSort("name") - 이름 기준 오름차순 정렬된다', () => {
+    const files = makeFiles('gamma.go', 'alpha.txt', 'beta.js')
+    useFileStore.setState(s => ({ left: { ...s.left, files, sortBy: 'size', sortDir: 'asc' } }))
+    useFileStore.getState().setSort('left', 'name')
+    const names = useFileStore.getState().left.files.map(f => f.name)
+    expect(names).toEqual(['alpha.txt', 'beta.js', 'gamma.go'])
+  })
+
+  it('SS-11: setSort - 같은 키 재클릭 시 내림차순으로 토글된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, sortBy: 'name', sortDir: 'asc' } }))
+    useFileStore.getState().setSort('left', 'name')
+    expect(useFileStore.getState().left.sortDir).toBe('desc')
+  })
+
+  it('SS-12: setSort - 디렉토리가 파일보다 앞에 정렬된다', () => {
+    const mixed = [
+      { name: 'zfile.txt', path: '/test/zfile.txt', isDir: false, size: 100, modified: '', extension: '.txt' },
+      { name: 'adir/',     path: '/test/adir/',     isDir: true,  size: 0,   modified: '', extension: '' },
+      { name: 'bfile.go',  path: '/test/bfile.go',  isDir: false, size: 200, modified: '', extension: '.go' },
+    ]
+    useFileStore.setState(s => ({ left: { ...s.left, files: mixed, sortBy: 'size', sortDir: 'desc' } }))
+    useFileStore.getState().setSort('left', 'name')
+    const result = useFileStore.getState().left.files
+    expect(result[0].isDir).toBe(true)   // 디렉토리 항상 첫 번째
+    expect(result[0].name).toBe('adir/')
+  })
+
+  // delete (동기 - 경로 수집 로직)
+  it('SS-13: delete - selected 파일 경로와 개수를 반환한다', async () => {
+    useFileStore.setState(s => ({
+      left: { ...s.left, selected: new Set(['/test/alpha.txt', '/test/beta.js']) }
+    }))
+    const result = await useFileStore.getState().delete()
+    expect(result.count).toBe(2)
+    expect(result.paths).toContain('/test/alpha.txt')
+    expect(result.paths).toContain('/test/beta.js')
+  })
+
+  it('SS-14: delete - selected가 없으면 커서 위치 파일을 반환한다', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(), cursor: 1 } }))
+    const result = await useFileStore.getState().delete()
+    expect(result.count).toBe(1)
+    expect(result.paths[0]).toBe('/test/beta.js')
+  })
+
+  it('SS-15: delete - 파일도 선택도 없으면 빈 목록을 반환한다', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, files: [], selected: new Set(), cursor: 0 } }))
+    const result = await useFileStore.getState().delete()
+    expect(result.count).toBe(0)
+    expect(result.paths).toHaveLength(0)
   })
 })

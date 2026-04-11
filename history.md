@@ -1,5 +1,44 @@
 # 변경 이력
 
+## 2026-04-11 (13)
+
+### 테스트 추가: fileStore 동기 작업 단위 테스트
+
+- `src/frontend/src/stores/fileStore.test.js`
+  - `vi.mock('../wailsjs/runtime')` 추가 — API 없이 스토어 동기 로직 테스트 가능
+  - `fileStore 동기 작업` describe 블록 신규 추가 (SS-01~SS-15, 15개)
+    - toggleSelect: 추가(SS-01), 해제(SS-02), 복수 선택(SS-03)
+    - selectAll: 전체 파일 선택(SS-04)
+    - clearSelection: 선택 전체 해제(SS-05)
+    - setCursor: 인덱스 이동(SS-06), 0으로 복귀(SS-07)
+    - toggleHidden: false→true(SS-08), true→false(SS-09)
+    - setSort: 이름 오름차순(SS-10), 재클릭 시 내림차순 토글(SS-11), 디렉토리 우선(SS-12)
+    - delete(동기): selected 반환(SS-13), 커서 파일 반환(SS-14), 빈 목록(SS-15)
+
+**테스트 결과**: 2개 파일, 49개 전체 통과
+
+## 2026-04-11 (12)
+
+### Todo #6 - 파일 목록에 [..] 추가하여 상위 폴더 이동
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `cursorOnParent` 상태 추가 (경로 변경 시 `false`로 초기화)
+  - `isAtRoot` 계산: `'/'` 또는 `'^[A-Za-z]:[\\\/]?$'` 패턴이면 루트로 판단
+  - `showParent = !isAtRoot`: 루트가 아닐 때 `[..]` 행 표시
+  - `handleKeyDown` 수정
+    - ArrowUp: 커서가 0이고 `showParent`이면 `cursorOnParent=true` + 스크롤
+    - ArrowDown: `cursorOnParent`일 때 `false`로 해제 + 커서를 파일 0번으로 이동
+    - Enter: `cursorOnParent`이면 `store.navigateUp(side)` 호출
+  - 파일 목록 최상단에 `[..]` 행 렌더링 (`showParent` 조건부)
+    - 클릭: `cursorOnParent=true`
+    - 더블클릭: `store.navigateUp(side)` 호출
+    - `cursorOnParent`일 때 커서 강조 스타일 적용
+  - `scrollToCursor` + `scrollToParentRow` 헬퍼 추가
+- `src/frontend/src/stores/fileStore.test.js`
+  - `[..] 표시 로직 (isAtRoot)` 테스트 6개 추가 (PR-01~PR-06)
+
+**테스트 결과**: 2개 파일, 34개 전체 통과
+
 ## 2026-04-11 (11)
 
 ### 버그수정: 모달 닫힌 후 방향키 미동작 (포커스 복원)

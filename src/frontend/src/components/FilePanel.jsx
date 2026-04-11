@@ -122,15 +122,21 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
 
   const [pathInput, setPathInput] = useState('')
   const [editingPath, setEditingPath] = useState(false)
+  const [cursorOnParent, setCursorOnParent] = useState(false)
   const drives = store.drives
 
   useEffect(() => {
     setPathInput(panel.path)
+    setCursorOnParent(false)   // 디렉토리 이동 시 .. 커서 초기화
   }, [panel.path])
 
   const visibleFiles = panel.showHidden
     ? panel.files
     : panel.files.filter(f => !f.isHidden)
+
+  // 루트 경로 여부 (더 이상 올라갈 수 없음)
+  const isAtRoot = panel.path === '/' || /^[A-Za-z]:[\\/]?$/.test(panel.path)
+  const showParent = !isAtRoot
 
   const handleActivate = useCallback(() => {
     store.setActivePanel(side)
@@ -173,21 +179,34 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
-        if (cur > 0) {
+        if (cursorOnParent) {
+          // already on [..], do nothing
+        } else if (cur > 0) {
           store.setCursor(side, cur - 1)
-          scrollToCursor(cur - 1)
+          scrollToCursor(cur - 1, showParent)
+        } else if (showParent) {
+          setCursorOnParent(true)
+          scrollToParentRow()
         }
         break
       case 'ArrowDown':
         e.preventDefault()
-        if (cur < files.length - 1) {
+        if (cursorOnParent) {
+          setCursorOnParent(false)
+          store.setCursor(side, 0)
+          scrollToCursor(0, showParent)
+        } else if (cur < files.length - 1) {
           store.setCursor(side, cur + 1)
-          scrollToCursor(cur + 1)
+          scrollToCursor(cur + 1, showParent)
         }
         break
       case 'Enter':
         e.preventDefault()
-        if (files[cur]) handleRowDoubleClick(files[cur])
+        if (cursorOnParent) {
+          store.navigateUp(side)
+        } else if (files[cur]) {
+          handleRowDoubleClick(files[cur])
+        }
         break
       case 'Backspace':
         e.preventDefault()
@@ -229,12 +248,19 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       default:
         break
     }
-  }, [isActive, panel.cursor, visibleFiles, side])
+  }, [isActive, panel.cursor, visibleFiles, side, cursorOnParent, showParent])
 
-  const scrollToCursor = (index) => {
+  const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return
     const rows = listRef.current.querySelectorAll('[data-row]')
+    // data-row="0" is the first file row; if [..] is shown it sits before all data-rows
     if (rows[index]) rows[index].scrollIntoView({ block: 'nearest' })
+  }
+
+  const scrollToParentRow = () => {
+    if (!listRef.current) return
+    const parentRow = listRef.current.querySelector('[data-parent-row]')
+    if (parentRow) parentRow.scrollIntoView({ block: 'nearest' })
   }
 
   const handlePathSubmit = (e) => {
@@ -355,6 +381,29 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         )}
         {panel.error && (
           <div className={styles.error}>⚠ {panel.error}</div>
+        )}
+        {!panel.loading && !panel.error && showParent && (
+          <div
+            data-parent-row
+            className={`
+              ${styles.fileRow}
+              ${cursorOnParent ? styles.cursor : ''}
+              ${styles.even}
+            `}
+            onClick={(e) => { e.stopPropagation(); store.setActivePanel(side); setCursorOnParent(true) }}
+            onDoubleClick={(e) => { e.stopPropagation(); store.navigateUp(side) }}
+            title="Parent directory"
+          >
+            <div className={styles.colName} style={{ width: COLUMNS[0].width }}>
+              <Folder size={14} style={{ color: theme === 'light' ? '#b07800' : '#f0c040', flexShrink: 0 }} />
+              <span className={styles.fileName}>[..]</span>
+            </div>
+            <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
+              {'<DIR>'}
+            </div>
+            <div className={styles.colCell} style={{ width: COLUMNS[2].width }} />
+            <div className={styles.colCell} style={{ width: COLUMNS[3].width }} />
+          </div>
         )}
         {!panel.loading && !panel.error && visibleFiles.map((file, index) => {
           const isCursor = panel.cursor === index

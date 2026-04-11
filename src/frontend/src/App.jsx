@@ -51,7 +51,9 @@ export default function App() {
   const handleNewFile = async (name) => {
     const store = useFileStore.getState()
     const panel = store[store.activePanel]
-    const path  = panel.path.replace(/[\\/]$/, '') + '/' + name
+    const base  = panel.path
+    const sep   = base.includes('\\') ? '\\' : '/'
+    const path  = base.replace(/[/\\]+$/, '') + sep + name
     try {
       const api = (await import('./wailsjs/runtime')).default
       await api.CreateFile(path)

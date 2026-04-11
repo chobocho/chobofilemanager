@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-04-11 (8)
+
+### 버그수정: Windows에서 파일 이름 변경이 동작하지 않는 문제
+
+**원인**: `api.JoinPath(parts ...string)` 가 Wails v2 JavaScript 바인딩에서 variadic 인자를 제대로 처리하지 못함. `rename`, `createDirectory`, `compress` 세 곳에서 동일한 문제 발생.
+
+- `src/frontend/src/stores/fileStore.js`
+  - 파일 상단에 `joinPath(base, name)` 헬퍼 함수 추가 (Windows `\` / Unix `/` 모두 처리)
+  - `rename`: `api.GetParentPath` + `api.JoinPath` 제거 → JS 문자열 연산으로 대체, try/catch 추가 (에러 시 상태바에 표시)
+  - `createDirectory`: `api.JoinPath` → `joinPath()` 교체, try/catch 추가
+  - `compress`: `api.JoinPath` → `joinPath()` 교체, try/catch 추가
+- `src/frontend/src/App.jsx`
+  - `handleNewFile`: 하드코딩된 `'/'` 구분자 → 경로 기반 자동 감지 (`\` vs `/`)
+
+**테스트 결과**: 8개 통과
+
+## 2026-04-11 (7)
+
+### Todo #4 - Ctrl+R 단축키로 파일 이름 바꾸기 모달
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - 키보드 핸들러에 `Ctrl+R` / `Ctrl+r` 추가 → `onRename()` 호출
+  - 기존 F2 단축키와 동일한 동작
+
+**테스트 결과**: 8개 통과
+
 ## 2026-04-11 (6)
 
 ### 상단 툴바 중복 메뉴 제거 + 압축하기/압축 풀기 추가

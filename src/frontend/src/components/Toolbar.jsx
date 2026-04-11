@@ -24,6 +24,10 @@ export default function Toolbar({
         case 'F6': e.preventDefault(); onMove();    break
         case 'F7': e.preventDefault(); onNewDir();  break
         case 'F8': e.preventDefault(); onDelete();  break
+        case 'r':
+        case 'R':
+          if (e.ctrlKey) { e.preventDefault(); onRename(); }
+          break
         default: break
       }
     }

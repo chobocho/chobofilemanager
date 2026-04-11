@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 import api from '../wailsjs/runtime'
 
+// Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
+// api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
+function joinPath(base, name) {
+  const sep = base.includes('\\') ? '\\' : '/'
+  return base.replace(/[/\\]+$/, '') + sep + name
+}
+
 const createPanelState = (side) => ({
   path: '',
   files: [],
@@ -234,26 +241,39 @@ export const useFileStore = create((set, get) => ({
 
   createDirectory: async (panel, name) => {
     const state = get()[panel]
-    const path = await api.JoinPath(state.path, name)
-    await api.CreateDirectory(path)
-    await get().refresh(panel)
+    const path = joinPath(state.path, name)
+    try {
+      await api.CreateDirectory(path)
+      await get().refresh(panel)
+    } catch (err) {
+      set({ status: `Create directory failed: ${err}` })
+    }
   },
 
   rename: async (panel, oldPath, newName) => {
-    const dir = await api.GetParentPath(oldPath)
-    const newPath = await api.JoinPath(dir, newName)
-    await api.RenameItem(oldPath, newPath)
-    await get().refresh(panel)
+    const lastSep = Math.max(oldPath.lastIndexOf('/'), oldPath.lastIndexOf('\\'))
+    const newPath = oldPath.substring(0, lastSep + 1) + newName
+    try {
+      await api.RenameItem(oldPath, newPath)
+      await get().refresh(panel)
+      set({ status: `Renamed → ${newName}` })
+    } catch (err) {
+      set({ status: `Rename failed: ${err}` })
+    }
   },
 
   compress: async (panel) => {
     const state = get()[panel]
     const selected = [...state.selected]
     if (!selected.length) return
-    const destPath = await api.JoinPath(state.path, 'archive.zip')
-    await api.CompressItems(selected, destPath)
-    await get().refresh(panel)
-    set({ status: 'Archive created' })
+    const destPath = joinPath(state.path, 'archive.zip')
+    try {
+      await api.CompressItems(selected, destPath)
+      await get().refresh(panel)
+      set({ status: 'Archive created' })
+    } catch (err) {
+      set({ status: `Compress failed: ${err}` })
+    }
   },
 
   extract: async (panel, archivePath) => {

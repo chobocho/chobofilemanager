@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-04-11 (9)
+
+### 테스트 추가: joinPath 및 rename 경로 구성 로직
+
+- `src/frontend/src/stores/fileStore.js`
+  - `joinPath` 함수에 `export` 추가 (테스트 가능하도록)
+- `src/frontend/src/stores/fileStore.test.js` 신규 생성
+  - `joinPath` 단위 테스트 8개 (JP-01~JP-08): Unix/Windows 경로, 후행 구분자, 루트 경로
+  - `rename 경로 구성` 테스트 6개 (RP-01~RP-06): Unix/Windows 파일명·디렉토리명 교체
+
+**테스트 결과**: 2개 파일, 22개 전체 통과
+
 ## 2026-04-11 (8)
 
 ### 버그수정: Windows에서 파일 이름 변경이 동작하지 않는 문제

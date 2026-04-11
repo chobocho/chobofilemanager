@@ -3,7 +3,7 @@ import api from '../wailsjs/runtime'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
-function joinPath(base, name) {
+export function joinPath(base, name) {
   const sep = base.includes('\\') ? '\\' : '/'
   return base.replace(/[/\\]+$/, '') + sep + name
 }

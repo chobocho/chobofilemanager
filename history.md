@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-04-11 (38)
+
+### #26 Ctrl+Tab 시 포커스 패널의 탭만 전환
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - 글로벌 `keydown` 핸들러의 `Tab` 케이스 수정: `!e.ctrlKey`일 때만 `onSwitchPanel` 호출
+  - 이전에는 Ctrl+Tab도 `onSwitchPanel()`을 실행해 패널 포커스까지 전환됐음
+  - 이제 Ctrl+Tab은 FilePanel의 `handleKeyDown`에서만 처리(탭 전환), 패널 전환 없음
+  - 단순 Tab 키는 기존대로 패널 포커스 전환
+
 ## 2026-04-11 (37)
 
 ### #25 파일 작업 후 영향 받는 경로의 탭 리프레시

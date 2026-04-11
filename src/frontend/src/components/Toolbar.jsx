@@ -20,7 +20,10 @@ export default function Toolbar({
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       switch(e.key) {
         case 'F1': e.preventDefault(); onHelp?.();         break
-        case 'Tab': e.preventDefault(); onSwitchPanel?.(); break
+        case 'Tab':
+          e.preventDefault()
+          if (!e.ctrlKey) onSwitchPanel?.()
+          break
         case 'F2': e.preventDefault(); onRename();         break
         case 'F3': e.preventDefault(); onView?.();         break
         case 'F4': e.preventDefault(); onEdit?.();         break

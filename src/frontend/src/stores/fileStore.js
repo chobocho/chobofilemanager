@@ -207,13 +207,40 @@ export const useFileStore = create((set, get) => ({
       const cursor = state[panel].files[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
-    if (!selected.length) return
+    if (!selected.length) return { conflicts: [], sources: [], dest: '' }
+
+    const dest = state[other].path
+    const conflicts = await api.CheckCopyConflicts(selected, dest)
+    if (conflicts && conflicts.length > 0) {
+      return { conflicts, sources: selected, dest }
+    }
 
     set({ status: `Copying ${selected.length} item(s)...` })
     try {
-      await api.CopyItems(selected, state[other].path)
+      await api.CopyItems(selected, dest)
       await get().refresh(other)
       set({ status: `Copied ${selected.length} item(s)` })
+    } catch (err) {
+      set({ status: `Copy failed: ${err}` })
+    }
+    return { conflicts: [], sources: [], dest: '' }
+  },
+
+  copyWithMode: async (sources, dest, mode) => {
+    set({ status: `Copying ${sources.length} item(s)...` })
+    const state = get()
+    const panel = state.activePanel
+    const other = panel === 'left' ? 'right' : 'left'
+    try {
+      if (mode === 'overwrite') {
+        await api.CopyItems(sources, dest)
+      } else if (mode === 'rename') {
+        await api.CopyItemsRename(sources, dest)
+      } else if (mode === 'skip') {
+        await api.CopyItemsSkipConflicts(sources, dest)
+      }
+      await get().refresh(other)
+      set({ status: `Copied ${sources.length} item(s)` })
     } catch (err) {
       set({ status: `Copy failed: ${err}` })
     }

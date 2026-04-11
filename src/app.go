@@ -38,8 +38,20 @@ func (a *App) GetDrives() []DriveInfo {
 	return a.fileManager.GetDrives()
 }
 
+func (a *App) CheckCopyConflicts(sources []string, destination string) []CopyConflict {
+	return a.fileManager.CheckCopyConflicts(sources, destination)
+}
+
 func (a *App) CopyItems(sources []string, destination string) error {
 	return a.fileManager.CopyItems(sources, destination)
+}
+
+func (a *App) CopyItemsRename(sources []string, destination string) error {
+	return a.fileManager.CopyItemsRename(sources, destination)
+}
+
+func (a *App) CopyItemsSkipConflicts(sources []string, destination string) error {
+	return a.fileManager.CopyItemsSkipConflicts(sources, destination)
 }
 
 func (a *App) MoveItems(sources []string, destination string) error {

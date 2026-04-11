@@ -1,0 +1,29 @@
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-base);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.btnOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btnOption:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}

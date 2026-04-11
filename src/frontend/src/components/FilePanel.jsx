@@ -224,17 +224,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         }
         break
       case 'F5':
-        e.preventDefault()
-        store.copy()
-        break
       case 'F6':
-        e.preventDefault()
-        store.move()
-        break
       case 'F8':
       case 'Delete':
         e.preventDefault()
-        // handled by toolbar / app
+        // handled by toolbar / app global handler
         break
       case 'a':
         if (e.ctrlKey) { e.preventDefault(); store.selectAll(side) }

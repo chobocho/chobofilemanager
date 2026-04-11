@@ -125,6 +125,28 @@ func (fm *FileManager) GetDrives() []DriveInfo {
 	return getLinuxMounts()
 }
 
+type CopyConflict struct {
+	Name       string `json:"name"`
+	SourcePath string `json:"sourcePath"`
+	DestPath   string `json:"destPath"`
+}
+
+func (fm *FileManager) CheckCopyConflicts(sources []string, destination string) []CopyConflict {
+	var conflicts []CopyConflict
+	for _, src := range sources {
+		name := filepath.Base(src)
+		destPath := filepath.Join(destination, name)
+		if _, err := os.Stat(destPath); err == nil {
+			conflicts = append(conflicts, CopyConflict{
+				Name:       name,
+				SourcePath: src,
+				DestPath:   destPath,
+			})
+		}
+	}
+	return conflicts
+}
+
 func (fm *FileManager) CopyItems(sources []string, destination string) error {
 	for _, src := range sources {
 		info, err := os.Stat(src)
@@ -132,6 +154,61 @@ func (fm *FileManager) CopyItems(sources []string, destination string) error {
 			return err
 		}
 		destPath := filepath.Join(destination, filepath.Base(src))
+		if info.IsDir() {
+			if err := copyDir(src, destPath); err != nil {
+				return err
+			}
+		} else {
+			if err := copyFile(src, destPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (fm *FileManager) CopyItemsRename(sources []string, destination string) error {
+	for _, src := range sources {
+		info, err := os.Stat(src)
+		if err != nil {
+			return err
+		}
+		name := filepath.Base(src)
+		destPath := filepath.Join(destination, name)
+		if _, err := os.Stat(destPath); err == nil {
+			ext := filepath.Ext(name)
+			base := strings.TrimSuffix(name, ext)
+			for n := 1; ; n++ {
+				candidate := filepath.Join(destination, fmt.Sprintf("%s (%d)%s", base, n, ext))
+				if _, err := os.Stat(candidate); os.IsNotExist(err) {
+					destPath = candidate
+					break
+				}
+			}
+		}
+		if info.IsDir() {
+			if err := copyDir(src, destPath); err != nil {
+				return err
+			}
+		} else {
+			if err := copyFile(src, destPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (fm *FileManager) CopyItemsSkipConflicts(sources []string, destination string) error {
+	for _, src := range sources {
+		info, err := os.Stat(src)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destination, filepath.Base(src))
+		if _, err := os.Stat(destPath); err == nil {
+			continue // 이미 존재하면 건너뜀
+		}
 		if info.IsDir() {
 			if err := copyDir(src, destPath); err != nil {
 				return err

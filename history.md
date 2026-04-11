@@ -1,5 +1,39 @@
 # 변경 이력
 
+## 2026-04-11 (27)
+
+### F5 복사 충돌 처리 다이얼로그
+
+- `src/filemanager.go`
+  - `CopyConflict` 구조체 추가 (Name, SourcePath, DestPath)
+  - `CheckCopyConflicts(sources, dest)`: 대상 폴더에 이미 존재하는 파일 목록 반환
+  - `CopyItemsRename(sources, dest)`: 충돌 시 `이름 (1).ext` 형식으로 자동 이름 변경 복사
+  - `CopyItemsSkipConflicts(sources, dest)`: 충돌 파일 건너뛰고 나머지만 복사
+
+- `src/app.go`: 세 신규 API 프록시 메서드 추가
+
+- `src/frontend/src/stores/fileStore.js`
+  - `copy()`: 충돌 감지 후 있으면 `{ conflicts, sources, dest }` 반환 (충돌 없으면 즉시 복사)
+  - `copyWithMode(sources, dest, mode)`: mode = 'overwrite' | 'rename' | 'skip'
+
+- `src/frontend/src/components/CopyConflictDialog.jsx` 신규 생성
+  - 충돌 파일 목록 표시
+  - 버튼: 덮어쓰기 / 이름 바꾸어 복사 / 건너뛰기 / 취소
+
+- `src/frontend/src/styles/CopyConflictDialog.module.css` 신규 생성
+
+- `src/frontend/src/App.jsx`
+  - `copyConflict` 상태 추가
+  - `handleCopy()`: copy() 결과에 충돌이 있으면 CopyConflictDialog 표시
+  - `handleCopyConflictConfirm(mode)`: 선택한 모드로 copyWithMode() 호출
+  - Toolbar, FKeyBar의 onCopy → handleCopy로 교체
+  - CopyConflictDialog 렌더링 추가
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - F5/F6 직접 처리 제거 (Toolbar 전역 핸들러에 일임)
+
+**테스트 결과**: Go 전체 통과, Vite 빌드 성공
+
 ## 2026-04-11 (26)
 
 ### F4 키 내장 에디터 연결

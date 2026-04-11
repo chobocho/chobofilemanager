@@ -12,6 +12,7 @@ import FileViewer from './components/FileViewer'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
+import CopyConflictDialog from './components/CopyConflictDialog'
 import styles from './styles/App.module.css'
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
   const [viewerFile, setViewerFile] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError]   = useState(null)
+  const [copyConflict, setCopyConflict] = useState(null) // { conflicts, sources, dest }
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
@@ -86,6 +88,20 @@ export default function App() {
     focusActivePanel()
   }
 
+  const handleCopy = async () => {
+    const result = await useFileStore.getState().copy()
+    if (result?.conflicts?.length > 0) setCopyConflict(result)
+    else focusActivePanel()
+  }
+
+  const handleCopyConflictConfirm = async (mode) => {
+    if (copyConflict) {
+      await useFileStore.getState().copyWithMode(copyConflict.sources, copyConflict.dest, mode)
+      setCopyConflict(null)
+      focusActivePanel()
+    }
+  }
+
   const handleSwitchPanel = useCallback(() => {
     const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
     useFileStore.getState().setActivePanel(next)
@@ -119,7 +135,7 @@ export default function App() {
           const file = visible[panel.cursor]
           if (file && !file.isDir) setEditorFile(file.path)
         }}
-        onCopy={() => useFileStore.getState().copy()}
+        onCopy={handleCopy}
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
@@ -157,7 +173,7 @@ export default function App() {
           const file = visible[panel.cursor]
           if (file && !file.isDir) setEditorFile(file.path)
         }}
-        onCopy={() => useFileStore.getState().copy()}
+        onCopy={handleCopy}
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
@@ -185,6 +201,15 @@ export default function App() {
           items={deleteTarget.paths.map(p => p.split(/[/\\]/).pop())}
           confirmLabel="Delete" danger
           onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); setDeleteError(null); focusActivePanel() }} />
+      )}
+      {copyConflict && (
+        <CopyConflictDialog
+          conflicts={copyConflict.conflicts}
+          sources={copyConflict.sources}
+          dest={copyConflict.dest}
+          onConfirm={handleCopyConflictConfirm}
+          onClose={() => { setCopyConflict(null); focusActivePanel() }}
+        />
       )}
       {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }} />}
       {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }} />}

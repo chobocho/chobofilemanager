@@ -28,7 +28,7 @@ function Modal({ children, onClose, width = 400 }) {
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
 
-export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm', danger, onConfirm, onClose }) {
+export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm', danger, hideCancel, onConfirm, onClose }) {
   return (
     <Modal onClose={onClose}>
       <div className={styles.header}>
@@ -49,7 +49,7 @@ export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm',
         )}
       </div>
       <div className={styles.footer}>
-        <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
+        {!hideCancel && <button className={styles.btnCancel} onClick={onClose}>Cancel</button>}
         <button
           className={`${styles.btnConfirm} ${danger ? styles.btnDanger : ''}`}
           onClick={() => { onConfirm(); onClose() }}

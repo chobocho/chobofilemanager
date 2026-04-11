@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-04-11 (33)
+
+### #21 내장 뷰어/에디터 3MB 초과 파일 차단
+
+- `src/frontend/src/App.jsx`
+  - `MAX_FILE_SIZE = 3 * 1024 * 1024` 상수 추가
+  - `fileSizeError` state 추가 (초과 파일명 보관)
+  - `tryOpenViewer(file)` / `tryOpenEditor(file)` 헬퍼: 크기 초과 시 경고 모달, 정상이면 뷰어/에디터 오픈
+  - Toolbar, FKeyBar의 onView/onEdit, FilePanel의 onEdit 모두 헬퍼로 교체
+  - 크기 초과 시 `ConfirmDialog`로 안내 메시지 표시
+- `src/frontend/src/components/FilePanel.jsx`
+  - `handleRowDoubleClick`: `onEdit(file.path)` → `onEdit(file)` (파일 객체 전달로 크기 정보 포함)
+
 ## 2026-04-11 (32)
 
 ### #20 Windows 경로 구분자 수정 (유닉스 스타일 → 역슬래시)

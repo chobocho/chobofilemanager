@@ -197,7 +197,10 @@ export function SearchDialog({ onClose }) {
     if (file.isDir) {
       store.navigate(store.activePanel, file.path)
     } else {
-      store.navigate(store.activePanel, file.path.substring(0, file.path.lastIndexOf('/')) || '/')
+      // Windows(\) / Unix(/) 구분자 모두 처리
+      const lastSep = Math.max(file.path.lastIndexOf('/'), file.path.lastIndexOf('\\'))
+      const dir = lastSep > 0 ? file.path.substring(0, lastSep) : file.path
+      store.navigate(store.activePanel, dir)
     }
     onClose()
   }

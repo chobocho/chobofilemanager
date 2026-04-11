@@ -419,13 +419,24 @@ function BreadcrumbPath({ path, onNavigate }) {
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i]
+
+    // Unix 루트: 첫 세그먼트가 빈 문자열 (경로가 /로 시작)
     if (i === 0 && seg === '') {
       acc = '/'
       parts.push({ name: '/', path: '/' })
       continue
     }
+
     if (!seg) continue
-    acc = acc === '/' ? `/${seg}` : `${acc}/${seg}`
+
+    // Windows 드라이브 문자 (예: "C:", "D:")
+    if (i === 0 && /^[A-Za-z]:$/.test(seg)) {
+      acc = seg + '/'
+      parts.push({ name: seg, path: acc })
+      continue
+    }
+
+    acc = acc.endsWith('/') ? `${acc}${seg}` : `${acc}/${seg}`
     parts.push({ name: seg, path: acc })
   }
 

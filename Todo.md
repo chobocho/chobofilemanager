@@ -9,8 +9,8 @@
 
 ## ~~4. Ctrl+R를 누르면 파일 이름 바뀍 모달이 나오도록 해주세요~~ ✓ 완료 (2026-04-11)
 
-## 5.아래와 같은 경로에서 읽기 오류 발생
-⚠ cannot read directory: open /C:/github/temp/touch2.txt/Ex_Files_JavaScript_Closures_2021: The filename, directory name, or volume label syntax is incorrect.
+## ~~5. 아래와 같은 경로에서 읽기 오류 발생~~ ✓ 완료 (2026-04-11)
+~~⚠ cannot read directory: open /C:/github/temp/...~~
 
 ## 6. 파일 목록에 [..] 을 추가해서 클릭하면 상위 폴더로 가도록 개선해세요
 

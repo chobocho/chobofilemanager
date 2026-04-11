@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-04-11 (10)
+
+### 버그수정: Windows 경로에서 읽기 오류 발생 (`/C:/...` 잘못된 경로)
+
+**원인**: `BreadcrumbPath` 컴포넌트에서 Windows 드라이브 문자(`C:`)를 일반 세그먼트로 처리해 `/C:/github/temp` 형태의 잘못된 경로 생성
+
+- `src/frontend/src/components/FilePanel.jsx` — `BreadcrumbPath` 수정
+  - Windows 드라이브 문자(`/^[A-Za-z]:$/`) 감지 시 `acc = 'C:/'` 로 시작 (`'/C:'` 아님)
+  - 이후 세그먼트는 `C:/github`, `C:/github/temp` 등으로 올바르게 누적
+- `src/frontend/src/components/ConfirmDialog.jsx` — `SearchDialog.handleOpenResult` 수정
+  - `file.path.lastIndexOf('/')` → `Math.max(lastIndexOf('/'), lastIndexOf('\\'))` 로 변경
+  - Windows 역슬래시 경로에서도 부모 디렉토리를 올바르게 추출
+- `src/frontend/src/stores/fileStore.test.js` — BreadcrumbPath 경로 구성 테스트 6개 추가 (BC-01~BC-06)
+
+**테스트 결과**: 2개 파일, 28개 전체 통과
+
 ## 2026-04-11 (9)
 
 ### 테스트 추가: joinPath 및 rename 경로 구성 로직

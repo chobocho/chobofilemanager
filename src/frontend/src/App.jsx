@@ -50,7 +50,11 @@ export default function App() {
     setEditorFile(file.path)
   }, [])
 
-  useEffect(() => { init(); loadBkmarks() }, [])
+  useEffect(() => {
+    Promise.all([init(), loadBkmarks()]).then(() => {
+      requestAnimationFrame(() => leftPanelRef.current?.focus())
+    })
+  }, [])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()

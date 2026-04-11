@@ -1,5 +1,23 @@
 # 변경 이력
 
+## 2026-04-11 (41)
+
+### #28 보완: 포커스 후 방향키 미작동 수정
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - 패널 div에 `onFocus={handleActivate}` 추가
+    - 프로그래밍 방식 `focus()` 포함, 포커스를 받을 때마다 `store.setActivePanel` 호출
+    - 이전: 클릭 시에만 `setActivePanel` 호출 → 초기 포커스 시 `isActive`가 반영 안 됨
+  - `handleKeyDown`에 `INPUT/TEXTAREA/SELECT` 가드 추가: 경로 편집 중 방향키 등 오동작 방지
+
+## 2026-04-11 (40)
+
+### #28 시작 시 좌측 패널 자동 포커스
+
+- `src/frontend/src/App.jsx`
+  - `useEffect` 수정: `init()` + `loadBkmarks()` 완료 후 `leftPanelRef.current.focus()` 호출
+  - `requestAnimationFrame`으로 DOM 업데이트 이후 포커스 적용
+
 ## 2026-04-11 (39)
 
 ### #27 도움말 업데이트

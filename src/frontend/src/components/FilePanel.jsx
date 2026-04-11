@@ -173,6 +173,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
 
   const handleKeyDown = useCallback((e) => {
     if (!isActive) return
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
     const files = visibleFiles
     const cur = panel.cursor
 
@@ -306,6 +307,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
     <div
       className={`${styles.panel} ${isActive ? styles.active : ''}`}
       onClick={handleActivate}
+      onFocus={handleActivate}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       ref={listRef}

@@ -58,7 +58,11 @@ export const useFileStore = create((set, get) => ({
     await get().navigate('right', saved.rightPath || home)
   },
 
-  setActivePanel: (panel) => set({ activePanel: panel }),
+  setActivePanel: (panel) => {
+    set({ activePanel: panel })
+    const path = get()[panel].path
+    if (path) api.ChangeWorkingDirectory(path).catch(() => {})
+  },
 
   navigate: async (panel, path) => {
     const state = get()[panel]
@@ -82,6 +86,10 @@ export const useFileStore = create((set, get) => ({
       // 좌우 패널 경로 저장 (에러는 무시)
       const st = get()
       api.SavePanelPaths(st.left.path, st.right.path).catch(() => {})
+      // 활성 패널이 이동한 경우 프로세스 작업 폴더도 변경
+      if (get().activePanel === panel) {
+        api.ChangeWorkingDirectory(result.path).catch(() => {})
+      }
     } catch (err) {
       set(s => ({
         [panel]: {

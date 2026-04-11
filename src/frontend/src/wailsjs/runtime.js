@@ -46,6 +46,7 @@ const createMockAPI = () => ({
   },
   JoinPath: async (...parts) => parts.join('/').replace(/\/+/g, '/'),
   GetParentPath: async (path) => path.split('/').slice(0, -1).join('/') || '/',
+  ChangeWorkingDirectory: async () => null,
   SearchFiles: async () => mockFiles.slice(0, 3),
   GetFileSize: async () => 1024000,
   CompressItems: async () => null,

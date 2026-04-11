@@ -319,15 +319,26 @@ func (fm *FileManager) WriteTextFile(path string, content string) error {
 	return os.WriteFile(path, []byte(content), 0644)
 }
 
-func (fm *FileManager) OpenFile(path string) error {
+func buildOpenCmd(path string) (*exec.Cmd, error) {
+	dir := filepath.Dir(path)
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", path)
+		// cmd /c start로 실행 시 Dir을 설정하면 실행된 앱의 작업 폴더가 파일 위치로 지정됨
+		cmd = exec.Command("cmd", "/c", "start", "", path)
 	case "linux":
 		cmd = exec.Command("xdg-open", path)
 	default:
-		return fmt.Errorf("unsupported OS")
+		return nil, fmt.Errorf("unsupported OS")
+	}
+	cmd.Dir = dir
+	return cmd, nil
+}
+
+func (fm *FileManager) OpenFile(path string) error {
+	cmd, err := buildOpenCmd(path)
+	if err != nil {
+		return err
 	}
 	return cmd.Start()
 }
@@ -371,6 +382,10 @@ func (fm *FileManager) JoinPath(parts ...string) string {
 
 func (fm *FileManager) GetParentPath(path string) string {
 	return filepath.Dir(path)
+}
+
+func (fm *FileManager) ChangeWorkingDirectory(path string) error {
+	return os.Chdir(path)
 }
 
 func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {

@@ -30,3 +30,6 @@ Thumbs.db
 *.dylib
 *.test
 *.out
+
+# BAT 파일
+src/build.bat

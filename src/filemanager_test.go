@@ -874,3 +874,99 @@ func TestFileBookmark_NonexistentPathReturnsError(t *testing.T) {
 		t.Error("존재하지 않는 경로 추가 시 에러가 반환되어야 합니다")
 	}
 }
+
+// ─── ChangeWorkingDirectory ───────────────────────────────────────────────────
+
+func TestChangeWorkingDirectory_ValidPath(t *testing.T) {
+	// 원래 작업 폴더 저장
+	orig, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd error: %v", err)
+	}
+
+	dir := t.TempDir()
+
+	// t.TempDir() 이후에 등록해야 LIFO 순서상 먼저 실행되어
+	// TempDir 삭제 전에 원래 폴더로 복원됨
+	t.Cleanup(func() { os.Chdir(orig) })
+
+	fm := newTestFM()
+	if err := fm.ChangeWorkingDirectory(dir); err != nil {
+		t.Fatalf("ChangeWorkingDirectory error: %v", err)
+	}
+	got, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd error: %v", err)
+	}
+	// filepath.EvalSymlinks로 심볼릭 링크 정규화 (macOS /var→/private/var 등)
+	gotEval, _ := filepath.EvalSymlinks(got)
+	dirEval, _ := filepath.EvalSymlinks(dir)
+	if gotEval != dirEval {
+		t.Errorf("working dir = %q, want %q", gotEval, dirEval)
+	}
+}
+
+func TestChangeWorkingDirectory_InvalidPath(t *testing.T) {
+	fm := newTestFM()
+	if err := fm.ChangeWorkingDirectory("/nonexistent/path/xyz_abc_123"); err == nil {
+		t.Error("존재하지 않는 경로에 대해 에러가 반환되어야 합니다")
+	}
+}
+
+// ─── buildOpenCmd ─────────────────────────────────────────────────────────────
+
+func TestBuildOpenCmd_DirIsFileDirectory(t *testing.T) {
+	base := t.TempDir()
+	filePath := filepath.Join(base, "test.txt")
+	os.WriteFile(filePath, []byte("hello"), 0644)
+
+	cmd, err := buildOpenCmd(filePath)
+	if err != nil {
+		t.Fatalf("buildOpenCmd error: %v", err)
+	}
+	if cmd.Dir != base {
+		t.Errorf("cmd.Dir = %q, want %q", cmd.Dir, base)
+	}
+}
+
+func TestBuildOpenCmd_UsesCorrectProgram(t *testing.T) {
+	base := t.TempDir()
+	filePath := filepath.Join(base, "test.txt")
+	os.WriteFile(filePath, []byte("hello"), 0644)
+
+	cmd, err := buildOpenCmd(filePath)
+	if err != nil {
+		t.Fatalf("buildOpenCmd error: %v", err)
+	}
+
+	switch runtime.GOOS {
+	case "windows":
+		// "cmd /c start "" path" 형태인지 확인
+		if !strings.HasSuffix(strings.ToLower(cmd.Path), "cmd.exe") {
+			t.Errorf("windows: expected cmd.exe, got %q", cmd.Path)
+		}
+		if len(cmd.Args) < 2 || cmd.Args[1] != "/c" {
+			t.Errorf("windows: expected /c flag, args = %v", cmd.Args)
+		}
+	case "linux":
+		if !strings.HasSuffix(cmd.Path, "xdg-open") {
+			t.Errorf("linux: expected xdg-open, got %q", cmd.Path)
+		}
+	}
+}
+
+func TestBuildOpenCmd_NestedDir(t *testing.T) {
+	base := t.TempDir()
+	sub := filepath.Join(base, "sub", "dir")
+	os.MkdirAll(sub, 0755)
+	filePath := filepath.Join(sub, "file.txt")
+	os.WriteFile(filePath, []byte(""), 0644)
+
+	cmd, err := buildOpenCmd(filePath)
+	if err != nil {
+		t.Fatalf("buildOpenCmd error: %v", err)
+	}
+	if cmd.Dir != sub {
+		t.Errorf("cmd.Dir = %q, want %q", cmd.Dir, sub)
+	}
+}

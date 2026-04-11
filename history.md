@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-04-11 (29)
+
+### OpenFile: 실행 파일의 작업 폴더를 파일 위치로 설정
+
+- `src/filemanager.go`
+  - `OpenFile`: Windows에서 `explorer path` → `cmd /c start "" path` 로 변경
+  - `cmd.Dir = filepath.Dir(path)` 추가 → 실행된 앱의 작업 폴더가 해당 파일이 있는 폴더로 설정됨
+  - Total Commander와 동일한 동작 (파일 위치 = 작업 폴더)
+
+## 2026-04-11 (28)
+
+### #16 폴더 이동 시 프로세스 작업 폴더 동기화
+
+- `src/filemanager.go`
+  - `ChangeWorkingDirectory(path string) error` 추가: `os.Chdir(path)` 호출
+- `src/app.go`
+  - `ChangeWorkingDirectory` Wails API 노출
+- `src/frontend/src/wailsjs/runtime.js`
+  - 브라우저 개발용 mock에 `ChangeWorkingDirectory` 추가
+- `src/frontend/src/stores/fileStore.js`
+  - `navigate`: 활성 패널이 이동한 경우 `api.ChangeWorkingDirectory` 호출
+  - `setActivePanel`: 패널 전환 시 해당 패널의 현재 경로로 작업 폴더 변경
+- `src/filemanager_test.go`
+  - `TestChangeWorkingDirectory_ValidPath`: 유효 경로로 작업 폴더 변경 확인
+  - `TestChangeWorkingDirectory_InvalidPath`: 존재하지 않는 경로에서 에러 반환 확인
+
 ## 2026-04-11 (27)
 
 ### F5 복사 충돌 처리 다이얼로그

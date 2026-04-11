@@ -102,6 +102,10 @@ func (a *App) GetParentPath(path string) string {
 	return a.fileManager.GetParentPath(path)
 }
 
+func (a *App) ChangeWorkingDirectory(path string) error {
+	return a.fileManager.ChangeWorkingDirectory(path)
+}
+
 func (a *App) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {
 	return a.fileManager.SearchFiles(rootPath, pattern, recursive)
 }

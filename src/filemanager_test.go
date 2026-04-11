@@ -817,6 +817,74 @@ func TestLoadPanelPaths_NoFileReturnsEmpty(t *testing.T) {
 	}
 }
 
+// ─── SaveSessionState / LoadPanelPaths (tabs) ────────────────────────────────
+
+func TestSaveSessionState_MultipleTabs(t *testing.T) {
+	a := newTestApp(t)
+	left1, left2 := t.TempDir(), t.TempDir()
+	right1 := t.TempDir()
+
+	if err := a.SaveSessionState([]string{left1, left2}, 1, []string{right1}, 0); err != nil {
+		t.Fatalf("SaveSessionState error: %v", err)
+	}
+
+	loaded := a.LoadPanelPaths()
+
+	if loaded.LeftTabs == nil || len(loaded.LeftTabs.Paths) != 2 {
+		t.Fatalf("LeftTabs.Paths: want 2 entries, got %v", loaded.LeftTabs)
+	}
+	if loaded.LeftTabs.Paths[0] != left1 || loaded.LeftTabs.Paths[1] != left2 {
+		t.Errorf("LeftTabs.Paths mismatch: got %v", loaded.LeftTabs.Paths)
+	}
+	if loaded.LeftTabs.ActiveIdx != 1 {
+		t.Errorf("LeftTabs.ActiveIdx: want 1, got %d", loaded.LeftTabs.ActiveIdx)
+	}
+	if loaded.RightTabs == nil || len(loaded.RightTabs.Paths) != 1 {
+		t.Fatalf("RightTabs.Paths: want 1 entry, got %v", loaded.RightTabs)
+	}
+	if loaded.RightTabs.Paths[0] != right1 {
+		t.Errorf("RightTabs.Paths[0]: want %q, got %q", right1, loaded.RightTabs.Paths[0])
+	}
+}
+
+func TestSaveSessionState_InvalidTabPathsFiltered(t *testing.T) {
+	a := newTestApp(t)
+	valid := t.TempDir()
+
+	// 유효 경로 + 존재하지 않는 경로 혼합
+	if err := a.SaveSessionState([]string{valid, "/no/such/path"}, 0, []string{"/another/invalid"}, 0); err != nil {
+		t.Fatalf("SaveSessionState error: %v", err)
+	}
+
+	loaded := a.LoadPanelPaths()
+
+	if loaded.LeftTabs == nil || len(loaded.LeftTabs.Paths) != 1 {
+		t.Errorf("LeftTabs: 유효 경로만 남아야 함, got %v", loaded.LeftTabs)
+	}
+	if loaded.LeftTabs != nil && loaded.LeftTabs.Paths[0] != valid {
+		t.Errorf("LeftTabs.Paths[0]: want %q, got %q", valid, loaded.LeftTabs.Paths[0])
+	}
+	// 오른쪽은 모두 무효 → 빈 슬라이스
+	if loaded.RightTabs == nil || len(loaded.RightTabs.Paths) != 0 {
+		t.Errorf("RightTabs: 모두 무효이면 빈 슬라이스여야 함, got %v", loaded.RightTabs)
+	}
+}
+
+func TestSaveSessionState_ActiveIdxClamped(t *testing.T) {
+	a := newTestApp(t)
+	p := t.TempDir()
+
+	// activeIdx가 탭 수를 초과하면 0으로 클램핑
+	if err := a.SaveSessionState([]string{p}, 99, []string{p}, 99); err != nil {
+		t.Fatalf("SaveSessionState error: %v", err)
+	}
+
+	loaded := a.LoadPanelPaths()
+	if loaded.LeftTabs != nil && loaded.LeftTabs.ActiveIdx != 0 {
+		t.Errorf("LeftTabs.ActiveIdx: want 0 (clamped), got %d", loaded.LeftTabs.ActiveIdx)
+	}
+}
+
 // ─── FileBookmarks ────────────────────────────────────────────────────────────
 
 func TestFileBookmark_AddAndGet(t *testing.T) {

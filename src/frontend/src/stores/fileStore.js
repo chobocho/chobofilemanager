@@ -54,8 +54,23 @@ export const useFileStore = create((set, get) => ({
       api.LoadPanelPaths(),
     ])
     set({ drives })
-    await get().navigate('left',  saved.leftPath  || home)
-    await get().navigate('right', saved.rightPath || home)
+    await get()._restorePanel('left',  saved.leftTabs,  saved.leftPath,  home)
+    await get()._restorePanel('right', saved.rightTabs, saved.rightPath, home)
+  },
+
+  // 저장된 탭 목록으로 패널을 복원합니다.
+  _restorePanel: async (panel, tabsState, legacyPath, home) => {
+    const paths = (tabsState?.paths?.length > 0) ? tabsState.paths : [legacyPath || home]
+    const activeIdx = Math.min(tabsState?.activeIdx ?? 0, paths.length - 1)
+
+    // 탭 배열 미리 구성 (비활성 탭은 lazy 로딩)
+    const tabs = paths.map(p => createTabState(p))
+    set(s => ({
+      [panel]: { ...s[panel], tabs, activeTabIdx: activeIdx }
+    }))
+
+    // 활성 탭만 실제로 로딩
+    await get().navigate(panel, paths[activeIdx] || home)
   },
 
   setActivePanel: (panel) => {
@@ -83,9 +98,8 @@ export const useFileStore = create((set, get) => ({
           cursorOnParent: false,
         }
       }))
-      // 좌우 패널 경로 저장 (에러는 무시)
-      const st = get()
-      api.SavePanelPaths(st.left.path, st.right.path).catch(() => {})
+      // 세션 저장 (에러는 무시)
+      get()._saveSession()
       // 활성 패널이 이동한 경우 프로세스 작업 폴더도 변경
       if (get().activePanel === panel) {
         api.ChangeWorkingDirectory(result.path).catch(() => {})
@@ -363,6 +377,22 @@ export const useFileStore = create((set, get) => ({
 
   setStatus: (status) => set({ status }),
 
+  // 현재 세션(양쪽 패널의 모든 탭 경로)을 백엔드에 저장합니다.
+  _saveSession: () => {
+    const st = get()
+    const getTabPaths = (panel) => {
+      const s = st[panel]
+      const tabs = [...s.tabs]
+      // 활성 탭의 live path를 동기화
+      tabs[s.activeTabIdx] = { ...tabs[s.activeTabIdx], path: s.path }
+      return tabs.map(t => t.path || '')
+    }
+    api.SaveSessionState(
+      getTabPaths('left'),  st.left.activeTabIdx,
+      getTabPaths('right'), st.right.activeTabIdx
+    ).catch(() => {})
+  },
+
   // Helper: save current live panel state into tabs[activeTabIdx]
   _saveCurrentTab: (panel) => {
     const s = get()[panel]
@@ -402,6 +432,7 @@ export const useFileStore = create((set, get) => ({
       }
     }))
     await get().navigate(panel, s.path)
+    // navigate 내부에서 _saveSession이 호출되므로 별도 저장 불필요
   },
 
   closeTab: async (panel, idx) => {
@@ -436,6 +467,7 @@ export const useFileStore = create((set, get) => ({
       set(st => ({
         [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
       }))
+      get()._saveSession()
     } catch (err) {
       set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
     }
@@ -471,6 +503,7 @@ export const useFileStore = create((set, get) => ({
       set(st => ({
         [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
       }))
+      get()._saveSession()
     } catch (err) {
       set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
     }

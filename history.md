@@ -1,5 +1,26 @@
 # 변경 이력
 
+## 2026-04-11 (30)
+
+### #17/#18 모든 탭 세션 저장 및 복원
+
+- `src/settings.go`
+  - `PanelTabsState` 구조체 추가 (`Paths []string`, `ActiveIdx int`)
+  - `AppSettings`에 `LeftTabs`, `RightTabs` 필드 추가 (이전 버전 호환 유지)
+  - `SaveSessionState(leftTabs, leftActiveIdx, rightTabs, rightActiveIdx)` 추가
+  - `filterValidPaths`: 존재하지 않는 경로 자동 필터링
+  - `LoadPanelPaths`: 각 탭 경로 검증, 모두 무효인 경우 빈 슬라이스 반환
+- `src/frontend/src/stores/fileStore.js`
+  - `_restorePanel`: 저장된 탭 목록으로 패널 복원 (비활성 탭은 lazy 로딩)
+  - `init`: `_restorePanel` 사용으로 탭 복원 지원
+  - `_saveSession`: 양쪽 패널 전체 탭 경로를 `SaveSessionState`로 저장
+  - `navigate` / `closeTab` / `switchTab`에서 `_saveSession` 호출
+- `src/frontend/src/wailsjs/runtime.js`: `SaveSessionState` mock 추가
+- `src/filemanager_test.go`
+  - `TestSaveSessionState_MultipleTabs`: 다중 탭 저장/복원 검증
+  - `TestSaveSessionState_InvalidTabPathsFiltered`: 무효 경로 필터링 검증
+  - `TestSaveSessionState_ActiveIdxClamped`: 범위 초과 인덱스 클램핑 검증
+
 ## 2026-04-11 (29)
 
 ### OpenFile: 실행 파일의 작업 폴더를 파일 위치로 설정

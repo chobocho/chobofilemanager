@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useFileStore } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
 import { useThemeStore } from './stores/themeStore'
@@ -19,6 +19,16 @@ export default function App() {
   const [modal, setModal]           = useState(null)
   const [editorFile, setEditorFile] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const leftPanelRef  = useRef(null)
+  const rightPanelRef = useRef(null)
+
+  // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
+  const focusActivePanel = useCallback(() => {
+    const active = useFileStore.getState().activePanel
+    const ref = active === 'left' ? leftPanelRef : rightPanelRef
+    // DOM 업데이트 후 포커스 (requestAnimationFrame으로 한 프레임 뒤)
+    requestAnimationFrame(() => ref.current?.focus())
+  }, [])
 
   useEffect(() => { init(); loadBkmarks() }, [])
 
@@ -31,6 +41,7 @@ export default function App() {
     if (deleteTarget) {
       await useFileStore.getState().confirmDelete(deleteTarget.paths)
       setDeleteTarget(null)
+      focusActivePanel()
     }
   }
 
@@ -60,6 +71,7 @@ export default function App() {
       store.refresh(store.activePanel)
     } catch(e) { console.error(e) }
     setModal(null)
+    focusActivePanel()
   }
 
   return (
@@ -79,9 +91,9 @@ export default function App() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  onEdit={setEditorFile} />
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={setEditorFile} />
             <div className={styles.divider} />
-            <FilePanel side="right" onEdit={setEditorFile} />
+            <FilePanel side="right" ref={rightPanelRef} onEdit={setEditorFile} />
           </div>
         ) : (
           <FTPManager />
@@ -99,25 +111,25 @@ export default function App() {
 
       {modal === 'newdir' && (
         <NewItemDialog type="directory"
-          onConfirm={(name) => { const s=useFileStore.getState(); s.createDirectory(s.activePanel,name); setModal(null) }}
-          onClose={() => setModal(null)} />
+          onConfirm={(name) => { const s=useFileStore.getState(); s.createDirectory(s.activePanel,name); setModal(null); focusActivePanel() }}
+          onClose={() => { setModal(null); focusActivePanel() }} />
       )}
       {modal === 'newfile' && (
-        <NewItemDialog type="file" onConfirm={handleNewFile} onClose={() => setModal(null)} />
+        <NewItemDialog type="file" onConfirm={handleNewFile} onClose={() => { setModal(null); focusActivePanel() }} />
       )}
       {modal === 'rename' && (
         <RenameDialog
-          onConfirm={(oldPath, newName) => { const s=useFileStore.getState(); s.rename(s.activePanel,oldPath,newName); setModal(null) }}
-          onClose={() => setModal(null)} />
+          onConfirm={(oldPath, newName) => { const s=useFileStore.getState(); s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
+          onClose={() => { setModal(null); focusActivePanel() }} />
       )}
-      {modal === 'search' && <SearchDialog onClose={() => setModal(null)} />}
+      {modal === 'search' && <SearchDialog onClose={() => { setModal(null); focusActivePanel() }} />}
       {deleteTarget && (
         <ConfirmDialog title="Delete Items"
           message={`Permanently delete ${deleteTarget.count} item(s)?`}
           confirmLabel="Delete" danger
-          onConfirm={handleConfirmDelete} onClose={() => setDeleteTarget(null)} />
+          onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); focusActivePanel() }} />
       )}
-      {editorFile && <TextEditor path={editorFile} onClose={() => setEditorFile(null)} />}
+      {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }} />}
     </div>
   )
 }

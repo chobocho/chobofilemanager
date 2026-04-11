@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-04-11 (11)
+
+### 버그수정: 모달 닫힌 후 방향키 미동작 (포커스 복원)
+
+**원인**: 모달 닫힐 때 DOM에서 제거되면서 포커스가 `<body>`로 이동, FilePanel의 `onKeyDown`이 동작 안 함
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `forwardRef` + `useImperativeHandle`로 외부에서 `focus()` 호출 가능하도록 변경
+- `src/frontend/src/App.jsx`
+  - `leftPanelRef`, `rightPanelRef` 추가
+  - `focusActivePanel()` 헬퍼 추가 (`requestAnimationFrame`으로 DOM 업데이트 후 포커스)
+  - 모든 모달/다이얼로그의 `onConfirm`, `onClose` 에 `focusActivePanel()` 호출 추가
+    - NewItemDialog(newdir/newfile), RenameDialog, SearchDialog, ConfirmDialog(delete), TextEditor
+
+**테스트 결과**: 28개 통과
+
 ## 2026-04-11 (10)
 
 ### 버그수정: Windows 경로에서 읽기 오류 발생 (`/C:/...` 잘못된 경로)

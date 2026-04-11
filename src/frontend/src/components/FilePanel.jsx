@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react'
+import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
 import { useFileStore } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
 import styles from '../styles/FilePanel.module.css'
@@ -109,12 +109,17 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-export default function FilePanel({ side, onEdit }) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
   const store = useFileStore()
   const panel = store[side]
   const isActive = store.activePanel === side
   const theme = useThemeStore(s => s.theme)
   const listRef = useRef(null)
+
+  useImperativeHandle(ref, () => ({
+    focus: () => listRef.current?.focus(),
+  }))
+
   const [pathInput, setPathInput] = useState('')
   const [editingPath, setEditingPath] = useState(false)
   const drives = store.drives
@@ -409,7 +414,9 @@ export default function FilePanel({ side, onEdit }) {
       </div>
     </div>
   )
-}
+})
+
+export default FilePanel
 
 function BreadcrumbPath({ path, onNavigate }) {
   if (!path) return <span>/</span>

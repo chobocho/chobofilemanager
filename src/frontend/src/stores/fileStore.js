@@ -382,6 +382,22 @@ export const useFileStore = create((set, get) => ({
     await get()._refreshAffected([parentDir(path)])
   },
 
+  navigateToBookmark: async (panel, bm) => {
+    if (bm.isFile) {
+      const lastSep = Math.max(bm.path.lastIndexOf('/'), bm.path.lastIndexOf('\\'))
+      const parentPath = lastSep > 0 ? bm.path.substring(0, lastSep) : bm.path
+      const fileName = bm.path.substring(lastSep + 1)
+      await get().navigate(panel, parentPath)
+      const files = get()[panel].files
+      const idx = files.findIndex(f => f.name === fileName)
+      if (idx >= 0) {
+        set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
+      }
+    } else {
+      await get().navigate(panel, bm.path)
+    }
+  },
+
   setStatus: (status) => set({ status }),
 
   // 영향 받은 디렉토리를 표시 중인 패널의 활성 탭을 모두 리프레시합니다.

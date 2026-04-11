@@ -1,5 +1,28 @@
 # 변경 이력
 
+## 2026-04-11 (44)
+
+### #31 FILE 패널 파일 북마크 기능 추가
+
+- `src/filebookmarks.go`
+  - `FileBookmark` 구조체에 `IsFile bool` 필드 추가
+  - `AddFileBookmark`: `os.Stat`으로 파일/폴더 자동 판별해 `IsFile` 설정
+
+- `src/frontend/src/stores/fileStore.js`
+  - `navigateToBookmark(panel, bm)` 액션 추가
+    - `bm.isFile=true`: 부모 디렉토리로 이동 후 해당 파일에 커서 이동
+    - `bm.isFile=false`: 해당 폴더로 바로 이동
+
+- `src/frontend/src/components/BookmarkDialog.jsx`
+  - "현재 폴더 추가" 버튼 항상 표시
+  - 커서가 파일(비디렉토리)에 있을 때 "현재 파일 추가" 버튼 추가 표시
+  - 북마크 아이템 아이콘: 폴더는 FolderOpen(노란색), 파일은 FileText(파란색)
+  - 클릭 시 `navigateToBookmark` 호출
+
+- `src/frontend/src/styles/BookmarkDialog.module.css`
+  - `.addButtons` 컨테이너 클래스 추가
+  - `.fileIcon` 색상 클래스 추가
+
 ## 2026-04-11 (43)
 
 ### #30 FTP 접속 이력 자동 저장 및 관리

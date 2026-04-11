@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Bookmark, Plus, Trash2, X, FolderOpen } from 'lucide-react'
+import { Bookmark, Plus, Trash2, X, FolderOpen, FileText } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import styles from '../styles/BookmarkDialog.module.css'
@@ -24,11 +24,18 @@ export default function BookmarkDialog({ onClose }) {
   const store = useFileStore()
   const [bookmarks, setBookmarks] = useState([])
   const [adding, setAdding]       = useState(false)
+  const [addTarget, setAddTarget] = useState(null) // { path, isFile }
   const [newName, setNewName]     = useState('')
   const [error, setError]         = useState('')
   const nameInputRef = useRef(null)
 
-  const activePath = store[store.activePanel]?.path || ''
+  const panel = store.activePanel
+  const activePath = store[panel]?.path || ''
+  const cursorIdx  = store[panel]?.cursor ?? 0
+  const cursorOnParent = store[panel]?.cursorOnParent ?? false
+  const files = store[panel]?.files || []
+  const cursorFile = !cursorOnParent ? files[cursorIdx] : null
+  const cursorIsFile = cursorFile && !cursorFile.isDir
 
   useEffect(() => { load() }, [])
   useEffect(() => {
@@ -40,14 +47,15 @@ export default function BookmarkDialog({ onClose }) {
     setBookmarks(bms || [])
   }
 
-  const handleNavigate = (path) => {
-    store.navigate(store.activePanel, path)
+  const handleNavigate = (bm) => {
+    store.navigateToBookmark(panel, bm)
     onClose()
   }
 
-  const handleStartAdd = () => {
-    const folderName = activePath.split(/[/\\]/).filter(Boolean).pop() || activePath
-    setNewName(folderName)
+  const handleStartAdd = (path, isFile) => {
+    const lastName = path.split(/[/\\]/).filter(Boolean).pop() || path
+    setAddTarget({ path, isFile })
+    setNewName(lastName)
     setError('')
     setAdding(true)
   }
@@ -56,7 +64,7 @@ export default function BookmarkDialog({ onClose }) {
     e.preventDefault()
     if (!newName.trim()) return
     try {
-      await api.AddFileBookmark(newName.trim(), activePath)
+      await api.AddFileBookmark(newName.trim(), addTarget.path)
       await load()
       setAdding(false)
       setNewName('')
@@ -81,13 +89,21 @@ export default function BookmarkDialog({ onClose }) {
       </div>
 
       <div className={styles.body}>
-        {/* 현재 폴더 추가 */}
         {!adding ? (
-          <button className={styles.addBtn} onClick={handleStartAdd}>
-            <Plus size={13} />
-            <span>현재 폴더 추가</span>
-            <span className={styles.addPath}>{activePath}</span>
-          </button>
+          <div className={styles.addButtons}>
+            <button className={styles.addBtn} onClick={() => handleStartAdd(activePath, false)}>
+              <FolderOpen size={13} />
+              <span>현재 폴더 추가</span>
+              <span className={styles.addPath}>{activePath}</span>
+            </button>
+            {cursorIsFile && (
+              <button className={styles.addBtn} onClick={() => handleStartAdd(cursorFile.path, true)}>
+                <FileText size={13} />
+                <span>현재 파일 추가</span>
+                <span className={styles.addPath}>{cursorFile.path}</span>
+              </button>
+            )}
+          </div>
         ) : (
           <form className={styles.addForm} onSubmit={handleAdd}>
             <input
@@ -109,16 +125,19 @@ export default function BookmarkDialog({ onClose }) {
         {/* 북마크 목록 */}
         <div className={styles.list}>
           {bookmarks.length === 0 ? (
-            <div className={styles.empty}>바로가기가 없습니다. 현재 폴더를 추가해보세요.</div>
+            <div className={styles.empty}>바로가기가 없습니다.</div>
           ) : (
             bookmarks.map(bm => (
               <div
                 key={bm.id}
                 className={styles.row}
-                onClick={() => handleNavigate(bm.path)}
+                onClick={() => handleNavigate(bm)}
                 title={bm.path}
               >
-                <FolderOpen size={14} className={styles.folderIcon} />
+                {bm.isFile
+                  ? <FileText size={14} className={styles.fileIcon} />
+                  : <FolderOpen size={14} className={styles.folderIcon} />
+                }
                 <div className={styles.info}>
                   <span className={styles.name}>{bm.name}</span>
                   <span className={styles.path}>{bm.path}</span>

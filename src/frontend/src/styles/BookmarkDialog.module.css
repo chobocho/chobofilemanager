@@ -65,6 +65,15 @@
   flex-direction: column;
 }
 
+/* Add buttons container */
+.addButtons {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+}
+.addButtons .addBtn { border-bottom: none; }
+.addButtons .addBtn:last-child { border-top: 1px solid var(--border); }
+
 /* Add button */
 .addBtn {
   display: flex;
@@ -192,6 +201,7 @@
 .row:hover .deleteBtn { opacity: 1; }
 
 .folderIcon { color: var(--text-yellow, #f0c040); flex-shrink: 0; }
+.fileIcon   { color: var(--text-accent, #4a9eff); flex-shrink: 0; }
 
 .info {
   flex: 1;

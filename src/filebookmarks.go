@@ -12,6 +12,7 @@ type FileBookmark struct {
 	ID      string    `json:"id"`
 	Name    string    `json:"name"`
 	Path    string    `json:"path"`
+	IsFile  bool      `json:"isFile"`
 	Created time.Time `json:"created"`
 }
 
@@ -63,7 +64,8 @@ func (a *App) GetFileBookmarks() []FileBookmark {
 }
 
 func (a *App) AddFileBookmark(name, path string) error {
-	if _, err := os.Stat(path); err != nil {
+	info, err := os.Stat(path)
+	if err != nil {
 		return fmt.Errorf("경로가 존재하지 않습니다: %s", path)
 	}
 	bms, err := a.loadFileBookmarks()
@@ -71,7 +73,13 @@ func (a *App) AddFileBookmark(name, path string) error {
 		return err
 	}
 	id := fmt.Sprintf("bm_%d", time.Now().UnixNano())
-	bms = append(bms, FileBookmark{ID: id, Name: name, Path: path, Created: time.Now()})
+	bms = append(bms, FileBookmark{
+		ID:      id,
+		Name:    name,
+		Path:    path,
+		IsFile:  !info.IsDir(),
+		Created: time.Now(),
+	})
 	return a.saveFileBookmarks(bms)
 }
 

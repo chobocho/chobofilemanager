@@ -17,11 +17,12 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:  "TotalCmd - File Manager",
-		Width:  1400,
-		Height: 900,
-		MinWidth: 900,
-		MinHeight: 600,
+		Title:            "TotalCmd - File Manager",
+		Width:            1280,
+		Height:           800,
+		MinWidth:         900,
+		MinHeight:        600,
+		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

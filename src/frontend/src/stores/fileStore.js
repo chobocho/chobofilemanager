@@ -84,7 +84,7 @@ export const useFileStore = create((set, get) => ({
     set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
     try {
       const result = await api.ListDirectory(path)
-      const newHistory = [...state.history.slice(0, state.historyIndex + 1), path]
+      const newHistory = [...state.history.slice(0, state.historyIndex + 1), result.path]
       set(s => ({
         [panel]: {
           ...s[panel],

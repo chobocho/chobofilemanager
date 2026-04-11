@@ -24,6 +24,8 @@ vi.mock('../wailsjs/runtime', () => ({
 
 // ─── BreadcrumbPath 경로 구성 로직 (FilePanel.jsx와 동일) ──────────────────────
 function buildBreadcrumbParts(path) {
+  const isWindows = path.includes('\\') || /^[A-Za-z]:/.test(path)
+  const sep = isWindows ? '\\' : '/'
   const parts = []
   const segments = path.replace(/\\/g, '/').split('/')
   let acc = ''
@@ -37,11 +39,11 @@ function buildBreadcrumbParts(path) {
     }
     if (!seg) continue
     if (i === 0 && /^[A-Za-z]:$/.test(seg)) {
-      acc = seg + '/'
+      acc = seg + sep
       parts.push({ name: seg, path: acc })
       continue
     }
-    acc = acc.endsWith('/') ? `${acc}${seg}` : `${acc}/${seg}`
+    acc = acc.endsWith(sep) ? `${acc}${seg}` : `${acc}${sep}${seg}`
     parts.push({ name: seg, path: acc })
   }
   return parts
@@ -99,27 +101,27 @@ describe('BreadcrumbPath 경로 구성', () => {
     expect(parts.map(p => p.path)).toEqual(['/', '/home', '/home/user', '/home/user/docs'])
   })
 
-  it('BC-03: Windows 드라이브 루트가 "/C:" 가 아닌 "C:/" 로 시작한다 (핵심 버그 수정)', () => {
+  it('BC-03: Windows 드라이브 루트가 역슬래시로 시작한다 (OS 구분 수정)', () => {
     const parts = buildBreadcrumbParts('C:\\github\\temp')
-    expect(parts[0].path).toBe('C:/')
-    expect(parts[0].path).not.toBe('/C:')
+    expect(parts[0].path).toBe('C:\\')
+    expect(parts[0].path).not.toBe('C:/')
   })
 
-  it('BC-04: Windows 경로 파트들이 올바르게 누적된다', () => {
+  it('BC-04: Windows 경로 파트들이 역슬래시로 누적된다', () => {
     const parts = buildBreadcrumbParts('C:\\github\\temp')
-    expect(parts.map(p => p.path)).toEqual(['C:/', 'C:/github', 'C:/github/temp'])
+    expect(parts.map(p => p.path)).toEqual(['C:\\', 'C:\\github', 'C:\\github\\temp'])
   })
 
-  it('BC-05: Windows 다른 드라이브도 올바르게 처리한다 (D:)', () => {
+  it('BC-05: Windows 다른 드라이브도 역슬래시로 처리한다 (D:)', () => {
     const parts = buildBreadcrumbParts('D:\\Projects\\myapp')
-    expect(parts[0].path).toBe('D:/')
-    expect(parts.map(p => p.path)).toEqual(['D:/', 'D:/Projects', 'D:/Projects/myapp'])
+    expect(parts[0].path).toBe('D:\\')
+    expect(parts.map(p => p.path)).toEqual(['D:\\', 'D:\\Projects', 'D:\\Projects\\myapp'])
   })
 
-  it('BC-06: Windows 경로에서 중간에 슬래시 혼용도 처리한다', () => {
-    const parts = buildBreadcrumbParts('C:/Users/user/Documents')
-    expect(parts[0].path).toBe('C:/')
-    expect(parts[1].path).toBe('C:/Users')
+  it('BC-06: 슬래시 혼용 Windows 경로도 역슬래시로 정규화한다', () => {
+    const parts = buildBreadcrumbParts('C:\\Users\\user\\Documents')
+    expect(parts[0].path).toBe('C:\\')
+    expect(parts[1].path).toBe('C:\\Users')
   })
 })
 

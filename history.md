@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-04-11 (32)
+
+### #20 Windows 경로 구분자 수정 (유닉스 스타일 → 역슬래시)
+
+- `src/frontend/src/components/FilePanel.jsx` — `BreadcrumbPath`
+  - `isWindows` 감지: 경로에 `\` 포함 또는 드라이브 문자(`C:`) 패턴
+  - `sep = isWindows ? '\\' : '/'` 로 OS별 구분자 분기
+  - 브레드크럼 클릭 시 `navigate`에 전달되는 경로가 Windows에서 역슬래시 사용
+- `src/frontend/src/stores/fileStore.js` — `navigate`
+  - history에 입력 경로(`path`) 대신 `result.path`(Go가 정규화한 경로) 저장
+  - 이후 `navigateBack`/`navigateForward`도 항상 OS 정규화된 경로 사용
+- `src/frontend/src/stores/fileStore.test.js`
+  - `buildBreadcrumbParts` 헬퍼를 새 로직으로 동기화
+  - BC-03~BC-06: Windows 경로 기대값을 역슬래시(`\`)로 수정
+
 ## 2026-04-11 (31)
 
 ### #19 내장 편집기 ESC 시 저장 확인 팝업

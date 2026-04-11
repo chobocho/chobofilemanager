@@ -4,7 +4,7 @@ import { useThemeStore } from '../stores/themeStore'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
-  FileCode, ArrowUp, RefreshCw, ChevronRight, HardDrive,
+  FileCode, ArrowUp, RefreshCw, ChevronRight,
   Eye, EyeOff, Plus, X as XIcon
 } from 'lucide-react'
 
@@ -309,9 +309,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
             onChange={handleDriveChange}
             onClick={e => e.stopPropagation()}
           >
-            <option value="" disabled>
-              <HardDrive size={12} /> Drives
-            </option>
+            <option value="" disabled>Drives</option>
             {drives.map(d => (
               <option key={d.path} value={d.path}>
                 {d.name} ({d.driveType})
@@ -525,6 +523,8 @@ function TabBar({ side, panel, store }) {
 
 function BreadcrumbPath({ path, onNavigate }) {
   if (!path) return <span>/</span>
+  const isWindows = path.includes('\\') || /^[A-Za-z]:/.test(path)
+  const sep = isWindows ? '\\' : '/'
   const parts = []
   const segments = path.replace(/\\/g, '/').split('/')
   let acc = ''
@@ -543,12 +543,12 @@ function BreadcrumbPath({ path, onNavigate }) {
 
     // Windows 드라이브 문자 (예: "C:", "D:")
     if (i === 0 && /^[A-Za-z]:$/.test(seg)) {
-      acc = seg + '/'
+      acc = seg + sep
       parts.push({ name: seg, path: acc })
       continue
     }
 
-    acc = acc.endsWith('/') ? `${acc}${seg}` : `${acc}/${seg}`
+    acc = acc.endsWith(sep) ? `${acc}${seg}` : `${acc}${sep}${seg}`
     parts.push({ name: seg, path: acc })
   }
 

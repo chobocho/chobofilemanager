@@ -86,6 +86,13 @@ export default function App() {
     focusActivePanel()
   }
 
+  const handleSwitchPanel = useCallback(() => {
+    const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
+    useFileStore.getState().setActivePanel(next)
+    const ref = next === 'left' ? leftPanelRef : rightPanelRef
+    requestAnimationFrame(() => ref.current?.focus())
+  }, [])
+
   return (
     <div className={styles.app} data-theme={theme}>
       <Toolbar
@@ -107,6 +114,7 @@ export default function App() {
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
+        onSwitchPanel={handleSwitchPanel}
       />
       <div className={styles.content}>
         {view === 'files' ? (

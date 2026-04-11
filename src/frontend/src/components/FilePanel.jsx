@@ -129,6 +129,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
     setPathInput(panel.path)
   }, [panel.path])
 
+
   const visibleFiles = panel.showHidden
     ? panel.files
     : panel.files.filter(f => !f.isHidden)

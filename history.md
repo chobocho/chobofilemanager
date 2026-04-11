@@ -1,5 +1,22 @@
 # 변경 이력
 
+## 2026-04-11 (19)
+
+### TAB키로 양쪽 패널 전환
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - `onSwitchPanel` prop 추가
+  - 전역 `keydown` 핸들러에 `Tab` 케이스 추가 → `e.preventDefault()` 후 `onSwitchPanel?.()` 호출
+  - 의존성 배열에 `onSwitchPanel` 추가
+- `src/frontend/src/App.jsx`
+  - `handleSwitchPanel` 콜백 추가: 활성 패널을 반대 측으로 전환 후 `requestAnimationFrame`으로 포커스 이동
+  - Toolbar에 `onSwitchPanel={handleSwitchPanel}` 전달
+- `src/frontend/src/components/FilePanel.jsx`
+  - `handleKeyDown`에 `Tab` 케이스 추가: `store.setActivePanel(반대 side)` 직접 호출
+  - `isActive` 변경 시 자동 포커스 `useEffect` 추가 (TAB 전환 후 포커스 자동 이동)
+
+**테스트 결과**: JS 73개 전체 통과
+
 ## 2026-04-11 (18)
 
 ### Todo #10 - F8 삭제 팝업에 파일명 목록 표시

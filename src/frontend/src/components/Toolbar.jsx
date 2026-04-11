@@ -26,6 +26,10 @@ export default function Toolbar({
         case 'F6': e.preventDefault(); onMove();           break
         case 'F7': e.preventDefault(); onNewDir();         break
         case 'F8': e.preventDefault(); onDelete();         break
+        case 'n':
+        case 'N':
+          if (e.ctrlKey) { e.preventDefault(); onNewFile?.(); }
+          break
         case 'r':
         case 'R':
           if (e.ctrlKey) { e.preventDefault(); onRename(); }
@@ -35,7 +39,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel])
+  }, [onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile])
 
   return (
     <div className={styles.toolbar}>

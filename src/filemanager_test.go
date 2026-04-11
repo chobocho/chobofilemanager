@@ -285,11 +285,15 @@ func TestCreateDirectory_Nested(t *testing.T) {
 
 func TestCreateDirectory_AlreadyExists(t *testing.T) {
 	base := t.TempDir()
+	dir := filepath.Join(base, "existing")
 	fm := newTestFM()
-	// 두 번 호출해도 에러 없어야 함
-	fm.CreateDirectory(base)
-	if err := fm.CreateDirectory(base); err != nil {
-		t.Errorf("creating existing directory should not error: %v", err)
+	// 첫 번째 생성 성공
+	if err := fm.CreateDirectory(dir); err != nil {
+		t.Fatalf("첫 번째 생성 실패: %v", err)
+	}
+	// 두 번째 호출은 중복 에러 반환
+	if err := fm.CreateDirectory(dir); err == nil {
+		t.Error("이미 존재하는 폴더 생성 시 에러가 반환되어야 합니다")
 	}
 }
 
@@ -305,6 +309,19 @@ func TestCreateFile_New(t *testing.T) {
 	}
 	if _, err := os.Stat(f); err != nil {
 		t.Error("file should exist after CreateFile")
+	}
+}
+
+func TestCreateFile_DuplicateReturnsError(t *testing.T) {
+	base := t.TempDir()
+	f := filepath.Join(base, "dup.txt")
+	fm := newTestFM()
+
+	if err := fm.CreateFile(f); err != nil {
+		t.Fatalf("첫 번째 생성 실패: %v", err)
+	}
+	if err := fm.CreateFile(f); err == nil {
+		t.Error("중복 파일 생성 시 에러가 반환되어야 합니다")
 	}
 }
 

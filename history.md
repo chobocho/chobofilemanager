@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-04-11 (20)
+
+### Ctrl+N 단축키로 새 파일 생성 팝업 연결
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - 전역 `keydown` 핸들러에 `Ctrl+N` 케이스 추가 → `onNewFile?.()` 호출
+  - 의존성 배열에 `onNewFile` 추가
+
+**테스트 결과**: JS 73개 전체 통과
+
 ## 2026-04-11 (19)
 
 ### TAB키로 양쪽 패널 전환

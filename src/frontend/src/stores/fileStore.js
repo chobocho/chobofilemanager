@@ -261,6 +261,7 @@ export const useFileStore = create((set, get) => ({
       await get().refresh(panel)
     } catch (err) {
       set({ status: `Create directory failed: ${err}` })
+      throw err
     }
   },
 

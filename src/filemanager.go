@@ -184,10 +184,16 @@ func (fm *FileManager) DeleteItems(paths []string) error {
 }
 
 func (fm *FileManager) CreateDirectory(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("폴더가 이미 존재합니다: %s", filepath.Base(path))
+	}
 	return os.MkdirAll(path, 0755)
 }
 
 func (fm *FileManager) CreateFile(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("파일이 이미 존재합니다: %s", filepath.Base(path))
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err

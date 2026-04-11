@@ -77,11 +77,9 @@ export default function App() {
     const base  = panel.path
     const sep   = base.includes('\\') ? '\\' : '/'
     const path  = base.replace(/[/\\]+$/, '') + sep + name
-    try {
-      const api = (await import('./wailsjs/runtime')).default
-      await api.CreateFile(path)
-      store.refresh(store.activePanel)
-    } catch(e) { console.error(e) }
+    const api = (await import('./wailsjs/runtime')).default
+    await api.CreateFile(path)  // 에러 시 throw → NewItemDialog에서 캐치
+    store.refresh(store.activePanel)
     setModal(null)
     focusActivePanel()
   }
@@ -147,7 +145,7 @@ export default function App() {
 
       {modal === 'newdir' && (
         <NewItemDialog type="directory"
-          onConfirm={(name) => { const s=useFileStore.getState(); s.createDirectory(s.activePanel,name); setModal(null); focusActivePanel() }}
+          onConfirm={async (name) => { const s=useFileStore.getState(); await s.createDirectory(s.activePanel,name); setModal(null); focusActivePanel() }}
           onClose={() => { setModal(null); focusActivePanel() }} />
       )}
       {modal === 'newfile' && (

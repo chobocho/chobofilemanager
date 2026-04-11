@@ -68,14 +68,20 @@ export default ConfirmDialog
 
 export function NewItemDialog({ type, onConfirm, onClose }) {
   const [name, setName] = useState('')
+  const [error, setError] = useState('')
   const inputRef = useRef(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (name.trim()) {
-      onConfirm(name.trim())
+    if (!name.trim()) return
+    setError('')
+    try {
+      await onConfirm(name.trim())
+    } catch (err) {
+      setError(String(err))
+      inputRef.current?.select()
     }
   }
 
@@ -96,12 +102,13 @@ export function NewItemDialog({ type, onConfirm, onClose }) {
           </label>
           <input
             ref={inputRef}
-            className={styles.input}
+            className={`${styles.input} ${error ? styles.inputError : ''}`}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => { setName(e.target.value); setError('') }}
             placeholder={type === 'directory' ? 'new_folder' : 'file.txt'}
             spellCheck={false}
           />
+          {error && <p className={styles.errorMsg}>{error}</p>}
         </div>
         <div className={styles.footer}>
           <button type="button" className={styles.btnCancel} onClick={onClose}>Cancel</button>

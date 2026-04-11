@@ -98,6 +98,18 @@
   font-family: var(--font-mono);
 }
 
+.inputError {
+  border-color: var(--text-red) !important;
+  box-shadow: 0 0 0 2px rgba(255, 80, 96, 0.15) !important;
+}
+
+.errorMsg {
+  font-size: 11px;
+  color: var(--text-red);
+  font-family: var(--font-mono);
+  margin: 0;
+}
+
 /* Footer */
 .footer {
   display: flex;

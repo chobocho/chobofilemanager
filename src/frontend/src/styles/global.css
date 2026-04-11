@@ -1,0 +1,138 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-base:       #0d0d12;
+  --bg-panel:      #12121a;
+  --bg-header:     #0a0a0f;
+  --bg-row:        #12121a;
+  --bg-row-alt:    #141420;
+  --bg-row-hover:  #1a1a2e;
+  --bg-selected:   #1a2a4a;
+  --bg-active:     #1e3260;
+  --bg-input:      #0d0d18;
+  --bg-modal:      #13131f;
+  --bg-toolbar:    #0f0f18;
+
+  --border:        #1e1e30;
+  --border-active: #2a4080;
+  --border-focus:  #4a7aff;
+
+  --text-primary:  #c8d0e0;
+  --text-secondary:#7080a0;
+  --text-muted:    #404860;
+  --text-accent:   #4a9eff;
+  --text-green:    #50e090;
+  --text-yellow:   #f0c040;
+  --text-red:      #ff5060;
+  --text-orange:   #ff9040;
+  --text-cyan:     #40d0f0;
+  --text-purple:   #a060ff;
+
+  --accent:        #2a5cff;
+  --accent-hover:  #3a6cff;
+  --accent-glow:   rgba(42, 92, 255, 0.15);
+
+  --font-mono:     'JetBrains Mono', 'Consolas', monospace;
+  --font-ui:       'IBM Plex Sans', system-ui, sans-serif;
+
+  --radius-sm:     3px;
+  --radius:        5px;
+  --radius-lg:     8px;
+
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+  --shadow:        0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+
+  --transition:    150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: #252540;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #303058;
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input, select, textarea {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(74, 122, 255, 0.15);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+select option {
+  background: var(--bg-panel);
+}
+
+/* Drag and drop highlight */
+.drop-target {
+  outline: 2px dashed var(--accent) !important;
+  background: var(--accent-glow) !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.animate-fade { animation: fadeIn 0.15s ease-out; }
+.animate-pulse { animation: pulse 1.5s infinite; }

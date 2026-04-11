@@ -1,0 +1,29 @@
+# IDE 설정
+.idea/
+.vscode/
+*.iml
+
+# Claude Code 세션 데이터
+.claude/
+
+# Node.js 의존성 및 빌드 결과물
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/package.json.md5
+src/frontend/wailsjs/
+
+# Go 빌드 결과물
+src/build/bin/
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# Go 임시 파일
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out

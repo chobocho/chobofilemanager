@@ -1,0 +1,146 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  flex-shrink: 0;
+  height: 38px;
+}
+
+.viewSwitcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+
+.viewBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius) - 1px);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.viewBtn:hover {
+  background: var(--bg-row-hover);
+  color: var(--text-primary);
+}
+
+.viewBtnActive {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.toolBtn:hover {
+  background: var(--bg-row-hover);
+  border-color: var(--border-active);
+  color: #fff;
+}
+
+.toolBtnDanger:hover {
+  background: rgba(255, 80, 96, 0.15);
+  border-color: rgba(255, 80, 96, 0.4);
+  color: var(--text-red);
+}
+
+.fkeyBadge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 1px 3px;
+  background: var(--bg-base);
+  border-radius: 2px;
+  letter-spacing: 0;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.spacer { flex: 1; }
+
+/* F-Key strip */
+.fkeys {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.fkey {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  height: 24px;
+  transition: background var(--transition);
+}
+
+.fkey:hover {
+  background: var(--bg-row-hover);
+}
+
+.fkeyNum {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-accent);
+  background: var(--bg-base);
+  padding: 0 4px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+}
+
+.fkeyLabel {
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 0 6px;
+  background: var(--bg-toolbar);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.fkey:not(:last-child) .fkeyLabel {
+  border-right: 1px solid var(--border);
+}

@@ -1,0 +1,213 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
+  max-height: 800px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(42, 92, 255, 0.2);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fileIcon {
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.fileName {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dirty {
+  color: var(--text-yellow);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.filePath {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btnSave {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btnSave:disabled { opacity: 0.4; cursor: default; }
+.btnSaveDirty {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+.btnSaveDirty:hover { background: var(--accent-hover) !important; }
+
+.shortcut {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: rgba(255,255,255,0.5);
+  padding: 1px 4px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 2px;
+}
+
+.btnClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btnClose:hover {
+  background: rgba(255,80,96,0.15);
+  color: var(--text-red);
+  border-color: rgba(255,80,96,0.3);
+}
+
+/* Body */
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: #0a0a10;
+}
+
+.loading, .error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.loading { color: var(--text-muted); }
+.error   { color: var(--text-red); }
+
+/* Line numbers */
+.lineNumbers {
+  width: 50px;
+  background: #0a0a10;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+  padding: 12px 0;
+  user-select: none;
+}
+
+.lineNum {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+  height: 20px;
+  text-align: right;
+  padding-right: 10px;
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+
+.lineNumActive {
+  color: var(--text-accent);
+}
+
+/* Textarea */
+.textarea {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  border: none;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  overflow-x: auto;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.textarea:focus {
+  box-shadow: none;
+}
+
+/* Status bar */
+.statusBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 14px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.statusBar span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.unsaved {
+  color: var(--text-yellow) !important;
+}

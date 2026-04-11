@@ -17,7 +17,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:            "Chobocho Commander",
+		Title:            "Chobocho Commander V0.1",
 		Width:            1280,
 		Height:           800,
 		MinWidth:         900,

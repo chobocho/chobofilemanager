@@ -1,5 +1,34 @@
 # 변경 이력
 
+## 2026-04-11 (25)
+
+### 멀티 탭 지원 (Total Commander 스타일)
+
+- `src/frontend/src/stores/fileStore.js`
+  - `createTabState(path)` 헬퍼 추가: 탭별 저장 상태 (path, cursor, showHidden, selected, history, sortBy, sortDir)
+  - `createPanelState`에 `tabs: [createTabState('')]`, `activeTabIdx: 0` 추가
+  - `_saveCurrentTab(panel)`: 현재 패널 라이브 상태를 `tabs[activeTabIdx]`에 저장하는 내부 헬퍼
+  - `newTab(panel)`: 현재 경로로 새 탭 생성, 탭 배열 끝에 추가 후 전환
+  - `closeTab(panel, idx)`: 탭 닫기 (마지막 탭은 닫기 불가), 인접 탭으로 자동 전환
+  - `switchTab(panel, idx)`: 현재 탭 상태 저장 → 목표 탭 상태 복원 → 디렉토리 재조회
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `Plus`, `X as XIcon` import 추가
+  - `TabBar` 컴포넌트 추가: 탭 목록 + 활성 탭 하이라이트 + ×(닫기) 버튼 + +(추가) 버튼
+  - 패널 최상단에 `<TabBar>` 렌더링
+  - `handleKeyDown`에 단축키 추가:
+    - `Ctrl+T`: 새 탭
+    - `Ctrl+W`: 현재 탭 닫기
+    - `Ctrl+Tab`: 다음 탭
+    - `Ctrl+Shift+Tab`: 이전 탭
+
+- `src/frontend/src/styles/FilePanel.module.css`
+  - `.tabBar`, `.tab`, `.tabActive`, `.tabLabel`, `.tabClose`, `.tabAdd` 스타일 추가
+  - 활성 탭: 하단 accent 색상 border + 배경 패널 색상으로 구분
+  - × 버튼: hover 시에만 표시, 호버 시 빨간색 강조
+
+**테스트 결과**: Vite 빌드 성공
+
 ## 2026-04-11 (24)
 
 ### Ctrl+F 파일 검색 단축키 연결

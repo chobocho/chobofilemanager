@@ -5,7 +5,7 @@ import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
   FileCode, ArrowUp, RefreshCw, ChevronRight, HardDrive,
-  Eye, EyeOff
+  Eye, EyeOff, Plus, X as XIcon
 } from 'lucide-react'
 
 const FILE_ICONS_DARK = {
@@ -245,6 +245,24 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       case 'h':
         if (e.ctrlKey) { e.preventDefault(); store.toggleHidden(side) }
         break
+      case 't':
+      case 'T':
+        if (e.ctrlKey) { e.preventDefault(); store.newTab(side) }
+        break
+      case 'w':
+      case 'W':
+        if (e.ctrlKey) { e.preventDefault(); store.closeTab(side, panel.activeTabIdx) }
+        break
+      case 'Tab':
+        // Ctrl+Tab = next tab, Ctrl+Shift+Tab = prev tab (only when Ctrl is held)
+        if (e.ctrlKey) {
+          e.preventDefault()
+          const nextIdx = e.shiftKey
+            ? (panel.activeTabIdx - 1 + panel.tabs.length) % panel.tabs.length
+            : (panel.activeTabIdx + 1) % panel.tabs.length
+          store.switchTab(side, nextIdx)
+        }
+        break
       default:
         break
     }
@@ -287,6 +305,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       tabIndex={0}
       ref={listRef}
     >
+      <TabBar side={side} panel={panel} store={store} />
       {/* Panel Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -466,6 +485,49 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
 })
 
 export default FilePanel
+
+function TabBar({ side, panel, store }) {
+  const getLabel = (path) => {
+    if (!path) return 'Home'
+    const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
+    return parts[parts.length - 1] || path
+  }
+
+  return (
+    <div className={styles.tabBar}>
+      {panel.tabs.map((tab, i) => {
+        const isActive = i === panel.activeTabIdx
+        const label = isActive ? getLabel(panel.path) : getLabel(tab.path)
+        return (
+          <div
+            key={tab.id}
+            className={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
+            onClick={(e) => { e.stopPropagation(); store.switchTab(side, i) }}
+            title={isActive ? panel.path : tab.path}
+          >
+            <span className={styles.tabLabel}>{label}</span>
+            {panel.tabs.length > 1 && (
+              <button
+                className={styles.tabClose}
+                onClick={(e) => { e.stopPropagation(); store.closeTab(side, i) }}
+                title="Close tab"
+              >
+                <XIcon size={10} />
+              </button>
+            )}
+          </div>
+        )
+      })}
+      <button
+        className={styles.tabAdd}
+        onClick={(e) => { e.stopPropagation(); store.newTab(side) }}
+        title="New tab (Ctrl+T)"
+      >
+        <Plus size={12} />
+      </button>
+    </div>
+  )
+}
 
 function BreadcrumbPath({ path, onNavigate }) {
   if (!path) return <span>/</span>

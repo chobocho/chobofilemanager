@@ -8,6 +8,20 @@ export function joinPath(base, name) {
   return base.replace(/[/\\]+$/, '') + sep + name
 }
 
+let _tabCounter = 0
+const createTabState = (path = '') => ({
+  id: `tab-${++_tabCounter}`,
+  path,
+  cursor: 0,
+  cursorOnParent: false,
+  showHidden: false,
+  selected: new Set(),
+  history: [],
+  historyIndex: -1,
+  sortBy: 'name',
+  sortDir: 'asc',
+})
+
 const createPanelState = (side) => ({
   path: '',
   files: [],
@@ -21,6 +35,8 @@ const createPanelState = (side) => ({
   historyIndex: -1,
   cursor: 0,
   cursorOnParent: false,
+  tabs: [createTabState('')],
+  activeTabIdx: 0,
 })
 
 export const useFileStore = create((set, get) => ({
@@ -311,4 +327,117 @@ export const useFileStore = create((set, get) => ({
   },
 
   setStatus: (status) => set({ status }),
+
+  // Helper: save current live panel state into tabs[activeTabIdx]
+  _saveCurrentTab: (panel) => {
+    const s = get()[panel]
+    const updatedTabs = [...s.tabs]
+    updatedTabs[s.activeTabIdx] = {
+      ...updatedTabs[s.activeTabIdx],
+      path: s.path,
+      cursor: s.cursor,
+      cursorOnParent: s.cursorOnParent,
+      showHidden: s.showHidden,
+      selected: s.selected,
+      history: s.history,
+      historyIndex: s.historyIndex,
+      sortBy: s.sortBy,
+      sortDir: s.sortDir,
+    }
+    return updatedTabs
+  },
+
+  newTab: async (panel) => {
+    const s = get()[panel]
+    const updatedTabs = get()._saveCurrentTab(panel)
+    const newTab = createTabState(s.path)
+    updatedTabs.push(newTab)
+    const newIdx = updatedTabs.length - 1
+
+    set(st => ({
+      [panel]: {
+        ...st[panel],
+        tabs: updatedTabs,
+        activeTabIdx: newIdx,
+        cursor: 0,
+        cursorOnParent: false,
+        selected: new Set(),
+        history: [],
+        historyIndex: -1,
+      }
+    }))
+    await get().navigate(panel, s.path)
+  },
+
+  closeTab: async (panel, idx) => {
+    const s = get()[panel]
+    if (s.tabs.length <= 1) return // last tab — can't close
+
+    // Save current state first
+    const updatedTabs = get()._saveCurrentTab(panel).filter((_, i) => i !== idx)
+    const newIdx = Math.min(idx, updatedTabs.length - 1)
+    const target = updatedTabs[newIdx]
+
+    set(st => ({
+      [panel]: {
+        ...st[panel],
+        tabs: updatedTabs,
+        activeTabIdx: newIdx,
+        cursor: target.cursor || 0,
+        cursorOnParent: target.cursorOnParent || false,
+        showHidden: target.showHidden || false,
+        selected: target.selected || new Set(),
+        history: target.history || [],
+        historyIndex: target.historyIndex ?? -1,
+        sortBy: target.sortBy || 'name',
+        sortDir: target.sortDir || 'asc',
+        loading: true,
+        error: null,
+      }
+    }))
+
+    try {
+      const result = await api.ListDirectory(target.path)
+      set(st => ({
+        [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
+      }))
+    } catch (err) {
+      set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
+    }
+  },
+
+  switchTab: async (panel, idx) => {
+    const s = get()[panel]
+    if (idx === s.activeTabIdx || idx < 0 || idx >= s.tabs.length) return
+
+    const updatedTabs = get()._saveCurrentTab(panel)
+    const target = updatedTabs[idx]
+
+    set(st => ({
+      [panel]: {
+        ...st[panel],
+        tabs: updatedTabs,
+        activeTabIdx: idx,
+        cursor: target.cursor || 0,
+        cursorOnParent: target.cursorOnParent || false,
+        showHidden: target.showHidden || false,
+        selected: target.selected || new Set(),
+        history: target.history || [],
+        historyIndex: target.historyIndex ?? -1,
+        sortBy: target.sortBy || 'name',
+        sortDir: target.sortDir || 'asc',
+        loading: true,
+        error: null,
+      }
+    }))
+
+    try {
+      const result = await api.ListDirectory(target.path)
+      set(st => ({
+        [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
+      }))
+    } catch (err) {
+      set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
+    }
+  },
 }))

@@ -1,6 +1,8 @@
-# Chobo File Manager
+# Chobocho Commander
 
-**Wails v2** (Go + React)로 만든 이중 패널 파일 관리자 (Total Commander 스타일)
+**Wails v2** (Go + React)로 만든 이중 패널 파일 관리자 (Total Commander Clone)
+
+![스크린샷](../screenshot/screen_shot.png)
 
 ---
 

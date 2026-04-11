@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-04-11 (35)
+
+### #23 비활성 패널 커서 숨기기
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `[..]` 행: `cursorOnParent ? styles.cursor` → `isActive && cursorOnParent ? styles.cursor`
+  - 파일 행: `isCursor ? styles.cursor` → `isActive && isCursor ? styles.cursor`
+  - 포커스가 없는 패널에서는 커서 하이라이트가 표시되지 않음
+
 ## 2026-04-11 (34)
 
 ### #22 Ctrl+Alt+C 절대 경로 클립보드 복사

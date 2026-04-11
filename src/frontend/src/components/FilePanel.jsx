@@ -409,7 +409,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
             data-parent-row
             className={`
               ${styles.fileRow}
-              ${cursorOnParent ? styles.cursor : ''}
+              ${isActive && cursorOnParent ? styles.cursor : ''}
               ${styles.even}
             `}
             onClick={(e) => { e.stopPropagation(); store.setActivePanel(side); store.setCursorOnParent(side, true) }}
@@ -438,7 +438,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
               data-row={index}
               className={`
                 ${styles.fileRow}
-                ${isCursor ? styles.cursor : ''}
+                ${isActive && isCursor ? styles.cursor : ''}
                 ${isSelected ? styles.selected : ''}
                 ${file.isHidden ? styles.hidden : ''}
                 ${index % 2 === 0 ? styles.even : styles.odd}

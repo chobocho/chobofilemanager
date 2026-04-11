@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-04-11 (34)
+
+### #22 Ctrl+Alt+C 절대 경로 클립보드 복사
+
+- `src/frontend/src/components/FilePanel.jsx`
+  - `handleKeyDown`에 `Ctrl+Alt+C` 처리 추가
+  - 커서가 파일/폴더에 있으면 해당 절대 경로, `[..]`에 있으면 현재 패널 경로 복사
+  - `navigator.clipboard.writeText()` 사용, 성공/실패 시 상태바 메시지 표시
+  - `useCallback` 의존성 배열에 `panel.path` 추가
+
 ## 2026-04-11 (33)
 
 ### #21 내장 뷰어/에디터 3MB 초과 파일 차단

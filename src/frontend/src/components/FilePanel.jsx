@@ -230,6 +230,17 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         e.preventDefault()
         // handled by toolbar / app global handler
         break
+      case 'c':
+      case 'C':
+        if (e.ctrlKey && e.shiftKey) {
+          e.preventDefault()
+          const target = cursorOnParent ? null : files[cur]
+          const pathToCopy = target ? target.path : panel.path
+          navigator.clipboard.writeText(pathToCopy)
+            .then(() => store.setStatus(`복사됨: ${pathToCopy}`))
+            .catch(() => store.setStatus('클립보드 복사 실패'))
+        }
+        break
       case 'a':
         if (e.ctrlKey) { e.preventDefault(); store.selectAll(side) }
         break
@@ -260,7 +271,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       default:
         break
     }
-  }, [isActive, panel.cursor, visibleFiles, side, cursorOnParent, showParent])
+  }, [isActive, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return

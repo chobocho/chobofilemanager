@@ -4,6 +4,7 @@ import api from '../wailsjs/runtime'
 export const useFTPStore = create((set, get) => ({
   connections: [],
   bookmarks: [],
+  history: [],
   activeConnection: null,
   panels: {
     left: { path: '/', files: [], loading: false, error: null },
@@ -17,6 +18,34 @@ export const useFTPStore = create((set, get) => ({
     } catch (e) {
       console.error('Failed to load FTP bookmarks', e)
     }
+  },
+
+  loadHistory: async () => {
+    try {
+      const history = await api.FTPGetHistory()
+      set({ history: history || [] })
+    } catch (e) {
+      console.error('Failed to load FTP history', e)
+    }
+  },
+
+  addHistory: async (config) => {
+    try {
+      await api.FTPAddHistory(config)
+      await get().loadHistory()
+    } catch (e) {
+      console.error('Failed to save FTP history', e)
+    }
+  },
+
+  deleteHistory: async (id) => {
+    await api.FTPDeleteHistory(id)
+    await get().loadHistory()
+  },
+
+  clearHistory: async () => {
+    await api.FTPClearHistory()
+    set({ history: [] })
   },
 
   connect: async (config) => {

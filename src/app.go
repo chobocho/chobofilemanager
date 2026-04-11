@@ -171,3 +171,19 @@ func (a *App) FTPGetBookmarks() []FTPBookmark {
 func (a *App) FTPDeleteBookmark(id string) error {
 	return a.ftpManager.DeleteBookmark(id)
 }
+
+func (a *App) FTPGetHistory() []FTPHistory {
+	return a.ftpManager.GetHistory()
+}
+
+func (a *App) FTPDeleteHistory(id string) error {
+	return a.ftpManager.DeleteHistory(id)
+}
+
+func (a *App) FTPClearHistory() error {
+	return a.ftpManager.ClearHistory()
+}
+
+func (a *App) FTPAddHistory(config FTPConfig) {
+	a.ftpManager.AddHistory(config)
+}

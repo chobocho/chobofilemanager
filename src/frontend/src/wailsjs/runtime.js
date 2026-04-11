@@ -65,6 +65,10 @@ const createMockAPI = () => ({
   FTPSaveBookmark: async () => null,
   FTPGetBookmarks: async () => [],
   FTPDeleteBookmark: async () => null,
+  FTPGetHistory: async () => [],
+  FTPDeleteHistory: async () => null,
+  FTPClearHistory: async () => null,
+  FTPAddHistory: async () => null,
 })
 
 // Detect if running in Wails

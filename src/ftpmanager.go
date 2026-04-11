@@ -46,12 +46,23 @@ type ftpConnection struct {
 	connectedAt time.Time
 }
 
+type FTPHistory struct {
+	ID            string    `json:"id"`
+	Host          string    `json:"host"`
+	Port          int       `json:"port"`
+	Username      string    `json:"username"`
+	LastConnected time.Time `json:"lastConnected"`
+	ConnectCount  int       `json:"connectCount"`
+}
+
 type FTPManager struct {
 	ctx          context.Context
 	mu           sync.RWMutex
 	connections  map[string]*ftpConnection
 	bookmarks    []FTPBookmark
 	bookmarkFile string
+	history      []FTPHistory
+	historyFile  string
 }
 
 func NewFTPManager() *FTPManager {
@@ -59,13 +70,15 @@ func NewFTPManager() *FTPManager {
 		connections: make(map[string]*ftpConnection),
 	}
 
-	// Set bookmark file path
+	// Set bookmark/history file paths
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
 		configDir := filepath.Join(homeDir, ".chobocho-commander")
 		os.MkdirAll(configDir, 0755)
 		fm.bookmarkFile = filepath.Join(configDir, "ftp_bookmarks.json")
+		fm.historyFile = filepath.Join(configDir, "ftp_history.json")
 		fm.loadBookmarks()
+		fm.loadHistory()
 	}
 
 	return fm
@@ -310,6 +323,91 @@ func (fm *FTPManager) DeleteBookmark(id string) error {
 		}
 	}
 	return nil
+}
+
+// ─── History ──────────────────────────────────────────────────────────────────
+
+func historyID(config FTPConfig) string {
+	u := config.Username
+	if u == "" {
+		u = "anonymous"
+	}
+	return fmt.Sprintf("%s:%d:%s", config.Host, config.Port, u)
+}
+
+func (fm *FTPManager) AddHistory(config FTPConfig) {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+
+	id := historyID(config)
+	for i, h := range fm.history {
+		if h.ID == id {
+			fm.history[i].LastConnected = time.Now()
+			fm.history[i].ConnectCount++
+			fm.saveHistory()
+			return
+		}
+	}
+	u := config.Username
+	if u == "" {
+		u = "anonymous"
+	}
+	fm.history = append([]FTPHistory{{
+		ID:            id,
+		Host:          config.Host,
+		Port:          config.Port,
+		Username:      u,
+		LastConnected: time.Now(),
+		ConnectCount:  1,
+	}}, fm.history...)
+	// 최대 50개 유지
+	if len(fm.history) > 50 {
+		fm.history = fm.history[:50]
+	}
+	fm.saveHistory()
+}
+
+func (fm *FTPManager) GetHistory() []FTPHistory {
+	fm.mu.RLock()
+	defer fm.mu.RUnlock()
+	result := make([]FTPHistory, len(fm.history))
+	copy(result, fm.history)
+	return result
+}
+
+func (fm *FTPManager) DeleteHistory(id string) error {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	for i, h := range fm.history {
+		if h.ID == id {
+			fm.history = append(fm.history[:i], fm.history[i+1:]...)
+			return fm.saveHistory()
+		}
+	}
+	return nil
+}
+
+func (fm *FTPManager) ClearHistory() error {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	fm.history = nil
+	return fm.saveHistory()
+}
+
+func (fm *FTPManager) loadHistory() {
+	data, err := os.ReadFile(fm.historyFile)
+	if err != nil {
+		return
+	}
+	json.Unmarshal(data, &fm.history)
+}
+
+func (fm *FTPManager) saveHistory() error {
+	data, err := json.MarshalIndent(fm.history, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(fm.historyFile, data, 0644)
 }
 
 func (fm *FTPManager) loadBookmarks() {

@@ -1,5 +1,29 @@
 # 변경 이력
 
+## 2026-04-11 (43)
+
+### #30 FTP 접속 이력 자동 저장 및 관리
+
+- `src/ftpmanager.go`
+  - `FTPHistory` 구조체 추가: ID(host:port:user), Host, Port, Username, LastConnected, ConnectCount
+  - `FTPManager`에 `history`, `historyFile` 필드 추가
+  - `AddHistory(config)`: 접속 성공 시 자동 저장, host:port:username 기준 중복 시 LastConnected 갱신, 최대 50개 유지
+  - `GetHistory()`, `DeleteHistory(id)`, `ClearHistory()` 메서드 추가
+  - `loadHistory()` / `saveHistory()` — `~/.chobocho-commander/ftp_history.json`에 저장
+- `src/app.go`
+  - `FTPGetHistory`, `FTPDeleteHistory`, `FTPClearHistory`, `FTPAddHistory` API 추가
+- `src/frontend/src/wailsjs/runtime.js`
+  - 위 4개 API 목 함수 추가
+- `src/frontend/src/stores/ftpStore.js`
+  - `history: []` 상태 추가
+  - `loadHistory`, `addHistory`, `deleteHistory`, `clearHistory` 액션 추가
+- `src/frontend/src/components/FTPManager.jsx`
+  - 연결 성공 시 `ftpStore.addHistory(config)` 자동 호출
+  - 북마크 패널에 "최근 접속" 섹션 추가: 이력 목록 표시, 클릭 시 ConnectModal 미리 채움, 개별/전체 삭제
+  - `ConnectModal`에 `prefill` prop 추가 — 이력 클릭 시 host/port/username 자동 입력
+- `src/frontend/src/styles/FTPManager.module.css`
+  - `.sectionLabel`, `.clearHistoryBtn` 클래스 추가
+
 ## 2026-04-11 (42)
 
 ### #29 FTP 뷰 UX를 File View와 통일

@@ -221,6 +221,7 @@ export default function FTPManager() {
   const theme     = useThemeStore(s => s.theme)
 
   const [showConnect,   setShowConnect]   = useState(false)
+  const [connectPrefill, setConnectPrefill] = useState(null)
   const [showBookmarks, setShowBookmarks] = useState(false)
   const [activeConn,    setActiveConn]    = useState(null)
   const [ftpPath,       setFtpPath]       = useState('/')
@@ -247,7 +248,7 @@ export default function FTPManager() {
   const isAtLocalRoot = localStore.path === '/' || /^[A-Za-z]:[\\/]?$/.test(localStore.path || '')
   const isAtFTPRoot   = ftpPath === '/'
 
-  useEffect(() => { ftpStore.loadBookmarks() }, [])
+  useEffect(() => { ftpStore.loadBookmarks(); ftpStore.loadHistory() }, [])
   useEffect(() => { setLocalCursor(0); setLocalCursorOnParent(false) }, [localStore.path])
   useEffect(() => { setFtpCursor(0);  setFtpCursorOnParent(false); setFtpSelected(new Set()) }, [ftpPath])
 
@@ -275,6 +276,8 @@ export default function FTPManager() {
         setActiveConn(conn)
         await navigateFTPDirect(conn.id, '/')
         setStatus(`Connected to ${config.host}`)
+        // 접속 성공 시 히스토리 자동 저장
+        ftpStore.addHistory(config)
       }
     } catch(e) { setStatus(`Connection failed: ${e}`) }
     setShowConnect(false)
@@ -393,7 +396,7 @@ export default function FTPManager() {
 
       {/* Main area */}
       <div className={styles.mainArea}>
-        {/* Bookmarks */}
+        {/* Bookmarks + History */}
         {showBookmarks && (
           <div className={styles.bookmarksPanel}>
             <div className={styles.bookmarksHeader}>
@@ -401,7 +404,13 @@ export default function FTPManager() {
               <button className={styles.closeBtn} onClick={() => setShowBookmarks(false)}>✕</button>
             </div>
             <div className={styles.bookmarksList}>
-              {ftpStore.bookmarks.length === 0 && <div className={styles.empty}>No bookmarks saved</div>}
+              {/* 북마크 목록 */}
+              {ftpStore.bookmarks.length === 0 && ftpStore.history.length === 0 && (
+                <div className={styles.empty}>No bookmarks or history</div>
+              )}
+              {ftpStore.bookmarks.length > 0 && (
+                <div className={styles.sectionLabel}>즐겨찾기</div>
+              )}
               {ftpStore.bookmarks.map(bm => (
                 <div key={bm.id} className={styles.bookmarkItem}>
                   <div className={styles.bookmarkName} onClick={() => handleConnect(bm.config)}>
@@ -410,6 +419,31 @@ export default function FTPManager() {
                   <button className={styles.bookmarkDelete} onClick={() => ftpStore.deleteBookmark(bm.id)}><Trash2 size={11} /></button>
                 </div>
               ))}
+
+              {/* 최근 접속 이력 */}
+              {ftpStore.history.length > 0 && (
+                <>
+                  <div className={styles.sectionLabel}>
+                    최근 접속
+                    <button className={styles.clearHistoryBtn} onClick={() => ftpStore.clearHistory()} title="전체 삭제">
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+                  {ftpStore.history.map(h => (
+                    <div key={h.id} className={styles.bookmarkItem}>
+                      <div className={styles.bookmarkName} onClick={() => {
+                        setConnectPrefill({ host: h.host, port: h.port, username: h.username === 'anonymous' ? '' : h.username, password: '', passive: true })
+                        setShowConnect(true)
+                      }}>
+                        <Wifi size={11} />
+                        <span>{h.username}@{h.host}</span>
+                        <span className={styles.bookmarkHost}>:{h.port}</span>
+                      </div>
+                      <button className={styles.bookmarkDelete} onClick={() => ftpStore.deleteHistory(h.id)}><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -486,13 +520,25 @@ export default function FTPManager() {
       </div>
 
       {/* Connect modal */}
-      {showConnect && <ConnectModal onConnect={handleConnect} onClose={() => setShowConnect(false)} />}
+      {showConnect && (
+        <ConnectModal
+          prefill={connectPrefill}
+          onConnect={handleConnect}
+          onClose={() => { setShowConnect(false); setConnectPrefill(null) }}
+        />
+      )}
     </div>
   )
 }
 
-function ConnectModal({ onConnect, onClose }) {
-  const [config, setConfig] = useState({ host: '', port: 21, username: '', password: '', passive: true })
+function ConnectModal({ onConnect, onClose, prefill }) {
+  const [config, setConfig] = useState({
+    host: prefill?.host || '',
+    port: prefill?.port || 21,
+    username: prefill?.username || '',
+    password: '',
+    passive: prefill?.passive ?? true,
+  })
   const upd = (k, v) => setConfig(c => ({ ...c, [k]: v }))
 
   return (

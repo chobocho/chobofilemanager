@@ -204,6 +204,34 @@
   text-align: center;
 }
 
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.clearHistoryBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition);
+}
+.clearHistoryBtn:hover { color: var(--text-red); }
+
 /* File panels */
 .fileListPanel {
   flex: 1;

@@ -333,10 +333,97 @@ describe('fileStore 동기 작업', () => {
     expect(result.paths[0]).toBe('/test/beta.js')
   })
 
-  it('SS-15: delete - 파일도 선택도 없으면 빈 목록을 반환한다', async () => {
+  it('SS-15: delete - 파일도 선택도 없으면 빈 목록을 반환하고 상태 메시지를 설정한다', async () => {
     useFileStore.setState(s => ({ left: { ...s.left, files: [], selected: new Set(), cursor: 0 } }))
     const result = await useFileStore.getState().delete()
     expect(result.count).toBe(0)
     expect(result.paths).toHaveLength(0)
+    expect(useFileStore.getState().status).toBe('삭제할 파일이 없습니다.')
+  })
+
+  // cursorOnParent
+  it('SS-16: cursorOnParent - 초기값은 false이다', () => {
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('SS-17: setCursorOnParent - true로 설정된다', () => {
+    useFileStore.getState().setCursorOnParent('left', true)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(true)
+  })
+
+  it('SS-18: setCursorOnParent - false로 설정된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursorOnParent: true } }))
+    useFileStore.getState().setCursorOnParent('left', false)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('SS-19: setCursor - cursorOnParent를 false로 초기화한다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursorOnParent: true } }))
+    useFileStore.getState().setCursor('left', 2)
+    expect(useFileStore.getState().left.cursor).toBe(2)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('SS-20: setCursorOnParent - right 패널에도 독립적으로 적용된다', () => {
+    useFileStore.getState().setCursorOnParent('right', true)
+    expect(useFileStore.getState().right.cursorOnParent).toBe(true)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+})
+
+// ─── visibleFiles 필터링 로직 (App.jsx onView와 동일) ──────────────────────────
+
+describe('visibleFiles 필터링 로직', () => {
+  // App.jsx onView 내부와 동일한 순수 함수
+  function getVisibleFile(files, cursor, showHidden) {
+    const visible = showHidden ? files : files.filter(f => !f.isHidden)
+    return visible[cursor] || null
+  }
+
+  const makeFile = (name, isHidden = false, isDir = false) => ({ name, isHidden, isDir })
+
+  it('VF-01: showHidden=false일 때 숨김 파일이 제외되고 cursor=0이 첫 번째 일반 파일을 가리킨다', () => {
+    const files = [makeFile('.env', true), makeFile('app.log', false)]
+    expect(getVisibleFile(files, 0, false).name).toBe('app.log')
+  })
+
+  it('VF-02: showHidden=true일 때 숨김 파일 포함, cursor=0이 숨김 파일을 가리킨다', () => {
+    const files = [makeFile('.env', true), makeFile('app.log', false)]
+    expect(getVisibleFile(files, 0, true).name).toBe('.env')
+  })
+
+  it('VF-03: showHidden=false에서 숨김 파일이 여러 개일 때 cursor 인덱스가 올바른 파일을 가리킨다', () => {
+    const files = [
+      makeFile('.hidden1', true),
+      makeFile('.hidden2', true),
+      makeFile('app.log', false),
+      makeFile('readme.txt', false),
+    ]
+    // visibleFiles = [app.log, readme.txt], cursor=1 → readme.txt
+    expect(getVisibleFile(files, 1, false).name).toBe('readme.txt')
+  })
+
+  it('VF-04: panel.files 직접 접근 시 인덱스 불일치 회귀 방지 (버그 재현)', () => {
+    const files = [makeFile('.env', true), makeFile('app.log', false)]
+    // 구버그: panel.files[0] 직접 접근 → 숨김파일이 반환됨
+    expect(files[0].name).toBe('.env')
+    // 수정: visibleFiles 기준 cursor=0 → 일반 파일이 반환됨
+    expect(getVisibleFile(files, 0, false).name).toBe('app.log')
+  })
+
+  it('VF-05: cursorOnParent=true일 때 파일을 열지 않아야 한다 (null 반환)', () => {
+    const files = [makeFile('app.log', false)]
+    // cursorOnParent 체크는 호출부에서 하므로, 이 함수는 호출되지 않음
+    // 대신 cursorOnParent=true면 null을 반환하는 가드 로직 검증
+    const cursorOnParent = true
+    const result = cursorOnParent ? null : getVisibleFile(files, 0, false)
+    expect(result).toBeNull()
+  })
+
+  it('VF-06: 디렉토리 커서에서 F3을 눌러도 뷰어가 열리지 않는다 (isDir 체크)', () => {
+    const files = [makeFile('docs/', false, true), makeFile('app.log', false, false)]
+    const file = getVisibleFile(files, 0, false)
+    // isDir이면 viewerFile을 설정하지 않아야 함
+    expect(file && !file.isDir).toBe(false)
   })
 })

@@ -9,7 +9,7 @@ import { useThemeStore } from '../stores/themeStore'
 export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
-  onRename, onCopy, onMove, onNewDir, onDelete, onView, onSwitchPanel, onBookmarks,
+  onRename, onCopy, onMove, onNewDir, onDelete, onView, onSwitchPanel, onBookmarks, onHelp,
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
@@ -19,6 +19,7 @@ export default function Toolbar({
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       switch(e.key) {
+        case 'F1': e.preventDefault(); onHelp?.();         break
         case 'Tab': e.preventDefault(); onSwitchPanel?.(); break
         case 'F2': e.preventDefault(); onRename();         break
         case 'F3': e.preventDefault(); onView?.();         break
@@ -26,6 +27,10 @@ export default function Toolbar({
         case 'F6': e.preventDefault(); onMove();           break
         case 'F7': e.preventDefault(); onNewDir();         break
         case 'F8': e.preventDefault(); onDelete();         break
+        case 'f':
+        case 'F':
+          if (e.ctrlKey) { e.preventDefault(); onSearch?.(); }
+          break
         case 'n':
         case 'N':
           if (e.ctrlKey) { e.preventDefault(); onNewFile?.(); }
@@ -43,7 +48,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
+  }, [onHelp, onSearch, onRename, onView, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
 
   return (
     <div className={styles.toolbar}>

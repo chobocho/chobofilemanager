@@ -1,5 +1,40 @@
 # 변경 이력
 
+## 2026-04-11 (24)
+
+### Ctrl+F 파일 검색 단축키 연결
+
+- SearchDialog는 이미 `src/frontend/src/components/ConfirmDialog.jsx`에 구현되어 있었음
+  - 현재 패널 경로 기준 파일명 패턴 검색 (대소문자 무시)
+  - 하위 폴더 포함 여부 체크박스
+  - 결과 클릭 시 해당 폴더로 이동
+- `src/frontend/src/components/Toolbar.jsx`
+  - 전역 keydown 핸들러에 `Ctrl+F` → `onSearch?.()` 추가
+  - 의존성 배열에 `onSearch` 추가
+
+**테스트 결과**: Vite 빌드 성공
+
+## 2026-04-11 (23)
+
+### F1 도움말 화면 구현
+
+- `src/frontend/src/components/HelpDialog.jsx` 신규 생성
+  - 4개 섹션: 파일 조작 / 탐색 및 선택 / 압축 / 기타
+  - 모든 단축키를 `<kbd>` 스타일 태그로 표시
+  - ESC 또는 F1 키로 닫기
+  - 오버레이 클릭으로 닫기
+- `src/frontend/src/styles/HelpDialog.module.css` 신규 생성
+  - 섹션별 구분선, kbd 스타일 키 표시
+- `src/frontend/src/components/Toolbar.jsx`
+  - `onHelp` prop 추가
+  - 전역 keydown 핸들러에 `F1` → `onHelp?.()` 추가
+- `src/frontend/src/App.jsx`
+  - `HelpDialog` import 추가
+  - Toolbar에 `onHelp={() => setModal('help')}` 연결
+  - `modal === 'help'` 조건으로 HelpDialog 렌더링
+
+**테스트 결과**: Vite 빌드 성공
+
 ## 2026-04-11 (22)
 
 ### 테스트 격리 수정 - 실제 사용자 config 디렉토리 오염 방지

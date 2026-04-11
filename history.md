@@ -1,5 +1,52 @@
 # 변경 이력
 
+## 2026-04-11 (15)
+
+### 버그수정: F3 키로 파일 뷰어가 열리지 않는 문제
+
+**원인**: F3 핸들러가 패널 div의 `onKeyDown`에만 등록되어 있어 포커스 위치에 따라 이벤트를 받지 못하는 경우 발생. F5/F6/F8처럼 `window` 레벨 전역 핸들러가 없었음.
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - `onView` prop 추가
+  - `useEffect` 전역 핸들러에 `case 'F3'` 추가 → `onView?.()` 호출
+  - 의존성 배열에 `onView` 추가
+- `src/frontend/src/App.jsx`
+  - Toolbar에 `onView` 핸들러 전달 (활성 패널 커서 파일 뷰어로 열기)
+- `src/frontend/src/components/FilePanel.jsx`
+  - 패널 `onKeyDown`의 F3 케이스 제거 (전역 핸들러로 통합)
+  - `onView` prop 제거 (더 이상 불필요)
+
+**테스트 결과**: 62개 전체 통과
+
+## 2026-04-11 (14)
+
+### Todo #7 - F3 내장 파일 뷰어 구현
+
+- `src/frontend/src/components/FileViewer.jsx` 신규 생성
+  - 읽기 전용(read-only) 파일 뷰어 (`<pre>` 태그, 수정 불가)
+  - 글자 크기 조절 버튼 (A- / A+), `MIN_FONT=10`, `MAX_FONT=28`
+  - ESC 또는 F3 키로 닫기
+  - 헤더에 `READ ONLY` 배지 표시
+  - `isViewableFile(ext)`: 뷰어로 열 수 있는 확장자 여부 확인 (23개 텍스트 확장자)
+  - `clampFontSize(current, delta)`: 글자 크기 최소/최대 범위 클램프
+- `src/frontend/src/styles/FileViewer.module.css` 신규 생성
+  - TextEditor와 동일한 레이아웃, 글자 크기 컨트롤 버튼 스타일 추가
+- `src/frontend/src/components/FKeyBar.jsx`
+  - F3 View 버튼 활성화 (`onView` prop 연결)
+- `src/frontend/src/components/FilePanel.jsx`
+  - `onView` prop 추가
+  - `handleKeyDown` — F3 키: 커서 파일(비디렉토리)에 `onView()` 호출
+- `src/frontend/src/App.jsx`
+  - `FileViewer` import 및 `viewerFile` 상태 추가
+  - FilePanel에 `onView={setViewerFile}` 연결
+  - FKeyBar `onView` 핸들러 추가 (활성 패널 커서 파일 뷰어로 열기)
+  - 뷰어 닫힐 때 `focusActivePanel()` 호출
+- `src/frontend/src/components/FileViewer.test.js` 신규 생성
+  - `isViewableFile` 테스트 8개 (FV-01~FV-08)
+  - `clampFontSize` 테스트 5개 (FV-09~FV-13)
+
+**테스트 결과**: 3개 파일, 62개 전체 통과
+
 ## 2026-04-11 (13)
 
 ### 테스트 추가: fileStore 동기 작업 단위 테스트

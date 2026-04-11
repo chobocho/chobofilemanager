@@ -1,0 +1,62 @@
+import { describe, it, expect } from 'vitest'
+import { isViewableFile, clampFontSize, MIN_FONT, MAX_FONT } from './FileViewer.jsx'
+
+// ─── isViewableFile ────────────────────────────────────────────────────────────
+
+describe('isViewableFile', () => {
+  it('FV-01: .txt 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.txt')).toBe(true)
+  })
+
+  it('FV-02: .go 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.go')).toBe(true)
+  })
+
+  it('FV-03: .md 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.md')).toBe(true)
+  })
+
+  it('FV-04: .exe 파일은 뷰어로 열 수 없다', () => {
+    expect(isViewableFile('.exe')).toBe(false)
+  })
+
+  it('FV-05: 확장자가 없으면 뷰어로 열 수 없다', () => {
+    expect(isViewableFile('')).toBe(false)
+  })
+
+  it('FV-06: 대문자 확장자도 뷰어로 열 수 있다 (.JS)', () => {
+    expect(isViewableFile('.JS')).toBe(true)
+  })
+
+  it('FV-07: .zip 파일은 뷰어로 열 수 없다', () => {
+    expect(isViewableFile('.zip')).toBe(false)
+  })
+
+  it('FV-08: .log 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.log')).toBe(true)
+  })
+})
+
+// ─── clampFontSize ─────────────────────────────────────────────────────────────
+
+describe('clampFontSize', () => {
+  it('FV-09: 글자 크기를 늘릴 수 있다', () => {
+    expect(clampFontSize(13, 2)).toBe(15)
+  })
+
+  it('FV-10: 글자 크기를 줄일 수 있다', () => {
+    expect(clampFontSize(14, -2)).toBe(12)
+  })
+
+  it('FV-11: 최대값(MAX_FONT)을 초과하지 않는다', () => {
+    expect(clampFontSize(MAX_FONT, 2)).toBe(MAX_FONT)
+  })
+
+  it('FV-12: 최소값(MIN_FONT) 미만으로 내려가지 않는다', () => {
+    expect(clampFontSize(MIN_FONT, -2)).toBe(MIN_FONT)
+  })
+
+  it('FV-13: 중간 크기에서 최대값 근처로 넘어가면 MAX_FONT로 고정된다', () => {
+    expect(clampFontSize(MAX_FONT - 1, 4)).toBe(MAX_FONT)
+  })
+})

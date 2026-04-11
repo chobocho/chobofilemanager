@@ -8,6 +8,7 @@ import StatusBar from './components/StatusBar'
 import FKeyBar from './components/FKeyBar'
 import FTPManager from './components/FTPManager'
 import TextEditor from './components/TextEditor'
+import FileViewer from './components/FileViewer'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './components/ConfirmDialog'
 import styles from './styles/App.module.css'
 
@@ -18,6 +19,7 @@ export default function App() {
   const [view, setView]             = useState('files')
   const [modal, setModal]           = useState(null)
   const [editorFile, setEditorFile] = useState(null)
+  const [viewerFile, setViewerFile] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
@@ -83,6 +85,12 @@ export default function App() {
         onCompress={handleCompress}
         onExtract={handleExtract}
         onRename={() => setModal('rename')}
+        onView={() => {
+          const s = useFileStore.getState()
+          const panel = s[s.activePanel]
+          const file = panel.files[panel.cursor]
+          if (file && !file.isDir) setViewerFile(file.path)
+        }}
         onCopy={() => useFileStore.getState().copy()}
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
@@ -103,6 +111,12 @@ export default function App() {
       <FKeyBar
         onHelp={() => setModal('help')}
         onRename={() => setModal('rename')}
+        onView={() => {
+          const s = useFileStore.getState()
+          const panel = s[s.activePanel]
+          const file = panel.files[panel.cursor]
+          if (file && !file.isDir) setViewerFile(file.path)
+        }}
         onCopy={() => useFileStore.getState().copy()}
         onMove={() => useFileStore.getState().move()}
         onNewDir={() => setModal('newdir')}
@@ -129,6 +143,7 @@ export default function App() {
           confirmLabel="Delete" danger
           onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); focusActivePanel() }} />
       )}
+      {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }} />}
       {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }} />}
     </div>
   )

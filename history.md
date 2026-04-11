@@ -1,5 +1,44 @@
 # 변경 이력
 
+## 2026-04-11 (6)
+
+### 상단 툴바 중복 메뉴 제거 + 압축하기/압축 풀기 추가
+
+- `src/frontend/src/components/Toolbar.jsx`
+  - 하단 FKeyBar와 겹치는 버튼 제거: Rename(F2), Copy(F5), Move(F6), NewDir(F7), Delete(F8)
+  - fkeyBadge 관련 코드 제거 (상단 버튼에는 F키 표시 불필요)
+  - **압축하기** 버튼 추가 (Archive 아이콘)
+  - **압축 풀기** 버튼 추가 (PackageOpen 아이콘)
+  - 키보드 단축키(F2/F5~F8)는 계속 동작하도록 useEffect 유지
+- `src/frontend/src/App.jsx`
+  - `handleCompress`: 활성 패널의 선택 파일을 압축
+  - `handleExtract`: 커서 위치 파일을 현재 패널 경로에 압축 해제
+  - Toolbar props 업데이트 (겹치는 핸들러 제거, compress/extract 추가)
+
+**테스트 결과**: 8개 통과
+
+## 2026-04-11 (5)
+
+### Todo #3 - Total Commander 스타일 메뉴 레이아웃
+
+- `src/frontend/src/components/FKeyBar.jsx` 신규 생성
+  - F1~F10 전체 키 표시 (F1 Help, F2 Rename, F3 View, F4 Edit, F5 Copy, F6 Move, F7 NewDir, F8 Delete, F9 Menu, F10 Quit)
+  - 미구현 키(F3 View, F4 Edit, F9 Menu, F10 Quit)는 비활성(opacity) 처리
+  - 위험 동작(F8 Delete)은 별도 danger 스타일
+- `src/frontend/src/styles/FKeyBar.module.css` 신규 생성
+  - TC 스타일: 전체 너비, 각 키가 flex:1 균등 분할, 번호/레이블 구분
+- `src/frontend/src/App.jsx`
+  - FKeyBar 컴포넌트 import 및 StatusBar 아래에 배치
+- `src/frontend/src/components/Toolbar.jsx`
+  - 상단 툴바에서 fkeys 스트립 블록 완전 제거
+  - 불필요했던 TOOL_BUTTONS 배열 제거
+  - Zip 버튼 제거 (require() ESM 불호환 코드)
+  - F2 단축키 핸들러 추가 (기존 F5~F8 유지)
+- `src/frontend/src/styles/Toolbar.module.css`
+  - fkeys 관련 스타일 전체 제거
+
+**테스트 결과**: JS 8개, Go 전체 통과
+
 ## 2026-04-11 (4)
 
 ### 버그수정: Windows에서 Eye 버튼 클릭해도 dot 파일이 숨겨지지 않던 문제

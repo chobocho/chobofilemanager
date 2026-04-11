@@ -5,6 +5,7 @@ import { useThemeStore } from './stores/themeStore'
 import Toolbar from './components/Toolbar'
 import FilePanel from './components/FilePanel'
 import StatusBar from './components/StatusBar'
+import FKeyBar from './components/FKeyBar'
 import FTPManager from './components/FTPManager'
 import TextEditor from './components/TextEditor'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './components/ConfirmDialog'
@@ -33,6 +34,20 @@ export default function App() {
     }
   }
 
+  const handleCompress = () => {
+    const store = useFileStore.getState()
+    store.compress(store.activePanel)
+  }
+
+  const handleExtract = () => {
+    const store = useFileStore.getState()
+    const panel = store[store.activePanel]
+    const cursor = panel.files[panel.cursor]
+    if (cursor && !cursor.isDir) {
+      store.extract(store.activePanel, cursor.path)
+    }
+  }
+
   const handleNewFile = async (name) => {
     const store = useFileStore.getState()
     const panel = store[store.activePanel]
@@ -49,13 +64,15 @@ export default function App() {
     <div className={styles.app} data-theme={theme}>
       <Toolbar
         view={view} onViewChange={setView}
-        onNewDir={() => setModal('newdir')}
         onNewFile={() => setModal('newfile')}
-        onRename={() => setModal('rename')}
-        onDelete={handleDelete}
         onSearch={() => setModal('search')}
+        onCompress={handleCompress}
+        onExtract={handleExtract}
+        onRename={() => setModal('rename')}
         onCopy={() => useFileStore.getState().copy()}
         onMove={() => useFileStore.getState().move()}
+        onNewDir={() => setModal('newdir')}
+        onDelete={handleDelete}
       />
       <div className={styles.content}>
         {view === 'files' ? (
@@ -69,6 +86,14 @@ export default function App() {
         )}
       </div>
       <StatusBar />
+      <FKeyBar
+        onHelp={() => setModal('help')}
+        onRename={() => setModal('rename')}
+        onCopy={() => useFileStore.getState().copy()}
+        onMove={() => useFileStore.getState().move()}
+        onNewDir={() => setModal('newdir')}
+        onDelete={handleDelete}
+      />
 
       {modal === 'newdir' && (
         <NewItemDialog type="directory"

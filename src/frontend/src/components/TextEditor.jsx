@@ -1,20 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Save, X, FileText } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/TextEditor.module.css'
 
+const LINE_HEIGHT = 20  // matches CSS line-height: 20px
+const LINE_BUFFER = 10  // extra lines to render above/below viewport
+
 export default function TextEditor({ path, onClose }) {
-  const [content, setContent]         = useState('')
-  const [original, setOriginal]       = useState('')
-  const [loading, setLoading]         = useState(true)
-  const [saving, setSaving]           = useState(false)
-  const [error, setError]             = useState(null)
-  const [cursor, setCursor]           = useState({ line: 1, col: 1 })
+  const [content, setContent]           = useState('')
+  const [original, setOriginal]         = useState('')
+  const [loading, setLoading]           = useState(true)
+  const [saving, setSaving]             = useState(false)
+  const [error, setError]               = useState(null)
+  const [cursor, setCursor]             = useState({ line: 1, col: 1 })
   const [confirmClose, setConfirmClose] = useState(false)
-  const textareaRef = useRef(null)
+  const [scrollTop, setScrollTop]       = useState(0)
+  const textareaRef    = useRef(null)
+  const lineNumbersRef = useRef(null)
+  const bodyRef        = useRef(null)
   const { readFile, writeFile } = useFileStore.getState()
   const fileName = path?.split('/').pop() || path?.split('\\').pop() || 'file'
   const isDirty = content !== original
+
+  // Compute line count only when content changes
+  const lineCount = useMemo(() => content.split('\n').length, [content])
+
+  // Virtual line number range — only render lines near the viewport
+  const viewHeight   = bodyRef.current?.clientHeight ?? 600
+  const firstVisible = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - LINE_BUFFER)
+  const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / LINE_HEIGHT) + LINE_BUFFER)
 
   useEffect(() => {
     const load = async () => {
@@ -51,7 +65,7 @@ export default function TextEditor({ path, onClose }) {
     return () => window.removeEventListener('keydown', handler)
   }, [content, isDirty])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaving(true)
     try {
       await writeFile(path, content)
@@ -61,22 +75,32 @@ export default function TextEditor({ path, onClose }) {
     } finally {
       setSaving(false)
     }
-  }
+  }, [path, content, writeFile])
 
-  const handleSaveAndClose = async () => {
+  const handleSaveAndClose = useCallback(async () => {
     await handleSave()
     onClose()
-  }
+  }, [handleSave, onClose])
 
-  const handleCursorChange = () => {
+  // Sync line numbers scroll position with textarea (ssMemo pattern)
+  const handleScroll = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta) return
+    setScrollTop(ta.scrollTop)
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = ta.scrollTop
+    }
+  }, [])
+
+  const handleCursorChange = useCallback(() => {
     const ta = textareaRef.current
     if (!ta) return
     const text = ta.value.substring(0, ta.selectionStart)
     const lines = text.split('\n')
-    setCursor({ line: lines.length, col: lines[lines.length-1].length + 1 })
-  }
+    setCursor({ line: lines.length, col: lines[lines.length - 1].length + 1 })
+  }, [])
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Tab') {
       e.preventDefault()
       const ta = textareaRef.current
@@ -88,9 +112,7 @@ export default function TextEditor({ path, onClose }) {
         ta.selectionStart = ta.selectionEnd = start + 2
       }, 0)
     }
-  }
-
-  const lineCount = content.split('\n').length
+  }, [content])
 
   return (
     <div className={styles.overlay}>
@@ -136,20 +158,30 @@ export default function TextEditor({ path, onClose }) {
         </div>
 
         {/* Body */}
-        <div className={styles.body}>
+        <div className={styles.body} ref={bodyRef}>
           {loading ? (
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
             <div className={styles.error}>⚠ {error}</div>
           ) : (
             <>
-              {/* Line numbers */}
-              <div className={styles.lineNumbers} aria-hidden>
-                {Array.from({ length: lineCount }, (_, i) => (
-                  <div key={i} className={`${styles.lineNum} ${cursor.line === i+1 ? styles.lineNumActive : ''}`}>
-                    {i + 1}
-                  </div>
-                ))}
+              {/* Virtual line numbers — only visible range + buffer is in DOM */}
+              <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
+                {/* Spacer for lines above viewport */}
+                <div style={{ height: firstVisible * LINE_HEIGHT }} />
+                {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
+                  const lineNum = firstVisible + i + 1
+                  return (
+                    <div
+                      key={lineNum}
+                      className={`${styles.lineNum} ${cursor.line === lineNum ? styles.lineNumActive : ''}`}
+                    >
+                      {lineNum}
+                    </div>
+                  )
+                })}
+                {/* Spacer for lines below viewport */}
+                <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * LINE_HEIGHT }} />
               </div>
 
               {/* Textarea */}
@@ -161,6 +193,7 @@ export default function TextEditor({ path, onClose }) {
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleCursorChange}
                 onClick={handleCursorChange}
+                onScroll={handleScroll}
                 spellCheck={false}
                 autoComplete="off"
                 autoCorrect="off"

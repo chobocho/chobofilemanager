@@ -130,6 +130,7 @@
   display: flex;
   overflow: hidden;
   background: var(--bg-editor);
+  contain: strict;
 }
 
 .loading, .error {

@@ -1,5 +1,29 @@
 # 변경 이력
 
+## 2026-04-12 (45)
+
+### #45 내장 에디터 및 파일 뷰어 성능 개선 (ssMemo 패턴 참조)
+
+#### 문제점
+- **스크롤 동기화 버그**: 라인 번호 패널이 텍스트 스크롤을 따라가지 않음
+- **DOM 폭발**: 모든 라인 번호를 한 번에 DOM에 생성 (10만 줄 파일 → 10만 개 DOM 노드)
+- **매 렌더 시 재계산**: `content.split('\n').length`가 렌더링마다 실행됨
+
+#### 개선 내용 (`src/frontend/src/components/TextEditor.jsx`)
+- **스크롤 동기화** (`handleScroll`): `textarea.onscroll` → `lineNumbers.scrollTop` 동기화 (ssMemo `notepad.js` 패턴 차용)
+- **가상 라인 번호 렌더링**: 뷰포트에 보이는 줄 ± 버퍼(10줄)만 DOM에 렌더링, 위아래 스페이서(div)로 전체 높이 유지
+- **`useMemo`로 lineCount 최적화**: 내용 변경 시에만 `split('\n')` 재계산
+- **`useCallback`으로 핸들러 안정화**: `handleSave`, `handleScroll`, `handleCursorChange`, `handleKeyDown`
+
+#### 개선 내용 (`src/frontend/src/components/FileViewer.jsx`)
+- **스크롤 동기화** (`handleScroll`): `pre.onscroll` → `lineNumbers.scrollTop` 동기화
+- **가상 라인 번호 렌더링**: `fontSize` 기반 동적 `lineHeight`(fontSize+7)로 계산
+- **폰트 크기 변경 시 스크롤 초기화**: `fontSize` 변경 시 두 패널 모두 스크롤 위치 리셋
+- **`useMemo`로 lineCount 최적화**
+
+#### 개선 내용 (`src/frontend/src/styles/TextEditor.module.css`, `FileViewer.module.css`)
+- `.body`에 `contain: strict` 추가 — 브라우저 레이아웃 계산 범위를 컨테이너 내부로 제한
+
 ## 2026-04-11 (44)
 
 ### #31 FILE 패널 파일 북마크 기능 추가

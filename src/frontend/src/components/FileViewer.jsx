@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Eye, X, AArrowDown, AArrowUp, FileText } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
@@ -22,14 +22,29 @@ export function clampFontSize(current, delta) {
   return Math.min(MAX_FONT, Math.max(MIN_FONT, current + delta))
 }
 
+const LINE_BUFFER = 10  // extra lines to render above/below viewport
+
 export default function FileViewer({ path, onClose }) {
-  const [content, setContent] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
-  const [fontSize, setFontSize] = useState(13)
+  const [content, setContent]     = useState('')
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
+  const [fontSize, setFontSize]   = useState(13)
+  const [scrollTop, setScrollTop] = useState(0)
+  const lineNumbersRef = useRef(null)
+  const preRef         = useRef(null)
+  const bodyRef        = useRef(null)
   const { readFile } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
-  const lineCount = content.split('\n').length
+
+  const lineHeight = fontSize + 7  // matches CSS lineHeight formula
+
+  // Compute line count only when content changes
+  const lineCount = useMemo(() => content.split('\n').length, [content])
+
+  // Virtual line number range — only render lines near the viewport
+  const viewHeight   = bodyRef.current?.clientHeight ?? 600
+  const firstVisible = Math.max(0, Math.floor(scrollTop / lineHeight) - LINE_BUFFER)
+  const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / lineHeight) + LINE_BUFFER)
 
   useEffect(() => {
     const load = async () => {
@@ -55,7 +70,26 @@ export default function FileViewer({ path, onClose }) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const changeFontSize = (delta) => setFontSize(prev => clampFontSize(prev, delta))
+  // Reset scroll when font size changes so line numbers re-sync
+  useEffect(() => {
+    setScrollTop(0)
+    if (preRef.current) preRef.current.scrollTop = 0
+    if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = 0
+  }, [fontSize])
+
+  // Sync line numbers scroll position with pre (ssMemo pattern)
+  const handleScroll = useCallback(() => {
+    const pre = preRef.current
+    if (!pre) return
+    setScrollTop(pre.scrollTop)
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = pre.scrollTop
+    }
+  }, [])
+
+  const changeFontSize = useCallback((delta) => {
+    setFontSize(prev => clampFontSize(prev, delta))
+  }, [])
 
   return (
     <div className={styles.overlay}>
@@ -90,30 +124,39 @@ export default function FileViewer({ path, onClose }) {
         </div>
 
         {/* Body */}
-        <div className={styles.body}>
+        <div className={styles.body} ref={bodyRef}>
           {loading ? (
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
             <div className={styles.error}>⚠ {error}</div>
           ) : (
             <>
-              {/* Line numbers */}
-              <div className={styles.lineNumbers} aria-hidden>
-                {Array.from({ length: lineCount }, (_, i) => (
-                  <div
-                    key={i}
-                    className={styles.lineNum}
-                    style={{ lineHeight: `${fontSize + 7}px`, height: `${fontSize + 7}px` }}
-                  >
-                    {i + 1}
-                  </div>
-                ))}
+              {/* Virtual line numbers — only visible range + buffer is in DOM */}
+              <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
+                {/* Spacer for lines above viewport */}
+                <div style={{ height: firstVisible * lineHeight }} />
+                {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
+                  const lineNum = firstVisible + i + 1
+                  return (
+                    <div
+                      key={lineNum}
+                      className={styles.lineNum}
+                      style={{ lineHeight: `${lineHeight}px`, height: `${lineHeight}px` }}
+                    >
+                      {lineNum}
+                    </div>
+                  )
+                })}
+                {/* Spacer for lines below viewport */}
+                <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * lineHeight }} />
               </div>
 
               {/* Content */}
               <pre
+                ref={preRef}
                 className={styles.pre}
-                style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize + 7}px` }}
+                style={{ fontSize: `${fontSize}px`, lineHeight: `${lineHeight}px` }}
+                onScroll={handleScroll}
               >
                 {content}
               </pre>

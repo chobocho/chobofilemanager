@@ -1,5 +1,54 @@
 # 변경 이력
 
+## 2026-04-12 (47)
+
+### #47 뷰어/에디터 Ctrl+F가 부모 파일 검색으로 연결되는 버그 수정
+
+#### 원인
+- Toolbar의 `window.addEventListener('keydown', handler)` (버블 페이즈)와
+  TextEditor/FileViewer의 `window.addEventListener('keydown', handler)` (버블 페이즈)가
+  모두 같은 이벤트를 받아 두 핸들러가 동시에 실행됨
+
+#### 해결
+- TextEditor, FileViewer의 `window.addEventListener`를 **캡처 페이즈** (`{ capture: true }`)로 변경
+  - 캡처 페이즈는 버블 페이즈보다 먼저 실행 → 뷰어/에디터 핸들러가 Toolbar보다 먼저 동작
+- `Ctrl+F`, `Ctrl+S`, `Escape`, `F3` 처리 시 `e.stopPropagation()` 추가
+  - Toolbar의 버블 핸들러로 이벤트가 전달되지 않음
+- 로딩 완료 후 `textareaRef.current?.focus()` 자동 포커스
+  - 뷰어/에디터 열릴 때 키보드 포커스가 자동으로 내부로 이동
+
+## 2026-04-12 (46)
+
+### #46 내장 에디터 및 파일 뷰어 검색 기능 추가
+
+#### 기능
+- `Ctrl+F`: 검색 바 열기 (헤더 우측 돋보기 버튼 또는 단축키)
+- `Enter`: 다음 일치 항목으로 이동 (끝에 도달하면 처음으로 wrap)
+- `Shift+Enter`: 이전 일치 항목으로 이동 (처음에 도달하면 끝으로 wrap)
+- `Esc`: 검색 바 닫기 (에디터 종료 전에 검색 바 먼저 닫음)
+- 대소문자 구분 없는 검색 (toLowerCase 비교)
+- 검색 결과 없을 때 입력창 빨간 테두리 600ms 표시 (ssMemo showMiss 패턴)
+- 일치 항목을 뷰포트 상단 1/3 위치로 스크롤 (ssMemo scrollToIndex 패턴)
+
+#### 변경 파일
+- `src/frontend/src/components/TextEditor.jsx`
+  - `Search, ChevronUp, ChevronDown` 아이콘 추가
+  - `searchOpen`, `searchQuery`, `noMatch` 상태 추가
+  - `findNext`, `findPrev`, `scrollToMatch`, `showNoMatch`, `handleSearchKeyDown` 콜백 추가
+  - 검색 바 UI (헤더 아래)
+  - 헤더에 검색 토글 버튼 추가
+
+- `src/frontend/src/components/FileViewer.jsx`
+  - `<pre>` → `<textarea readOnly>`로 교체 (setSelectionRange 검색 하이라이팅 지원)
+  - TextEditor와 동일한 검색 로직 추가
+
+- `src/frontend/src/styles/TextEditor.module.css`
+  - `.searchBar`, `.searchInput`, `.searchNoMatch`, `.searchBtn`, `.searchBtnClose`, `.btnSearch` 스타일 추가
+
+- `src/frontend/src/styles/FileViewer.module.css`
+  - 동일 검색 스타일 추가
+  - `.pre`에 textarea 호환 속성 추가 (`border: none`, `resize: none`, `cursor: text`)
+
 ## 2026-04-12 (45)
 
 ### #45 내장 에디터 및 파일 뷰어 성능 개선 (ssMemo 패턴 참조)

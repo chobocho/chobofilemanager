@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Save, X, FileText } from 'lucide-react'
+import { Save, X, FileText, Search, ChevronUp, ChevronDown } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/TextEditor.module.css'
 
@@ -15,9 +15,15 @@ export default function TextEditor({ path, onClose }) {
   const [cursor, setCursor]             = useState({ line: 1, col: 1 })
   const [confirmClose, setConfirmClose] = useState(false)
   const [scrollTop, setScrollTop]       = useState(0)
+  const [searchOpen, setSearchOpen]     = useState(false)
+  const [searchQuery, setSearchQuery]   = useState('')
+  const [noMatch, setNoMatch]           = useState(false)
+
   const textareaRef    = useRef(null)
   const lineNumbersRef = useRef(null)
   const bodyRef        = useRef(null)
+  const searchInputRef = useRef(null)
+
   const { readFile, writeFile } = useFileStore.getState()
   const fileName = path?.split('/').pop() || path?.split('\\').pop() || 'file'
   const isDirty = content !== original
@@ -41,6 +47,8 @@ export default function TextEditor({ path, onClose }) {
         setError(String(e))
       } finally {
         setLoading(false)
+        // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
+        setTimeout(() => textareaRef.current?.focus(), 0)
       }
     }
     load()
@@ -48,8 +56,22 @@ export default function TextEditor({ path, onClose }) {
 
   useEffect(() => {
     const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        e.stopPropagation()  // 캡처 페이즈에서 부모 Ctrl+F 핸들러 차단
+        setSearchOpen(true)
+        setNoMatch(false)
+        setTimeout(() => searchInputRef.current?.focus(), 0)
+        return
+      }
       if (e.key === 'Escape') {
         e.stopPropagation()
+        if (searchOpen) {
+          setSearchOpen(false)
+          setNoMatch(false)
+          textareaRef.current?.focus()
+          return
+        }
         if (isDirty) {
           setConfirmClose(true)
         } else {
@@ -58,12 +80,14 @@ export default function TextEditor({ path, onClose }) {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
+        e.stopPropagation()
         handleSave()
       }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [content, isDirty])
+    // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [content, isDirty, searchOpen])
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -114,6 +138,78 @@ export default function TextEditor({ path, onClose }) {
     }
   }, [content])
 
+  // Scroll to match: positions match 1/3 from top (ssMemo scrollToIndex pattern)
+  const scrollToMatch = useCallback((el, index) => {
+    const textBefore = el.value.slice(0, index)
+    const lineIndex = textBefore.split('\n').length - 1
+    const style = window.getComputedStyle(el)
+    const lineHeight = parseFloat(style.lineHeight) || LINE_HEIGHT
+    const paddingTop = parseFloat(style.paddingTop) || 12
+    const targetTop = lineIndex * lineHeight + paddingTop
+    const offset = el.clientHeight / 3
+    el.scrollTop = Math.max(0, targetTop - offset)
+  }, [])
+
+  const showNoMatch = useCallback(() => {
+    setNoMatch(true)
+    setTimeout(() => setNoMatch(false), 600)
+  }, [])
+
+  const findNext = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta || !searchQuery) return
+    const lowerContent = ta.value.toLowerCase()
+    const lowerQuery = searchQuery.toLowerCase()
+    const startIndex = ta.selectionEnd ?? 0
+    let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
+    if (matchIndex === -1 && startIndex > 0) {
+      matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
+    }
+    if (matchIndex === -1) { showNoMatch(); return }
+    ta.focus()
+    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
+    scrollToMatch(ta, matchIndex)
+    handleCursorChange()
+  }, [searchQuery, scrollToMatch, showNoMatch, handleCursorChange])
+
+  const findPrev = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta || !searchQuery) return
+    const lowerContent = ta.value.toLowerCase()
+    const lowerQuery = searchQuery.toLowerCase()
+    const startIndex = Math.max(0, (ta.selectionStart ?? 1) - 1)
+    let matchIndex = lowerContent.lastIndexOf(lowerQuery, startIndex)
+    if (matchIndex === -1) {
+      matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
+    }
+    if (matchIndex === -1) { showNoMatch(); return }
+    ta.focus()
+    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
+    scrollToMatch(ta, matchIndex)
+    handleCursorChange()
+  }, [searchQuery, scrollToMatch, showNoMatch, handleCursorChange])
+
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      setSearchOpen(false)
+      setNoMatch(false)
+      textareaRef.current?.focus()
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.shiftKey) findPrev()
+      else findNext()
+    }
+  }, [findNext, findPrev])
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false)
+    setNoMatch(false)
+    textareaRef.current?.focus()
+  }, [])
+
   return (
     <div className={styles.overlay}>
       {confirmClose && (
@@ -143,6 +239,13 @@ export default function TextEditor({ path, onClose }) {
 
           <div className={styles.actions}>
             <button
+              className={styles.btnSearch}
+              onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
+              title="검색 (Ctrl+F)"
+            >
+              <Search size={13} />
+            </button>
+            <button
               className={`${styles.btnSave} ${isDirty ? styles.btnSaveDirty : ''}`}
               onClick={handleSave}
               disabled={saving || !isDirty}
@@ -156,6 +259,31 @@ export default function TextEditor({ path, onClose }) {
             </button>
           </div>
         </div>
+
+        {/* Search bar */}
+        {searchOpen && (
+          <div className={styles.searchBar}>
+            <Search size={12} className={styles.searchIcon} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className={`${styles.searchInput} ${noMatch ? styles.searchNoMatch : ''}`}
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setNoMatch(false) }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="검색... (Enter: 다음  Shift+Enter: 이전)"
+            />
+            <button className={styles.searchBtn} onClick={findPrev} title="이전 (Shift+Enter)">
+              <ChevronUp size={13} />
+            </button>
+            <button className={styles.searchBtn} onClick={findNext} title="다음 (Enter)">
+              <ChevronDown size={13} />
+            </button>
+            <button className={styles.searchBtnClose} onClick={closeSearch} title="닫기 (Esc)">
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         {/* Body */}
         <div className={styles.body} ref={bodyRef}>

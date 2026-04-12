@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Eye, X, AArrowDown, AArrowUp, FileText } from 'lucide-react'
+import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
 
@@ -30,9 +30,15 @@ export default function FileViewer({ path, onClose }) {
   const [error, setError]         = useState(null)
   const [fontSize, setFontSize]   = useState(13)
   const [scrollTop, setScrollTop] = useState(0)
+  const [searchOpen, setSearchOpen]   = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [noMatch, setNoMatch]         = useState(false)
+
   const lineNumbersRef = useRef(null)
-  const preRef         = useRef(null)
+  const textareaRef    = useRef(null)
   const bodyRef        = useRef(null)
+  const searchInputRef = useRef(null)
+
   const { readFile } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
 
@@ -56,6 +62,8 @@ export default function FileViewer({ path, onClose }) {
         setError(String(e))
       } finally {
         setLoading(false)
+        // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
+        setTimeout(() => textareaRef.current?.focus(), 0)
       }
     }
     load()
@@ -63,32 +71,120 @@ export default function FileViewer({ path, onClose }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'F3') { e.preventDefault(); onClose() }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        e.stopPropagation()  // 캡처 페이즈에서 부모 Ctrl+F 핸들러 차단
+        setSearchOpen(true)
+        setNoMatch(false)
+        setTimeout(() => searchInputRef.current?.focus(), 0)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        if (searchOpen) {
+          setSearchOpen(false)
+          setNoMatch(false)
+          textareaRef.current?.focus()
+          return
+        }
+        onClose()
+      }
+      if (e.key === 'F3') { e.preventDefault(); e.stopPropagation(); onClose() }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+    // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [onClose, searchOpen])
 
   // Reset scroll when font size changes so line numbers re-sync
   useEffect(() => {
     setScrollTop(0)
-    if (preRef.current) preRef.current.scrollTop = 0
+    if (textareaRef.current) textareaRef.current.scrollTop = 0
     if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = 0
   }, [fontSize])
 
-  // Sync line numbers scroll position with pre (ssMemo pattern)
+  // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {
-    const pre = preRef.current
-    if (!pre) return
-    setScrollTop(pre.scrollTop)
+    const ta = textareaRef.current
+    if (!ta) return
+    setScrollTop(ta.scrollTop)
     if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = pre.scrollTop
+      lineNumbersRef.current.scrollTop = ta.scrollTop
     }
   }, [])
 
   const changeFontSize = useCallback((delta) => {
     setFontSize(prev => clampFontSize(prev, delta))
+  }, [])
+
+  // Scroll to match: positions match 1/3 from top (ssMemo scrollToIndex pattern)
+  const scrollToMatch = useCallback((el, index) => {
+    const textBefore = el.value.slice(0, index)
+    const lineIndex = textBefore.split('\n').length - 1
+    const style = window.getComputedStyle(el)
+    const lh = parseFloat(style.lineHeight) || lineHeight
+    const paddingTop = parseFloat(style.paddingTop) || 12
+    const targetTop = lineIndex * lh + paddingTop
+    const offset = el.clientHeight / 3
+    el.scrollTop = Math.max(0, targetTop - offset)
+  }, [lineHeight])
+
+  const showNoMatch = useCallback(() => {
+    setNoMatch(true)
+    setTimeout(() => setNoMatch(false), 600)
+  }, [])
+
+  const findNext = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta || !searchQuery) return
+    const lowerContent = ta.value.toLowerCase()
+    const lowerQuery = searchQuery.toLowerCase()
+    const startIndex = ta.selectionEnd ?? 0
+    let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
+    if (matchIndex === -1 && startIndex > 0) {
+      matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
+    }
+    if (matchIndex === -1) { showNoMatch(); return }
+    ta.focus()
+    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
+    scrollToMatch(ta, matchIndex)
+  }, [searchQuery, scrollToMatch, showNoMatch])
+
+  const findPrev = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta || !searchQuery) return
+    const lowerContent = ta.value.toLowerCase()
+    const lowerQuery = searchQuery.toLowerCase()
+    const startIndex = Math.max(0, (ta.selectionStart ?? 1) - 1)
+    let matchIndex = lowerContent.lastIndexOf(lowerQuery, startIndex)
+    if (matchIndex === -1) {
+      matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
+    }
+    if (matchIndex === -1) { showNoMatch(); return }
+    ta.focus()
+    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
+    scrollToMatch(ta, matchIndex)
+  }, [searchQuery, scrollToMatch, showNoMatch])
+
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      setSearchOpen(false)
+      setNoMatch(false)
+      textareaRef.current?.focus()
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.shiftKey) findPrev()
+      else findNext()
+    }
+  }, [findNext, findPrev])
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false)
+    setNoMatch(false)
+    textareaRef.current?.focus()
   }, [])
 
   return (
@@ -102,6 +198,13 @@ export default function FileViewer({ path, onClose }) {
           <span className={styles.readonlyBadge}>READ ONLY</span>
 
           <div className={styles.actions}>
+            <button
+              className={styles.btnSearch}
+              onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
+              title="검색 (Ctrl+F)"
+            >
+              <Search size={13} />
+            </button>
             <button
               className={styles.btnFont}
               onClick={() => changeFontSize(-1)}
@@ -122,6 +225,31 @@ export default function FileViewer({ path, onClose }) {
             </button>
           </div>
         </div>
+
+        {/* Search bar */}
+        {searchOpen && (
+          <div className={styles.searchBar}>
+            <Search size={12} className={styles.searchIcon} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className={`${styles.searchInput} ${noMatch ? styles.searchNoMatch : ''}`}
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setNoMatch(false) }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="검색... (Enter: 다음  Shift+Enter: 이전)"
+            />
+            <button className={styles.searchBtn} onClick={findPrev} title="이전 (Shift+Enter)">
+              <ChevronUp size={13} />
+            </button>
+            <button className={styles.searchBtn} onClick={findNext} title="다음 (Enter)">
+              <ChevronDown size={13} />
+            </button>
+            <button className={styles.searchBtnClose} onClick={closeSearch} title="닫기 (Esc)">
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         {/* Body */}
         <div className={styles.body} ref={bodyRef}>
@@ -151,15 +279,16 @@ export default function FileViewer({ path, onClose }) {
                 <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * lineHeight }} />
               </div>
 
-              {/* Content */}
-              <pre
-                ref={preRef}
+              {/* Readonly textarea — supports setSelectionRange for search highlighting */}
+              <textarea
+                ref={textareaRef}
                 className={styles.pre}
+                value={content}
+                readOnly
                 style={{ fontSize: `${fontSize}px`, lineHeight: `${lineHeight}px` }}
                 onScroll={handleScroll}
-              >
-                {content}
-              </pre>
+                spellCheck={false}
+              />
             </>
           )}
         </div>

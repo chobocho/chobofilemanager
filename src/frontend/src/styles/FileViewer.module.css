@@ -104,6 +104,24 @@
   text-align: center;
 }
 
+.btnSearch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btnSearch:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
 .btnClose {
   display: flex;
   align-items: center;
@@ -122,6 +140,83 @@
   background: rgba(255,80,96,0.15);
   color: var(--text-red);
   border-color: rgba(255,80,96,0.3);
+}
+
+/* Search bar */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.searchIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  max-width: 300px;
+  padding: 3px 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.searchInput:focus {
+  border-color: var(--border-active);
+}
+.searchNoMatch {
+  border-color: var(--text-red) !important;
+  background: rgba(255, 80, 96, 0.08) !important;
+}
+
+.searchBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+.searchBtn:hover {
+  background: var(--bg-row-hover);
+  color: var(--text-primary);
+}
+
+.searchBtnClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: all var(--transition);
+}
+.searchBtnClose:hover {
+  background: rgba(255, 80, 96, 0.15);
+  color: var(--text-red);
+  border-color: rgba(255, 80, 96, 0.3);
 }
 
 /* Body */
@@ -163,7 +258,7 @@
   color: var(--text-muted);
 }
 
-/* Pre (read-only content) */
+/* Read-only textarea (replaces pre — supports setSelectionRange for search) */
 .pre {
   flex: 1;
   margin: 0;
@@ -175,6 +270,11 @@
   white-space: pre;
   word-break: normal;
   tab-size: 2;
+  /* textarea overrides */
+  border: none;
+  outline: none;
+  resize: none;
+  cursor: text;
 }
 
 /* Status bar */

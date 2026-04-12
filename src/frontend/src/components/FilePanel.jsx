@@ -162,7 +162,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       await store.navigate(side, file.path)
     } else {
       const ext = file.extension
-      const textExts = ['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.bat','.log','.ini','.cfg','.conf','.env']
+      const textExts = ['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.log','.ini','.cfg','.conf','.env']
       if (textExts.includes(ext)) {
         onEdit(file)
       } else {

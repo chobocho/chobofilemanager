@@ -9,7 +9,7 @@ import FKeyBar from './components/FKeyBar'
 import FTPManager from './components/FTPManager'
 import TextEditor from './components/TextEditor'
 import FileViewer from './components/FileViewer'
-import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './components/ConfirmDialog'
+import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
@@ -56,6 +56,17 @@ export default function App() {
     Promise.all([init(), loadBkmarks()]).then(() => {
       requestAnimationFrame(() => leftPanelRef.current?.focus())
     })
+  }, [])
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.key === 'o') {
+        e.preventDefault()
+        setModal('shell')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   const handleDelete = async () => {
@@ -210,6 +221,7 @@ export default function App() {
         onMove={handleMove}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
+        onShell={() => setModal('shell')}
       />
 
       {modal === 'newdir' && (
@@ -228,6 +240,10 @@ export default function App() {
       {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={() => { setModal(null); focusActivePanel() }} />}
       {modal === 'help'      && <HelpDialog     onClose={() => { setModal(null); focusActivePanel() }} />}
+      {modal === 'shell' && (() => {
+        const s = useFileStore.getState()
+        return <ShellCommandDialog workDir={s[s.activePanel].path} onClose={() => { setModal(null); focusActivePanel() }} />
+      })()}
       {deleteTarget && (
         <ConfirmDialog title="Delete Items"
           message={deleteError ? `삭제 실패: ${deleteError}` : `Permanently delete ${deleteTarget.count} item(s)?`}

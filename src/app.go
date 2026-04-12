@@ -118,6 +118,10 @@ func (a *App) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo,
 	return a.fileManager.SearchFiles(rootPath, pattern, recursive)
 }
 
+func (a *App) RunShellCommand(command, workDir string) (string, error) {
+	return a.fileManager.RunShellCommand(command, workDir)
+}
+
 func (a *App) GetFileSize(path string) (int64, error) {
 	return a.fileManager.GetFileSize(path)
 }

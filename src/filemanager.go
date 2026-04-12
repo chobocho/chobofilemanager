@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding/korean"
 )
 
 type FileManager struct {
@@ -382,6 +384,24 @@ func (fm *FileManager) OpenFile(path string) error {
 		return err
 	}
 	return cmd.Start()
+}
+
+func (fm *FileManager) RunShellCommand(command, workDir string) (string, error) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", command)
+	default:
+		cmd = exec.Command("bash", "-c", command)
+	}
+	cmd.Dir = workDir
+	output, err := cmd.CombinedOutput()
+	if runtime.GOOS == "windows" {
+		if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(output); decErr == nil {
+			return string(decoded), err
+		}
+	}
+	return string(output), err
 }
 
 func (fm *FileManager) GetPathParts(path string) []PathPart {

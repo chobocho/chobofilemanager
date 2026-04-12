@@ -222,30 +222,71 @@ func (fm *FileManager) CopyItemsSkipConflicts(sources []string, destination stri
 	return nil
 }
 
+func (fm *FileManager) moveOne(src, destPath string) error {
+	if err := os.Rename(src, destPath); err == nil {
+		return nil
+	}
+	// Cross-device: copy then delete
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		if err := copyDir(src, destPath); err != nil {
+			return err
+		}
+		return os.RemoveAll(src)
+	}
+	if err := copyFile(src, destPath); err != nil {
+		return err
+	}
+	return os.Remove(src)
+}
+
 func (fm *FileManager) MoveItems(sources []string, destination string) error {
 	for _, src := range sources {
 		destPath := filepath.Join(destination, filepath.Base(src))
-		if err := os.Rename(src, destPath); err != nil {
-			// Cross-device move: copy then delete
-			info, statErr := os.Stat(src)
-			if statErr != nil {
-				return statErr
+		if err := fm.moveOne(src, destPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MoveItemsOverwrite: 대상에 같은 이름 파일이 있으면 삭제 후 이동합니다.
+func (fm *FileManager) MoveItemsOverwrite(sources []string, destination string) error {
+	for _, src := range sources {
+		destPath := filepath.Join(destination, filepath.Base(src))
+		if _, err := os.Stat(destPath); err == nil {
+			if err := os.RemoveAll(destPath); err != nil {
+				return err
 			}
-			if info.IsDir() {
-				if err := copyDir(src, destPath); err != nil {
-					return err
-				}
-				if err := os.RemoveAll(src); err != nil {
-					return err
-				}
-			} else {
-				if err := copyFile(src, destPath); err != nil {
-					return err
-				}
-				if err := os.Remove(src); err != nil {
-					return err
+		}
+		if err := fm.moveOne(src, destPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MoveItemsRename: 대상에 같은 이름 파일이 있으면 자동으로 이름을 변경하여 이동합니다.
+func (fm *FileManager) MoveItemsRename(sources []string, destination string) error {
+	for _, src := range sources {
+		name := filepath.Base(src)
+		destPath := filepath.Join(destination, name)
+		if _, err := os.Stat(destPath); err == nil {
+			ext := filepath.Ext(name)
+			base := strings.TrimSuffix(name, ext)
+			for n := 1; ; n++ {
+				candidate := filepath.Join(destination, fmt.Sprintf("%s (%d)%s", base, n, ext))
+				if _, err := os.Stat(candidate); os.IsNotExist(err) {
+					destPath = candidate
+					break
 				}
 			}
+		}
+		if err := fm.moveOne(src, destPath); err != nil {
+			return err
 		}
 	}
 	return nil

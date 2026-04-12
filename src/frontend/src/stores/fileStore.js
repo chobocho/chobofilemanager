@@ -283,14 +283,37 @@ export const useFileStore = create((set, get) => ({
       const cursor = state[panel].files[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
-    if (!selected.length) return
+    if (!selected.length) return { conflicts: [], sources: [], dest: '' }
+
+    const dest = state[other].path
+    const conflicts = await api.CheckCopyConflicts(selected, dest)
+    if (conflicts && conflicts.length > 0) {
+      return { conflicts, sources: selected, dest }
+    }
 
     set({ status: `Moving ${selected.length} item(s)...` })
     try {
-      await api.MoveItems(selected, state[other].path)
-      const affectedDirs = [...new Set([...selected.map(p => parentDir(p)), state[other].path])]
+      await api.MoveItems(selected, dest)
+      const affectedDirs = [...new Set([...selected.map(p => parentDir(p)), dest])]
       await get()._refreshAffected(affectedDirs)
       set({ status: `Moved ${selected.length} item(s)` })
+    } catch (err) {
+      set({ status: `Move failed: ${err}` })
+    }
+    return { conflicts: [], sources: [], dest: '' }
+  },
+
+  moveWithMode: async (sources, dest, mode) => {
+    set({ status: `Moving ${sources.length} item(s)...` })
+    try {
+      if (mode === 'overwrite') {
+        await api.MoveItemsOverwrite(sources, dest)
+      } else if (mode === 'rename') {
+        await api.MoveItemsRename(sources, dest)
+      }
+      const affectedDirs = [...new Set([...sources.map(p => parentDir(p)), dest])]
+      await get()._refreshAffected(affectedDirs)
+      set({ status: `Moved ${sources.length} item(s)` })
     } catch (err) {
       set({ status: `Move failed: ${err}` })
     }

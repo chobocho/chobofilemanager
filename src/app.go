@@ -58,6 +58,14 @@ func (a *App) MoveItems(sources []string, destination string) error {
 	return a.fileManager.MoveItems(sources, destination)
 }
 
+func (a *App) MoveItemsOverwrite(sources []string, destination string) error {
+	return a.fileManager.MoveItemsOverwrite(sources, destination)
+}
+
+func (a *App) MoveItemsRename(sources []string, destination string) error {
+	return a.fileManager.MoveItemsRename(sources, destination)
+}
+
 func (a *App) DeleteItems(paths []string) error {
 	return a.fileManager.DeleteItems(paths)
 }

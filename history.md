@@ -1,5 +1,25 @@
 # 변경 이력
 
+## 2026-04-12 (48)
+
+### #48 F6 이동 충돌 처리 (덮어쓰기 / 이름 바꾸어 이동 / 취소)
+
+#### 변경 파일
+- `src/filemanager.go`
+  - `moveOne()` 헬퍼 추출 (same-FS rename + cross-device copy-delete 통합)
+  - `MoveItemsOverwrite()`: 대상 파일을 삭제한 후 이동 (덮어쓰기)
+  - `MoveItemsRename()`: `(2)`, `(3)` ... 접미사로 자동 이름 변경 후 이동
+- `src/app.go`: `MoveItemsOverwrite`, `MoveItemsRename` 메서드 추가
+- `frontend/wailsjs/go/main/App.js` / `App.d.ts`: 바인딩 추가
+- `frontend/src/stores/fileStore.js`
+  - `move()`: 이동 전 `CheckCopyConflicts`로 충돌 감지, 충돌 시 `{ conflicts, sources, dest }` 반환
+  - `moveWithMode(sources, dest, mode)`: overwrite / rename 모드별 실행
+- `frontend/src/components/MoveConflictDialog.jsx`: 이동 충돌 팝업 (덮어쓰기 / 이름 바꾸어 이동 / 취소)
+- `frontend/src/App.jsx`
+  - `moveConflict` 상태, `handleMove`, `handleMoveConflictConfirm` 추가
+  - `onMove` → `handleMove` 변경 (Toolbar, FKeyBar 모두)
+  - `MoveConflictDialog` 렌더링 추가
+
 ## 2026-04-12 (47)
 
 ### #47 뷰어/에디터 Ctrl+F가 부모 파일 검색으로 연결되는 버그 수정

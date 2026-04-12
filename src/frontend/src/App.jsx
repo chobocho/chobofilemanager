@@ -13,6 +13,7 @@ import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog } from './comp
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
+import MoveConflictDialog from './components/MoveConflictDialog'
 import styles from './styles/App.module.css'
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError]   = useState(null)
   const [copyConflict, setCopyConflict] = useState(null) // { conflicts, sources, dest }
+  const [moveConflict, setMoveConflict] = useState(null) // { conflicts, sources, dest }
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
@@ -119,6 +121,20 @@ export default function App() {
     }
   }
 
+  const handleMove = async () => {
+    const result = await useFileStore.getState().move()
+    if (result?.conflicts?.length > 0) setMoveConflict(result)
+    else focusActivePanel()
+  }
+
+  const handleMoveConflictConfirm = async (mode) => {
+    if (moveConflict) {
+      await useFileStore.getState().moveWithMode(moveConflict.sources, moveConflict.dest, mode)
+      setMoveConflict(null)
+      focusActivePanel()
+    }
+  }
+
   const handleSwitchPanel = useCallback(() => {
     const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
     useFileStore.getState().setActivePanel(next)
@@ -153,7 +169,7 @@ export default function App() {
           if (file && !file.isDir) tryOpenEditor(file)
         }}
         onCopy={handleCopy}
-        onMove={() => useFileStore.getState().move()}
+        onMove={handleMove}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
         onSwitchPanel={handleSwitchPanel}
@@ -191,7 +207,7 @@ export default function App() {
           if (file && !file.isDir) tryOpenEditor(file)
         }}
         onCopy={handleCopy}
-        onMove={() => useFileStore.getState().move()}
+        onMove={handleMove}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
       />
@@ -226,6 +242,15 @@ export default function App() {
           dest={copyConflict.dest}
           onConfirm={handleCopyConflictConfirm}
           onClose={() => { setCopyConflict(null); focusActivePanel() }}
+        />
+      )}
+      {moveConflict && (
+        <MoveConflictDialog
+          conflicts={moveConflict.conflicts}
+          sources={moveConflict.sources}
+          dest={moveConflict.dest}
+          onConfirm={handleMoveConflictConfirm}
+          onClose={() => { setMoveConflict(null); focusActivePanel() }}
         />
       )}
       {fileSizeError && (

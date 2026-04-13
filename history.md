@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-04-14 (50)
+
+### #50 파일 검색 쉼표 AND 연산 지원
+
+#### 변경 파일
+- `src/filemanager.go`
+  - `SearchFiles()`: 쉼표로 구분된 키워드를 모두 포함해야 하는 AND 검색으로 변경
+  - 예) `우리,나라` → 파일명에 "우리"와 "나라"가 모두 포함된 파일만 반환
+  - 앞뒤 공백 trim 처리 포함
+- `src/frontend/src/components/ConfirmDialog.jsx`
+  - SearchDialog placeholder에 AND 검색 사용법 안내 추가
+
+---
+
 ## 2026-04-13 (49)
 
 ### #49 F9 키로 CMD 창 열기

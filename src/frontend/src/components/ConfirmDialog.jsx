@@ -341,7 +341,7 @@ export function SearchDialog({ onClose }) {
             className={styles.input}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search pattern..."
+            placeholder="Search pattern... (comma = AND, e.g. 우리,나라)"
             spellCheck={false}
           />
           <button type="submit" className={styles.btnSearch} disabled={searching || !query.trim()}>

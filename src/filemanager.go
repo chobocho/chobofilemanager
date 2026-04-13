@@ -463,7 +463,19 @@ func (fm *FileManager) ChangeWorkingDirectory(path string) error {
 
 func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {
 	var results []FileInfo
-	pattern = strings.ToLower(pattern)
+
+	// 쉼표로 분리한 후 각 키워드를 모두 포함하는 AND 검색
+	rawTerms := strings.Split(pattern, ",")
+	terms := make([]string, 0, len(rawTerms))
+	for _, t := range rawTerms {
+		t = strings.ToLower(strings.TrimSpace(t))
+		if t != "" {
+			terms = append(terms, t)
+		}
+	}
+	if len(terms) == 0 {
+		return results, nil
+	}
 
 	walkFn := func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -473,18 +485,21 @@ func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]
 			return filepath.SkipDir
 		}
 		name := strings.ToLower(d.Name())
-		if strings.Contains(name, pattern) {
-			info, err := d.Info()
-			if err == nil {
-				results = append(results, FileInfo{
-					Name:      d.Name(),
-					Path:      path,
-					Size:      info.Size(),
-					IsDir:     d.IsDir(),
-					Modified:  info.ModTime(),
-					Extension: strings.ToLower(filepath.Ext(d.Name())),
-				})
+		for _, term := range terms {
+			if !strings.Contains(name, term) {
+				return nil
 			}
+		}
+		info, err := d.Info()
+		if err == nil {
+			results = append(results, FileInfo{
+				Name:      d.Name(),
+				Path:      path,
+				Size:      info.Size(),
+				IsDir:     d.IsDir(),
+				Modified:  info.ModTime(),
+				Extension: strings.ToLower(filepath.Ext(d.Name())),
+			})
 		}
 		return nil
 	}

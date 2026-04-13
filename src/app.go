@@ -122,6 +122,10 @@ func (a *App) RunShellCommand(command, workDir string) (string, error) {
 	return a.fileManager.RunShellCommand(command, workDir)
 }
 
+func (a *App) OpenCmdWindow(workDir string) error {
+	return a.fileManager.OpenCmdWindow(workDir)
+}
+
 func (a *App) GetFileSize(path string) (int64, error) {
 	return a.fileManager.GetFileSize(path)
 }

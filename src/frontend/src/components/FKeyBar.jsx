@@ -2,7 +2,7 @@ import React from 'react'
 import { Quit } from '../../wailsjs/runtime/runtime'
 import styles from '../styles/FKeyBar.module.css'
 
-export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onRename, onHelp, onView, onEdit, onShell }) {
+export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onRename, onHelp, onView, onEdit, onShell, onCmd }) {
   const handleQuit = () => {
     try { Quit() } catch { /* 브라우저 개발 환경에서는 무시 */ }
   }
@@ -16,6 +16,7 @@ export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onRename, 
     { num: 'F6',     label: 'Move',   action: onMove,   active: !!onMove },
     { num: 'F7',     label: 'NewDir', action: onNewDir, active: !!onNewDir },
     { num: 'F8',     label: 'Delete', action: onDelete, active: !!onDelete, danger: true },
+    { num: 'F9',     label: 'CMD',    action: onCmd,    active: !!onCmd },
     { num: 'Ctrl+O',     label: 'Shell',  action: onShell,  active: !!onShell },
     { num: 'Alt+F4', label: 'Quit',   action: handleQuit, active: true },
   ]

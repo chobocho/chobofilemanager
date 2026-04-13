@@ -64,6 +64,12 @@ export default function App() {
         e.preventDefault()
         setModal('shell')
       }
+      if (e.key === 'F9') {
+        e.preventDefault()
+        const s = useFileStore.getState()
+        const workDir = s[s.activePanel].path
+        import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -222,6 +228,10 @@ export default function App() {
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
         onShell={() => setModal('shell')}
+        onCmd={() => {
+          const s = useFileStore.getState()
+          import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(s[s.activePanel].path))
+        }}
       />
 
       {modal === 'newdir' && (

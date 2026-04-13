@@ -52,6 +52,7 @@ const createMockAPI = () => ({
   GetFileSize: async () => 1024000,
   CompressItems: async () => null,
   ExtractArchive: async () => null,
+  OpenCmdWindow: async () => null,
 
   FTPConnect: async () => null,
   FTPDisconnect: async () => null,

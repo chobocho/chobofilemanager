@@ -1,5 +1,24 @@
 # 변경 이력
 
+## 2026-04-13 (49)
+
+### #49 F9 키로 CMD 창 열기
+
+#### 변경 파일
+- `src/filemanager.go`
+  - `OpenCmdWindow(workDir string) error` 추가: Windows에서 `cmd /c start cmd.exe` 실행, 현재 패널 경로를 작업 디렉터리로 설정
+- `src/app.go`
+  - `OpenCmdWindow` API 메서드 추가
+- `src/frontend/src/App.jsx`
+  - F9 키 전역 핸들러 추가: 활성 패널 경로에서 CMD 창 실행
+  - FKeyBar에 `onCmd` prop 전달
+- `src/frontend/src/components/FKeyBar.jsx`
+  - `onCmd` prop 추가, F9: CMD 버튼 표시
+- `src/frontend/src/wailsjs/runtime.js`
+  - 브라우저 개발 모드 목 API에 `OpenCmdWindow` 추가
+
+---
+
 ## 2026-04-12 (48)
 
 ### #48 F6 이동 충돌 처리 (덮어쓰기 / 이름 바꾸어 이동 / 취소)

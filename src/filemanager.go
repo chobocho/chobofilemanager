@@ -404,6 +404,18 @@ func (fm *FileManager) RunShellCommand(command, workDir string) (string, error) 
 	return string(output), err
 }
 
+func (fm *FileManager) OpenCmdWindow(workDir string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "cmd.exe")
+	default:
+		cmd = exec.Command("x-terminal-emulator")
+	}
+	cmd.Dir = workDir
+	return cmd.Start()
+}
+
 func (fm *FileManager) GetPathParts(path string) []PathPart {
 	path = filepath.Clean(path)
 	var parts []PathPart

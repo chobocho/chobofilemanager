@@ -286,6 +286,27 @@
   flex-shrink: 0;
 }
 
+.resultActionBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), background var(--transition), color var(--transition);
+}
+.resultRow:hover .resultActionBtn { opacity: 1; }
+.resultActionBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 .noResults {
   text-align: center;
   padding: 16px;

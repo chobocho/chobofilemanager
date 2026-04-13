@@ -247,7 +247,7 @@ export default function App() {
           onConfirm={(oldPath, newName) => { const s=useFileStore.getState(); s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
           onClose={() => { setModal(null); focusActivePanel() }} />
       )}
-      {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} />}
+      {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={() => { setModal(null); focusActivePanel() }} />}
       {modal === 'help'      && <HelpDialog     onClose={() => { setModal(null); focusActivePanel() }} />}
       {modal === 'shell' && (() => {

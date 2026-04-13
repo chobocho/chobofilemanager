@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { AlertTriangle, FolderPlus, FilePlus, Edit3, Search as SearchIcon, X, Terminal } from 'lucide-react'
+import { AlertTriangle, FolderPlus, FilePlus, Edit3, Search as SearchIcon, X, Terminal, Play, Eye, FileEdit } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import styles from '../styles/Dialogs.module.css'
@@ -281,7 +281,9 @@ export function ShellCommandDialog({ workDir, onClose }) {
 
 // ─── Search Dialog ────────────────────────────────────────────────────────────
 
-export function SearchDialog({ onClose }) {
+const TEXT_EXTS = new Set(['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.log','.ini','.cfg','.conf','.env'])
+
+export function SearchDialog({ onClose, onView, onEdit }) {
   const store = useFileStore()
   const panel = store[store.activePanel]
   const [query, setQuery]           = useState('')
@@ -317,6 +319,21 @@ export function SearchDialog({ onClose }) {
       store.navigate(store.activePanel, dir)
     }
     onClose()
+  }
+
+  const handleRunFile = (e, file) => {
+    e.stopPropagation()
+    api.OpenFile(file.path)
+  }
+
+  const handleViewFile = (e, file) => {
+    e.stopPropagation()
+    onView?.(file)
+  }
+
+  const handleEditFile = (e, file) => {
+    e.stopPropagation()
+    onEdit?.(file)
   }
 
   const formatSize = (bytes, isDir) => {
@@ -379,6 +396,33 @@ export function SearchDialog({ onClose }) {
                     <span className={styles.resultPath}>{file.path}</span>
                   </div>
                   <span className={styles.resultSize}>{formatSize(file.size, file.isDir)}</span>
+                  {!file.isDir && TEXT_EXTS.has(file.extension) && (
+                    <button
+                      className={styles.resultActionBtn}
+                      onClick={(e) => handleViewFile(e, file)}
+                      title="내장 뷰어로 보기"
+                    >
+                      <Eye size={12} />
+                    </button>
+                  )}
+                  {!file.isDir && TEXT_EXTS.has(file.extension) && (
+                    <button
+                      className={styles.resultActionBtn}
+                      onClick={(e) => handleEditFile(e, file)}
+                      title="내장 에디터로 편집"
+                    >
+                      <FileEdit size={12} />
+                    </button>
+                  )}
+                  {!file.isDir && (
+                    <button
+                      className={styles.resultActionBtn}
+                      onClick={(e) => handleRunFile(e, file)}
+                      title="파일 실행"
+                    >
+                      <Play size={12} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

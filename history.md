@@ -1,5 +1,37 @@
 # 변경 이력
 
+## 2026-04-14 (52)
+
+### #52 검색 결과에서 내장 뷰어/에디터로 열기 버튼 추가
+
+#### 변경 파일
+- `src/frontend/src/App.jsx`
+  - `SearchDialog`에 `onView`, `onEdit` prop 전달 (모달 닫은 후 뷰어/에디터 실행)
+- `src/frontend/src/components/ConfirmDialog.jsx`
+  - `TEXT_EXTS` 집합 정의 (텍스트 계열 확장자)
+  - `SearchDialog` props에 `onView`, `onEdit` 추가
+  - `handleViewFile`, `handleEditFile` 핸들러 추가
+  - 텍스트 파일에 한해 뷰어(👁) · 에디터(✏) 버튼 표시, 모든 파일에 실행(▶) 버튼 표시
+  - `Eye`, `FileEdit` 아이콘 import 추가
+- `src/frontend/src/styles/Dialogs.module.css`
+  - `.resultRunBtn` → `.resultActionBtn` 으로 통일
+
+---
+
+## 2026-04-14 (51)
+
+### #51 검색 결과에서 파일 바로 실행 버튼 추가
+
+#### 변경 파일
+- `src/frontend/src/components/ConfirmDialog.jsx`
+  - `handleRunFile()` 추가: `api.OpenFile(path)` 호출로 OS 기본 앱으로 파일 실행
+  - 검색 결과 파일 행에 실행 버튼(▶) 추가 (디렉터리 제외)
+  - `Play` 아이콘 import 추가
+- `src/frontend/src/styles/Dialogs.module.css`
+  - `.resultRunBtn` 스타일 추가: 행 호버 시에만 표시, 클릭 시 accent 색상
+
+---
+
 ## 2026-04-14 (50)
 
 ### #50 파일 검색 쉼표 AND 연산 지원

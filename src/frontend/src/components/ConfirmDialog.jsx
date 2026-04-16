@@ -126,7 +126,8 @@ export function NewItemDialog({ type, onConfirm, onClose }) {
 export function RenameDialog({ onConfirm, onClose }) {
   const store = useFileStore()
   const panel = store[store.activePanel]
-  const currentFile = panel.files[panel.cursor]
+  const visibleFiles = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+  const currentFile = visibleFiles[panel.cursor]
   const [name, setName] = useState(currentFile?.name || '')
   const inputRef = useRef(null)
 

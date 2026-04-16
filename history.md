@@ -1,5 +1,23 @@
 # 변경 이력
 
+## 2026-04-16 (53)
+
+### #53 hide off 상태에서 F2/F5/F6/F8 키가 잘못된 파일을 대상으로 동작하는 버그 수정
+
+#### 원인
+`panel.cursor`는 **보이는 파일**(hidden 필터 적용된) 목록의 인덱스이지만,
+`copy`, `move`, `delete` (fileStore.js)와 `RenameDialog` (ConfirmDialog.jsx)에서
+`panel.files[panel.cursor]`로 전체 파일 배열을 직접 인덱싱하고 있었음.
+`showHidden`이 off일 때 숨김 파일이 배열에 포함된 상태로 인덱스가 어긋나 커서 위치와 실제 대상 파일이 달라지는 문제 발생.
+
+#### 수정 파일
+- `src/frontend/src/stores/fileStore.js`
+  - `copy`, `move`, `delete` 함수에서 커서 파일 조회 시 `showHidden` 여부에 따라 `visibleFiles`를 먼저 계산하도록 수정
+- `src/frontend/src/components/ConfirmDialog.jsx`
+  - `RenameDialog`에서 `currentFile` 조회 시 `visibleFiles`를 기준으로 수정
+
+---
+
 ## 2026-04-14 (52)
 
 ### #52 검색 결과에서 내장 뷰어/에디터로 열기 버튼 추가

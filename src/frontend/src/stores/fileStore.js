@@ -232,7 +232,8 @@ export const useFileStore = create((set, get) => ({
     const other = panel === 'left' ? 'right' : 'left'
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const cursor = state[panel].files[state[panel].cursor]
+      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
+      const cursor = visibleFiles[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
@@ -280,7 +281,8 @@ export const useFileStore = create((set, get) => ({
     const other = panel === 'left' ? 'right' : 'left'
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const cursor = state[panel].files[state[panel].cursor]
+      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
+      const cursor = visibleFiles[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
@@ -324,7 +326,8 @@ export const useFileStore = create((set, get) => ({
     const panel = state.activePanel
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const cursor = state[panel].files[state[panel].cursor]
+      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
+      const cursor = visibleFiles[state[panel].cursor]
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) {

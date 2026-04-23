@@ -63,6 +63,38 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     load()
   }, [path])
 
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    try {
+      await writeFile(path, content)
+      setOriginal(content)
+    } catch(e) {
+      setError(String(e))
+    } finally {
+      setSaving(false)
+    }
+  }, [path, content, writeFile])
+
+  const handleSaveAndClose = useCallback(async () => {
+    await handleSave()
+    onClose()
+  }, [handleSave, onClose])
+
+  const handleRun = useCallback(async () => {
+    if (running) return
+    setRunning(true)
+    setRunOutput('실행 중...')
+    try {
+      const api = (await import('../wailsjs/runtime.js')).default
+      const result = await api.RunStarlarkFile(path)
+      setRunOutput(result || '(출력 없음)')
+    } catch (e) {
+      setRunOutput('오류: ' + String(e))
+    } finally {
+      setRunning(false)
+    }
+  }, [path, running])
+
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -101,39 +133,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [content, isDirty, searchOpen, isStarlark, handleRun])
-
-  const handleSave = useCallback(async () => {
-    setSaving(true)
-    try {
-      await writeFile(path, content)
-      setOriginal(content)
-    } catch(e) {
-      setError(String(e))
-    } finally {
-      setSaving(false)
-    }
-  }, [path, content, writeFile])
-
-  const handleSaveAndClose = useCallback(async () => {
-    await handleSave()
-    onClose()
-  }, [handleSave, onClose])
-
-  const handleRun = useCallback(async () => {
-    if (running) return
-    setRunning(true)
-    setRunOutput('실행 중...')
-    try {
-      const api = (await import('../wailsjs/runtime.js')).default
-      const result = await api.RunStarlarkFile(path)
-      setRunOutput(result || '(출력 없음)')
-    } catch (e) {
-      setRunOutput('오류: ' + String(e))
-    } finally {
-      setRunning(false)
-    }
-  }, [path, running])
+  }, [content, isDirty, searchOpen, isStarlark, handleSave, handleRun, onClose])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {

@@ -384,6 +384,13 @@ export const useFileStore = create((set, get) => ({
       await api.RenameItem(oldPath, newPath)
       await get()._refreshAffected([parentDir(oldPath)])
       set({ status: `Renamed → ${newName}` })
+      // 이름 변경 후 해당 항목에 커서 위치
+      const newState = get()[panel]
+      const visible = newState.showHidden ? newState.files : newState.files.filter(f => !f.isHidden)
+      const idx = visible.findIndex(f => f.name === newName)
+      if (idx >= 0) {
+        set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
+      }
     } catch (err) {
       set({ status: `Rename failed: ${err}` })
     }

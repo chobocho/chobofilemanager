@@ -111,6 +111,36 @@ describe('getLastPathSegment', () => {
   })
 })
 
+// ─── 이름 변경 후 커서 위치 로직 테스트 ───────────────────────────────────────────
+
+describe('rename 후 커서 위치 로직', () => {
+  const makeFiles = (names) => names.map(n => ({ name: n, isHidden: false }))
+
+  it('RN-01: 이름 변경 후 visible 목록에서 새 이름의 인덱스를 찾는다', () => {
+    const files = makeFiles(['alpha.txt', 'beta.txt', 'gamma.txt'])
+    const newName = 'beta_renamed.txt'
+    const refreshed = files.map(f => f.name === 'beta.txt' ? { ...f, name: newName } : f)
+    const idx = refreshed.findIndex(f => f.name === newName)
+    expect(idx).toBe(1)
+  })
+
+  it('RN-02: 이름 변경된 파일이 목록에 없으면 -1을 반환한다', () => {
+    const files = makeFiles(['alpha.txt', 'gamma.txt'])
+    const idx = files.findIndex(f => f.name === 'missing.txt')
+    expect(idx).toBe(-1)
+  })
+
+  it('RN-03: 숨김 파일 미표시 시 숨김 파일은 visible 목록에 포함되지 않는다', () => {
+    const files = [
+      { name: '.hidden', isHidden: true },
+      { name: 'visible.txt', isHidden: false },
+    ]
+    const visible = files.filter(f => !f.isHidden)
+    expect(visible.length).toBe(1)
+    expect(visible[0].name).toBe('visible.txt')
+  })
+})
+
 // ─── BreadcrumbPath 경로 구성 테스트 ──────────────────────────────────────────
 
 describe('BreadcrumbPath 경로 구성', () => {

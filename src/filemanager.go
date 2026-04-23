@@ -12,8 +12,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/text/encoding/korean"
+	"golang.org/x/text/unicode/norm"
 )
 
 type FileManager struct {
@@ -355,6 +357,15 @@ func (fm *FileManager) ReadTextFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// UTF-8이면 NFC로 정규화 (조합형 NFD 한글 → 완성형 NFC 변환)
+	if utf8.Valid(data) {
+		return norm.NFC.String(string(data)), nil
+	}
+	// EUC-KR / CP949 (완성형 레거시 한글) 디코딩 시도
+	if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(data); decErr == nil {
+		return string(decoded), nil
+	}
+	// 폴백: 원본 바이트 그대로 반환
 	return string(data), nil
 }
 

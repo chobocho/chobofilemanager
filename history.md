@@ -1,5 +1,25 @@
 # 변경 이력
 
+## 2026-04-24 (42, 43)
+
+### #42 F3 뷰어 조합형 한글(NFD) 지원
+### #43 F3 뷰어 완성형 한글(EUC-KR/CP949) 지원
+
+#### 구현 내용
+- `filemanager.go`의 `ReadTextFile` 함수 인코딩 감지 로직 추가
+  - UTF-8 유효한 파일: `norm.NFC.String()` 으로 NFC 정규화
+    - **조합형(#42)**: macOS에서 만든 NFD 분리형 한글(ㄱ+ㅏ조합) → NFC 완성형으로 변환
+  - UTF-8 아닌 파일: EUC-KR / CP949 디코딩 시도
+    - **완성형(#43)**: 레거시 Windows 한국어 인코딩 파일을 UTF-8로 변환
+  - 폴백: 원본 바이트 그대로 반환
+- import에 `unicode/utf8`, `golang.org/x/text/unicode/norm` 추가 (already in go.mod)
+
+#### 테스트 (Go)
+- `TestReadTextFile_EUCKR_완성형`: EUC-KR 인코딩 파일 → "안녕하세요" 정상 출력 확인
+- `TestReadTextFile_NFD_조합형`: NFD 유니코드 한글 → NFC 정규화 확인
+- 전체 Go 테스트 통과 (ok totalcmd)
+- 전체 프론트엔드 테스트 94개 통과
+
 ## 2026-04-24 (41)
 
 ### #41 F4 에디터 및 F3 뷰어에 Starlark 스크립트(.star, .bzl) 지원

@@ -7,6 +7,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"golang.org/x/text/encoding/korean"
+	"golang.org/x/text/unicode/norm"
 )
 
 func newTestFM() *FileManager {
@@ -370,6 +373,48 @@ func TestReadTextFile_NotFound(t *testing.T) {
 	_, err := fm.ReadTextFile("/nonexistent/path/file.txt")
 	if err == nil {
 		t.Error("expected error for nonexistent file")
+	}
+}
+
+func TestReadTextFile_EUCKR_완성형(t *testing.T) {
+	// EUC-KR로 인코딩된 "안녕하세요" 바이트 쓰기
+	eucKRBytes, err := korean.EUCKR.NewEncoder().Bytes([]byte("안녕하세요"))
+	if err != nil {
+		t.Skip("EUC-KR 인코딩 불가 환경:", err)
+	}
+	base := t.TempDir()
+	f := filepath.Join(base, "korean_euckr.txt")
+	if err := os.WriteFile(f, eucKRBytes, 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	if !strings.Contains(got, "안녕하세요") {
+		t.Errorf("EUC-KR 디코딩 실패: got %q", got)
+	}
+}
+
+func TestReadTextFile_NFD_조합형(t *testing.T) {
+	// NFD 정규화 (조합형 유니코드 한글) → NFC 변환 확인
+	// "가" NFD = ㄱ(U+1100) + ㅏ(U+1161)
+	nfdText := "가" // NFD: jamo 조합형 '가'
+	base := t.TempDir()
+	f := filepath.Join(base, "korean_nfd.txt")
+	if err := os.WriteFile(f, []byte(nfdText), 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	// NFC 정규화 결과는 완성형 '가' (U+AC00)
+	expected := norm.NFC.String(nfdText)
+	if got != expected {
+		t.Errorf("NFD→NFC 변환 실패: got %q, want %q", got, expected)
 	}
 }
 

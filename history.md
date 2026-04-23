@@ -1,5 +1,23 @@
 # 변경 이력
 
+## 2026-04-24 (38, 39)
+
+### #38 vim 스타일 j/k/h/l 키 네비게이션
+### #39 WASD 스타일 s/w/a/d 키 네비게이션
+
+#### 구현 내용
+- `FilePanel.jsx`의 `handleKeyDown`에 수정자 키(Ctrl/Alt/Shift/Meta) 없는 단독 키 처리 추가
+  - `j`, `s`: 아래로 이동 (ArrowDown과 동일 동작)
+  - `k`, `w`: 위로 이동 (ArrowUp과 동일 동작)
+  - `h`, `a`: 왼쪽 패널로 포커스 이동
+  - `l`, `d`: 오른쪽 패널로 포커스 이동
+- `FilePanel`에 `onSwitchToPanel(target)` prop 추가
+- `App.jsx`에서 `onSwitchToPanel` 구현: `setActivePanel` 후 대상 패널 ref에 포커스
+- 기존 Ctrl+A/Ctrl+H/Ctrl+W 단축키와 충돌 없음
+
+#### 테스트
+- 기존 92개 테스트 통과 (내비게이션 로직은 ArrowKey와 동일 경로)
+
 ## 2026-04-24 (37)
 
 ### #37 Shift+a-z/0-9로 해당 글자로 시작하는 파일로 커서 이동

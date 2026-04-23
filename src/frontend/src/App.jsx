@@ -195,9 +195,19 @@ export default function App() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} />
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor}
+              onSwitchToPanel={(target) => {
+                useFileStore.getState().setActivePanel(target)
+                const ref = target === 'left' ? leftPanelRef : rightPanelRef
+                requestAnimationFrame(() => ref.current?.focus())
+              }} />
             <div className={styles.divider} />
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} />
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor}
+              onSwitchToPanel={(target) => {
+                useFileStore.getState().setActivePanel(target)
+                const ref = target === 'left' ? leftPanelRef : rightPanelRef
+                requestAnimationFrame(() => ref.current?.focus())
+              }} />
           </div>
         ) : (
           <FTPManager />

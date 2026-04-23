@@ -122,7 +122,7 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel }, ref) {
   const store = useFileStore()
   const panel = store[side]
   const isActive = store.activePanel === side
@@ -258,12 +258,79 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         break
       case 'a':
         if (e.ctrlKey) { e.preventDefault(); store.selectAll(side) }
+        else if (!e.shiftKey && !e.altKey && !e.metaKey) {
+          // WASD: a = 왼쪽 패널로 이동
+          e.preventDefault()
+          onSwitchToPanel?.('left')
+        }
         break
       case 'r':
         if (e.ctrlKey) { e.preventDefault(); store.refresh(side) }
         break
       case 'h':
         if (e.ctrlKey) { e.preventDefault(); store.toggleHidden(side) }
+        else if (!e.shiftKey && !e.altKey && !e.metaKey) {
+          // vim: h = 왼쪽 패널로 이동
+          e.preventDefault()
+          onSwitchToPanel?.('left')
+        }
+        break
+      case 'l':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // vim: l = 오른쪽 패널로 이동
+          e.preventDefault()
+          onSwitchToPanel?.('right')
+        }
+        break
+      case 'd':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // WASD: d = 오른쪽 패널로 이동
+          e.preventDefault()
+          onSwitchToPanel?.('right')
+        }
+        break
+      case 'j':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // vim: j = 아래로
+          e.preventDefault()
+          if (cursorOnParent) {
+            store.setCursorOnParent(side, false)
+            store.setCursor(side, 0)
+            scrollToCursor(0, showParent)
+          } else if (cur < files.length - 1) {
+            store.setCursor(side, cur + 1)
+            scrollToCursor(cur + 1, showParent)
+          }
+        }
+        break
+      case 'k':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // vim: k = 위로
+          e.preventDefault()
+          if (cursorOnParent) {
+            // already on [..], do nothing
+          } else if (cur > 0) {
+            store.setCursor(side, cur - 1)
+            scrollToCursor(cur - 1, showParent)
+          } else if (showParent) {
+            store.setCursorOnParent(side, true)
+            scrollToParentRow()
+          }
+        }
+        break
+      case 's':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // WASD: s = 아래로
+          e.preventDefault()
+          if (cursorOnParent) {
+            store.setCursorOnParent(side, false)
+            store.setCursor(side, 0)
+            scrollToCursor(0, showParent)
+          } else if (cur < files.length - 1) {
+            store.setCursor(side, cur + 1)
+            scrollToCursor(cur + 1, showParent)
+          }
+        }
         break
       case 't':
       case 'T':
@@ -272,6 +339,19 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
       case 'w':
       case 'W':
         if (e.ctrlKey) { e.preventDefault(); store.closeTab(side, panel.activeTabIdx) }
+        else if (!e.shiftKey && !e.altKey && !e.metaKey && e.key === 'w') {
+          // WASD: w = 위로
+          e.preventDefault()
+          if (cursorOnParent) {
+            // already on [..], do nothing
+          } else if (cur > 0) {
+            store.setCursor(side, cur - 1)
+            scrollToCursor(cur - 1, showParent)
+          } else if (showParent) {
+            store.setCursorOnParent(side, true)
+            scrollToParentRow()
+          }
+        }
         break
       case 'Tab':
         // Ctrl+Tab = next tab, Ctrl+Shift+Tab = prev tab (only when Ctrl is held)
@@ -298,7 +378,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         }
         break
     }
-  }, [isActive, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent])
+  }, [isActive, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return

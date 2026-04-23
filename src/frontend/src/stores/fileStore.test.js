@@ -182,6 +182,47 @@ describe('rename 후 커서 위치 로직', () => {
   })
 })
 
+// ─── navigateBack 후 커서 위치 로직 테스트 ───────────────────────────────────
+describe('navigateBack 후 커서 위치 로직', () => {
+  const makeVisibleFiles = (names) =>
+    names.map(n => ({ name: n, isHidden: false, isDir: n.endsWith('/') }))
+
+  it('NB-01: 이전 경로의 마지막 세그먼트로 커서를 찾는다', () => {
+    // /home/user/docs → back → /home/user, 커서는 "docs"(또는 "docs/")에 위치
+    const prevPath = '/home/user/docs'
+    const childName = getLastPathSegment(prevPath)
+    expect(childName).toBe('docs')
+
+    const visibleFiles = makeVisibleFiles(['alpha.txt', 'docs/', 'readme.md'])
+    const idx = visibleFiles.findIndex(f => f.name === childName || f.name === childName + '/')
+    expect(idx).toBe(1)
+  })
+
+  it('NB-02: 이전 경로가 디렉토리 표시("/")로 끝날 때도 올바르게 세그먼트를 추출한다', () => {
+    const prevPath = '/home/user/projects/'
+    const childName = getLastPathSegment(prevPath)
+    expect(childName).toBe('projects')
+  })
+
+  it('NB-03: visible 파일 목록에 일치하는 항목이 없으면 -1을 반환한다', () => {
+    const prevPath = '/home/user/deleted'
+    const childName = getLastPathSegment(prevPath)
+    const visibleFiles = makeVisibleFiles(['alpha.txt', 'docs/'])
+    const idx = visibleFiles.findIndex(f => f.name === childName || f.name === childName + '/')
+    expect(idx).toBe(-1)
+  })
+
+  it('NB-04: Windows 경로에서도 마지막 세그먼트로 커서를 찾는다', () => {
+    const prevPath = 'C:\\Users\\user\\Projects'
+    const childName = getLastPathSegment(prevPath)
+    expect(childName).toBe('Projects')
+
+    const visibleFiles = makeVisibleFiles(['Documents/', 'Downloads/', 'Projects/'])
+    const idx = visibleFiles.findIndex(f => f.name === childName || f.name === childName + '/')
+    expect(idx).toBe(2)
+  })
+})
+
 // ─── BreadcrumbPath 경로 구성 테스트 ──────────────────────────────────────────
 
 describe('BreadcrumbPath 경로 구성', () => {

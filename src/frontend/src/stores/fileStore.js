@@ -130,6 +130,7 @@ export const useFileStore = create((set, get) => ({
   navigateBack: async (panel) => {
     const state = get()[panel]
     if (state.historyIndex > 0) {
+      const prevPath = state.history[state.historyIndex]
       const newIndex = state.historyIndex - 1
       const path = state.history[newIndex]
       set(s => ({ [panel]: { ...s[panel], historyIndex: newIndex } }))
@@ -143,6 +144,15 @@ export const useFileStore = create((set, get) => ({
           loading: false,
         }
       }))
+      // 직전에 있던 폴더명으로 커서 이동
+      const childName = getLastPathSegment(prevPath)
+      if (!childName) return
+      const newState = get()[panel]
+      const visible = newState.showHidden ? newState.files : newState.files.filter(f => !f.isHidden)
+      const idx = visible.findIndex(f => f.name === childName || f.name === childName + '/')
+      if (idx >= 0) {
+        set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
+      }
     }
   },
 

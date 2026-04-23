@@ -1,5 +1,27 @@
 # 변경 이력
 
+## 2026-04-24 (45)
+
+### #45 - 키로 이전 폴더 이동 후 커서 위치 복원
+
+#### 원인
+`navigateBack`이 이전 경로로 이동 후 커서를 0으로 유지해서, 직전에 있던 폴더가 어디인지 알 수 없었음.
+
+#### 구현 내용
+- `fileStore.js`의 `navigateBack` 수정
+  - 이동 전 `prevPath = state.history[state.historyIndex]` 저장
+  - 이동 후 `getLastPathSegment(prevPath)` 로 직전 폴더명 추출
+  - visible 파일 목록에서 `f.name === childName || f.name === childName + '/'` 로 탐색
+  - 찾으면 해당 인덱스로 cursor 이동 (`cursorOnParent: false`)
+- `navigateUp`과 동일한 패턴 적용
+
+#### 테스트
+- `NB-01`: Unix 경로에서 이전 폴더명으로 커서 인덱스 탐색
+- `NB-02`: 경로가 `/`로 끝나도 세그먼트 올바르게 추출
+- `NB-03`: visible 목록에 없으면 -1 반환
+- `NB-04`: Windows 경로에서도 올바르게 동작
+- 전체 프론트엔드 테스트 130개 통과
+
 ## 2026-04-24 (44)
 
 ### #44 F3 뷰어 Word Wrap 기능 추가

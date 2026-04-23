@@ -14,6 +14,12 @@ export function joinPath(base, name) {
   return base.replace(/[/\\]+$/, '') + sep + name
 }
 
+export function getLastPathSegment(path) {
+  const clean = path.replace(/[/\\]+$/, '')
+  if (clean === '' || /^[A-Za-z]:$/.test(clean)) return ''
+  return clean.split(/[/\\]/).pop() || ''
+}
+
 let _tabCounter = 0
 const createTabState = (path = '') => ({
   id: `tab-${++_tabCounter}`,
@@ -161,9 +167,18 @@ export const useFileStore = create((set, get) => ({
 
   navigateUp: async (panel) => {
     const state = get()[panel]
-    const parent = await api.GetParentPath(state.path)
-    if (parent !== state.path) {
-      await get().navigate(panel, parent)
+    const currentPath = state.path
+    const parent = await api.GetParentPath(currentPath)
+    if (parent === currentPath) return
+    await get().navigate(panel, parent)
+    // 이전 폴더 위에 커서 위치
+    const childName = getLastPathSegment(currentPath)
+    if (!childName) return
+    const newState = get()[panel]
+    const visible = newState.showHidden ? newState.files : newState.files.filter(f => !f.isHidden)
+    const idx = visible.findIndex(f => f.name === childName)
+    if (idx >= 0) {
+      set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
     }
   },
 

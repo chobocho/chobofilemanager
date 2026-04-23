@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath } from './fileStore.js'
+import { joinPath, getLastPathSegment } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -84,6 +84,30 @@ describe('joinPath', () => {
 
   it('JP-08: 디렉토리 이름을 결합한다 (Windows)', () => {
     expect(joinPath('D:\\Projects', 'my_app')).toBe('D:\\Projects\\my_app')
+  })
+})
+
+// ─── getLastPathSegment 단위 테스트 ───────────────────────────────────────────
+
+describe('getLastPathSegment', () => {
+  it('GPS-01: Unix 경로에서 마지막 폴더명을 반환한다', () => {
+    expect(getLastPathSegment('/home/user/docs')).toBe('docs')
+  })
+
+  it('GPS-02: Windows 경로에서 마지막 폴더명을 반환한다', () => {
+    expect(getLastPathSegment('C:\\Users\\user\\Documents')).toBe('Documents')
+  })
+
+  it('GPS-03: 끝에 슬래시가 있어도 마지막 폴더명을 반환한다', () => {
+    expect(getLastPathSegment('/home/user/docs/')).toBe('docs')
+  })
+
+  it('GPS-04: 루트 경로는 빈 문자열을 반환한다', () => {
+    expect(getLastPathSegment('/')).toBe('')
+  })
+
+  it('GPS-05: Windows 드라이브 루트는 빈 문자열을 반환한다', () => {
+    expect(getLastPathSegment('C:\\')).toBe('')
   })
 })
 

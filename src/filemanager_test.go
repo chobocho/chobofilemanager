@@ -1356,3 +1356,305 @@ func TestRunStarlarkFile_NotFound(t *testing.T) {
 		t.Error("존재하지 않는 파일 실행 시 에러가 반환되어야 합니다")
 	}
 }
+
+func TestRunStarlarkFile_FunctionDef(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "func.star")
+	os.WriteFile(script, []byte(`
+def greet(name):
+    print("hello, " + name)
+
+greet("starlark")
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "hello, starlark") {
+		t.Errorf("함수 출력이 없습니다: %q", out)
+	}
+}
+
+func TestRunStarlarkFile_ForLoop(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "loop.star")
+	// Starlark은 함수 내부에서만 for 사용 가능
+	os.WriteFile(script, []byte(`
+def sum_range():
+    total = 0
+    for i in range(5):
+        total += i
+    print(total)
+
+sum_range()
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "10") {
+		t.Errorf("0+1+2+3+4=10 이 출력에 없습니다: %q", out)
+	}
+}
+
+func TestRunStarlarkFile_IfElse(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "ifelse.star")
+	// Starlark은 함수 내부에서만 if 사용 가능
+	os.WriteFile(script, []byte(`
+def check(x):
+    if x > 5:
+        print("big")
+    else:
+        print("small")
+
+check(7)
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "big") {
+		t.Errorf("if/else 출력이 없습니다: %q", out)
+	}
+}
+
+func TestRunStarlarkFile_ListOps(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "list.star")
+	os.WriteFile(script, []byte(`
+items = [1, 2, 3]
+items.append(4)
+print(len(items))
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "4") {
+		t.Errorf("리스트 길이 4 가 출력에 없습니다: %q", out)
+	}
+}
+
+// ─── GetFileInfo ──────────────────────────────────────────────────────────────
+
+func TestGetFileInfo_File(t *testing.T) {
+	base := t.TempDir()
+	p := filepath.Join(base, "hello.txt")
+	os.WriteFile(p, []byte("hello world"), 0644)
+
+	fm := newTestFM()
+	info, err := fm.GetFileInfo(p)
+	if err != nil {
+		t.Fatalf("GetFileInfo error: %v", err)
+	}
+	if info.Name != "hello.txt" {
+		t.Errorf("expected name hello.txt, got %s", info.Name)
+	}
+	if info.Size != 11 {
+		t.Errorf("expected size 11, got %d", info.Size)
+	}
+	if info.IsDir {
+		t.Error("file should not be a directory")
+	}
+	if info.Extension != ".txt" {
+		t.Errorf("expected extension .txt, got %s", info.Extension)
+	}
+}
+
+func TestGetFileInfo_Directory(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "mydir")
+	os.MkdirAll(dir, 0755)
+
+	fm := newTestFM()
+	info, err := fm.GetFileInfo(dir)
+	if err != nil {
+		t.Fatalf("GetFileInfo error: %v", err)
+	}
+	if !info.IsDir {
+		t.Error("directory should have IsDir=true")
+	}
+	if info.Name != "mydir" {
+		t.Errorf("expected name mydir, got %s", info.Name)
+	}
+}
+
+func TestGetFileInfo_NotFound(t *testing.T) {
+	fm := newTestFM()
+	_, err := fm.GetFileInfo("/nonexistent/path/file.txt")
+	if err == nil {
+		t.Error("존재하지 않는 파일에 에러가 반환되어야 합니다")
+	}
+}
+
+func TestGetFileInfo_ExtensionLowercase(t *testing.T) {
+	base := t.TempDir()
+	p := filepath.Join(base, "IMAGE.PNG")
+	os.WriteFile(p, []byte{}, 0644)
+
+	fm := newTestFM()
+	info, err := fm.GetFileInfo(p)
+	if err != nil {
+		t.Fatalf("GetFileInfo error: %v", err)
+	}
+	if info.Extension != ".png" {
+		t.Errorf("extension should be lowercase .png, got %s", info.Extension)
+	}
+}
+
+// ─── CheckCopyConflicts ───────────────────────────────────────────────────────
+
+func TestCheckCopyConflicts_NoConflict(t *testing.T) {
+	base := t.TempDir()
+	src := filepath.Join(base, "src", "file.txt")
+	os.MkdirAll(filepath.Dir(src), 0755)
+	os.WriteFile(src, []byte("data"), 0644)
+
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(dst, 0755)
+
+	fm := newTestFM()
+	conflicts := fm.CheckCopyConflicts([]string{src}, dst)
+	if len(conflicts) != 0 {
+		t.Errorf("충돌이 없어야 하는데 %d개 감지됨", len(conflicts))
+	}
+}
+
+func TestCheckCopyConflicts_WithConflict(t *testing.T) {
+	base := t.TempDir()
+	src := filepath.Join(base, "src", "file.txt")
+	os.MkdirAll(filepath.Dir(src), 0755)
+	os.WriteFile(src, []byte("source"), 0644)
+
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(dst, 0755)
+	// 목적지에 같은 이름 파일 미리 생성 → 충돌
+	os.WriteFile(filepath.Join(dst, "file.txt"), []byte("existing"), 0644)
+
+	fm := newTestFM()
+	conflicts := fm.CheckCopyConflicts([]string{src}, dst)
+	if len(conflicts) != 1 {
+		t.Fatalf("충돌 1개가 감지되어야 합니다, got %d", len(conflicts))
+	}
+	if conflicts[0].Name != "file.txt" {
+		t.Errorf("충돌 파일명 mismatch: %s", conflicts[0].Name)
+	}
+}
+
+func TestCheckCopyConflicts_MultiplePartialConflict(t *testing.T) {
+	base := t.TempDir()
+	srcDir := filepath.Join(base, "src")
+	os.MkdirAll(srcDir, 0755)
+	os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("a"), 0644)
+	os.WriteFile(filepath.Join(srcDir, "b.txt"), []byte("b"), 0644)
+
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(dst, 0755)
+	os.WriteFile(filepath.Join(dst, "a.txt"), []byte("existing"), 0644) // a.txt만 충돌
+
+	fm := newTestFM()
+	srcs := []string{
+		filepath.Join(srcDir, "a.txt"),
+		filepath.Join(srcDir, "b.txt"),
+	}
+	conflicts := fm.CheckCopyConflicts(srcs, dst)
+	if len(conflicts) != 1 {
+		t.Fatalf("충돌 1개만 있어야 합니다, got %d", len(conflicts))
+	}
+	if conflicts[0].Name != "a.txt" {
+		t.Errorf("충돌 파일명 mismatch: %s", conflicts[0].Name)
+	}
+}
+
+// ─── WriteTextFile ─────────────────────────────────────────────────────────────
+
+func TestWriteTextFile_EmptyContent(t *testing.T) {
+	base := t.TempDir()
+	p := filepath.Join(base, "empty.txt")
+
+	fm := newTestFM()
+	if err := fm.WriteTextFile(p, ""); err != nil {
+		t.Fatalf("WriteTextFile error: %v", err)
+	}
+	data, _ := os.ReadFile(p)
+	if len(data) != 0 {
+		t.Errorf("파일이 비어 있어야 합니다, got %d bytes", len(data))
+	}
+}
+
+func TestWriteTextFile_UnicodeContent(t *testing.T) {
+	base := t.TempDir()
+	p := filepath.Join(base, "unicode.txt")
+	content := "안녕하세요 🌍"
+
+	fm := newTestFM()
+	if err := fm.WriteTextFile(p, content); err != nil {
+		t.Fatalf("WriteTextFile error: %v", err)
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatalf("파일 읽기 오류: %v", err)
+	}
+	if string(data) != content {
+		t.Errorf("내용 불일치: got %q", string(data))
+	}
+}
+
+func TestWriteTextFile_Overwrite(t *testing.T) {
+	base := t.TempDir()
+	p := filepath.Join(base, "overwrite.txt")
+	os.WriteFile(p, []byte("original content"), 0644)
+
+	fm := newTestFM()
+	if err := fm.WriteTextFile(p, "new content"); err != nil {
+		t.Fatalf("WriteTextFile error: %v", err)
+	}
+	data, _ := os.ReadFile(p)
+	if string(data) != "new content" {
+		t.Errorf("덮어쓰기 실패: got %q", string(data))
+	}
+}
+
+// ─── ListDirectory additional ─────────────────────────────────────────────────
+
+func TestListDirectory_ExactCount(t *testing.T) {
+	base := t.TempDir()
+	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
+		os.WriteFile(filepath.Join(base, name), []byte{}, 0644)
+	}
+
+	fm := newTestFM()
+	listing, err := fm.ListDirectory(base)
+	if err != nil {
+		t.Fatalf("ListDirectory error: %v", err)
+	}
+	if len(listing.Files) != 3 {
+		t.Errorf("파일 3개가 있어야 합니다, got %d", len(listing.Files))
+	}
+}
+
+func TestListDirectory_NoExtensionFile(t *testing.T) {
+	base := t.TempDir()
+	os.WriteFile(filepath.Join(base, "Makefile"), []byte{}, 0644)
+
+	fm := newTestFM()
+	listing, err := fm.ListDirectory(base)
+	if err != nil {
+		t.Fatalf("ListDirectory error: %v", err)
+	}
+	if len(listing.Files) != 1 {
+		t.Fatalf("파일 1개가 있어야 합니다, got %d", len(listing.Files))
+	}
+	if listing.Files[0].Extension != "" {
+		t.Errorf("확장자 없는 파일의 Extension은 빈 문자열이어야 합니다, got %q", listing.Files[0].Extension)
+	}
+}

@@ -8,6 +8,12 @@ export function isStarlarkFile(ext) {
   return lower === '.star' || lower === '.bzl'
 }
 
+export function buildCursorPosition(text, selectionStart) {
+  const before = text.substring(0, selectionStart)
+  const lines = before.split('\n')
+  return { line: lines.length, col: lines[lines.length - 1].length + 1 }
+}
+
 const LINE_HEIGHT = 20  // matches CSS line-height: 20px
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
@@ -153,9 +159,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const handleCursorChange = useCallback(() => {
     const ta = textareaRef.current
     if (!ta) return
-    const text = ta.value.substring(0, ta.selectionStart)
-    const lines = text.split('\n')
-    setCursor({ line: lines.length, col: lines[lines.length - 1].length + 1 })
+    setCursor(buildCursorPosition(ta.value, ta.selectionStart))
   }, [])
 
   const handleKeyDown = useCallback((e) => {

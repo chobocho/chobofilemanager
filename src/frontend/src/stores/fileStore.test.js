@@ -610,4 +610,78 @@ describe('visibleFiles 필터링 로직', () => {
     // isDir이면 viewerFile을 설정하지 않아야 함
     expect(file && !file.isDir).toBe(false)
   })
+
+  it('VF-07: 모든 파일이 숨김이고 showHidden=false이면 null 반환', () => {
+    const files = [makeFile('.a', true), makeFile('.b', true)]
+    expect(getVisibleFile(files, 0, false)).toBeNull()
+  })
+
+  it('VF-08: cursor가 visible 범위를 벗어나면 null 반환', () => {
+    const files = [makeFile('a.txt', false)]
+    expect(getVisibleFile(files, 99, false)).toBeNull()
+  })
+
+  it('VF-09: 빈 파일 목록에서 어떤 cursor도 null 반환', () => {
+    expect(getVisibleFile([], 0, false)).toBeNull()
+    expect(getVisibleFile([], 0, true)).toBeNull()
+  })
+
+  it('VF-10: showHidden=true이면 숨김 파일도 cursor로 접근 가능하다', () => {
+    const files = [makeFile('.hidden', true), makeFile('visible.txt', false)]
+    expect(getVisibleFile(files, 0, true).name).toBe('.hidden')
+    expect(getVisibleFile(files, 1, true).name).toBe('visible.txt')
+  })
+})
+
+// ─── isAtRoot / [..] 표시 — 추가 엣지케이스 ───────────────────────────────────
+
+describe('[..] 표시 로직 추가 엣지케이스', () => {
+  function isAtRoot(path) {
+    return path === '/' || /^[A-Za-z]:[\\/]?$/.test(path)
+  }
+  const showParent = (path) => !isAtRoot(path)
+
+  it('PR-07: 소문자 드라이브 루트("d:\\")에서도 [..] 를 표시하지 않는다', () => {
+    expect(showParent('d:\\')).toBe(false)
+  })
+
+  it('PR-08: 깊은 Windows 경로에서 [..] 를 표시한다', () => {
+    expect(showParent('C:\\Users\\user\\Documents\\projects')).toBe(true)
+  })
+
+  it('PR-09: 단일 세그먼트 Unix 경로("/home")에서 [..] 를 표시한다', () => {
+    expect(showParent('/home')).toBe(true)
+  })
+})
+
+// ─── joinPath 추가 엣지케이스 ─────────────────────────────────────────────────
+
+describe('joinPath 추가 엣지케이스', () => {
+  it('JP-11: 확장자만 있는 파일명 결합 (.gitignore)', () => {
+    expect(joinPath('/home/user', '.gitignore')).toBe('/home/user/.gitignore')
+  })
+
+  it('JP-12: 숫자로 시작하는 파일명 결합', () => {
+    expect(joinPath('/data', '2024_log.txt')).toBe('/data/2024_log.txt')
+  })
+
+  it('JP-13: Windows 드라이브 루트 + 깊은 경로', () => {
+    expect(joinPath('E:\\', 'backup\\files')).toBe('E:\\backup\\files')
+  })
+})
+
+// ─── getLastPathSegment 추가 엣지케이스 ───────────────────────────────────────
+
+describe('getLastPathSegment 추가 엣지케이스', () => {
+  it('GPS-10: Windows 경로 끝에 역슬래시가 있어도 마지막 세그먼트를 반환한다', () => {
+    expect(getLastPathSegment('C:\\Users\\user\\')).toBe('user')
+  })
+
+  it('GPS-11: 점으로 시작하는 파일명도 올바르게 추출한다', () => {
+    expect(getLastPathSegment('/home/user/.bashrc')).toBe('.bashrc')
+  })
+
+  it('GPS-12: 숫자로만 이루어진 세그먼트도 추출한다', () => {
+    expect(getLastPathSegment('/var/log/2024')).toBe('2024')
+  })
 })

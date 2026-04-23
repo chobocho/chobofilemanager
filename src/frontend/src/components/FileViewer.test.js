@@ -67,6 +67,38 @@ describe('isViewableFile', () => {
   it('FV-16: .pdf 파일은 뷰어로 열 수 없다', () => {
     expect(isViewableFile('.pdf')).toBe(false)
   })
+
+  it('FV-17: .jsx 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.jsx')).toBe(true)
+  })
+
+  it('FV-18: .tsx 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.tsx')).toBe(true)
+  })
+
+  it('FV-19: .sh 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.sh')).toBe(true)
+  })
+
+  it('FV-20: .csv 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.csv')).toBe(true)
+  })
+
+  it('FV-21: .sql 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.sql')).toBe(true)
+  })
+
+  it('FV-22: .html 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.html')).toBe(true)
+  })
+
+  it('FV-23: .mp4 파일은 뷰어로 열 수 없다', () => {
+    expect(isViewableFile('.mp4')).toBe(false)
+  })
+
+  it('FV-24: .docx 파일은 뷰어로 열 수 없다', () => {
+    expect(isViewableFile('.docx')).toBe(false)
+  })
 })
 
 // ─── isMarkdownFile ────────────────────────────────────────────────────────────

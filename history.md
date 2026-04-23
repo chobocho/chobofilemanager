@@ -1,5 +1,36 @@
 # 변경 이력
 
+## 2026-04-24 (테스트 케이스 보강 2차)
+
+### 테스트 케이스 추가 보강
+
+#### 프론트엔드 테스트 (Vitest) — 총 167개
+
+**TextEditor.test.js**
+- `buildCursorPosition` export 추출 및 CP-01~CP-08 테스트 추가
+  - CP-01~03: 단일 줄 (빈 텍스트, 첫 문자, 끝 위치)
+  - CP-04~05: 다중 줄 (두 번째 줄 시작/중간)
+  - CP-06~08: 세 번째 줄 시작, 텍스트 맨 끝, 첫 줄이 빈 줄
+
+**FileViewer.test.js**
+- `isViewableFile`: FV-17~FV-24 추가 (.jsx, .tsx, .sh, .csv, .sql, .html 뷰 가능; .mp4, .docx 불가)
+- `getWordWrapStyle`: WW-01~WW-04 추가 (false/true 각 CSS 속성 확인)
+
+**fileStore.test.js**
+- `visibleFiles`: VF-07~VF-10 추가 (전체 숨김→null, 범위 초과 cursor→null, 빈 목록, showHidden=true 접근)
+- `getParentPath`: PR-07~PR-09 추가 (소문자 드라이브 루트, Windows 깊은 경로, Unix 단일 세그먼트)
+- `joinPath`: JP-11~JP-13 추가 (.gitignore 조인, 숫자 파일명, Windows 깊은 경로)
+- `getLastPathSegment`: GPS-10~GPS-12 추가 (Windows 후행 백슬래시, 점 접두사, 숫자 세그먼트)
+
+#### Go 테스트 (testing 패키지) — 총 202개
+
+**filemanager_test.go**
+- `RunStarlarkFile`: 4개 추가 (FunctionDef, ForLoop, IfElse — 함수 내부, ListOps)
+- `GetFileInfo`: 4개 추가 (File 메타데이터, Directory, NotFound, ExtensionLowercase)
+- `CheckCopyConflicts`: 3개 추가 (NoConflict, WithConflict, MultiplePartialConflict)
+- `WriteTextFile`: 3개 추가 (EmptyContent, UnicodeContent/한글+이모지, Overwrite)
+- `ListDirectory`: 2개 추가 (ExactCount, NoExtensionFile/Makefile)
+
 ## 2026-04-24 (46)
 
 ### #46 F4 에디터에서 Starlark 스크립트 실행

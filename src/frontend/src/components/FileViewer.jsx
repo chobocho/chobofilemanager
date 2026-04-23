@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen, Pencil } from 'lucide-react'
+import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen, Pencil, WrapText } from 'lucide-react'
 import { marked } from 'marked'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
@@ -28,6 +28,13 @@ export function clampFontSize(current, delta) {
   return Math.min(MAX_FONT, Math.max(MIN_FONT, current + delta))
 }
 
+export function getWordWrapStyle(wordWrap) {
+  if (wordWrap) {
+    return { whiteSpace: 'pre-wrap', overflowX: 'hidden', overflowWrap: 'break-word' }
+  }
+  return { whiteSpace: 'pre', overflowX: 'auto', overflowWrap: 'normal' }
+}
+
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
 export default function FileViewer({ path, onClose, onSwitchToEditor }) {
@@ -36,6 +43,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
   const [error, setError]         = useState(null)
   const [fontSize, setFontSize]   = useState(13)
   const [scrollTop, setScrollTop] = useState(0)
+  const [wordWrap, setWordWrap]       = useState(false)
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [noMatch, setNoMatch]         = useState(false)
@@ -236,6 +244,15 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
             )}
             {(!isMarkdown || !mdRendered) && (
               <button
+                className={`${styles.btnSearch} ${wordWrap ? styles.btnActive : ''}`}
+                onClick={() => setWordWrap(v => !v)}
+                title="자동 줄 바꿈 (Word Wrap)"
+              >
+                <WrapText size={13} />
+              </button>
+            )}
+            {(!isMarkdown || !mdRendered) && (
+              <button
                 className={styles.btnSearch}
                 onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
                 title="검색 (Ctrl+F)"
@@ -306,25 +323,25 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
             />
           ) : (
             <>
-              {/* Virtual line numbers — only visible range + buffer is in DOM */}
-              <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
-                {/* Spacer for lines above viewport */}
-                <div style={{ height: firstVisible * lineHeight }} />
-                {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
-                  const lineNum = firstVisible + i + 1
-                  return (
-                    <div
-                      key={lineNum}
-                      className={styles.lineNum}
-                      style={{ lineHeight: `${lineHeight}px`, height: `${lineHeight}px` }}
-                    >
-                      {lineNum}
-                    </div>
-                  )
-                })}
-                {/* Spacer for lines below viewport */}
-                <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * lineHeight }} />
-              </div>
+              {/* Virtual line numbers — hidden when word wrap is on (wrapped lines break alignment) */}
+              {!wordWrap && (
+                <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
+                  <div style={{ height: firstVisible * lineHeight }} />
+                  {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
+                    const lineNum = firstVisible + i + 1
+                    return (
+                      <div
+                        key={lineNum}
+                        className={styles.lineNum}
+                        style={{ lineHeight: `${lineHeight}px`, height: `${lineHeight}px` }}
+                      >
+                        {lineNum}
+                      </div>
+                    )
+                  })}
+                  <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * lineHeight }} />
+                </div>
+              )}
 
               {/* Readonly textarea — supports setSelectionRange for search highlighting */}
               <textarea
@@ -332,7 +349,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
                 className={styles.pre}
                 value={content}
                 readOnly
-                style={{ fontSize: `${fontSize}px`, lineHeight: `${lineHeight}px` }}
+                style={{ fontSize: `${fontSize}px`, lineHeight: `${lineHeight}px`, ...getWordWrapStyle(wordWrap) }}
                 onScroll={handleScroll}
                 spellCheck={false}
               />
@@ -349,6 +366,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
               <span>{lineCount} lines</span>
               <span>{content.length} chars</span>
               <span>{fontSize}px</span>
+              {wordWrap && <span>WRAP</span>}
               <span className={styles.viewMode}>View Mode — F3 / Esc to close</span>
             </>
           )}

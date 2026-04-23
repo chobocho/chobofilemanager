@@ -1,5 +1,22 @@
 # 변경 이력
 
+## 2026-04-24 (44)
+
+### #44 F3 뷰어 Word Wrap 기능 추가
+
+#### 구현 내용
+- `FileViewer.jsx`에 `wordWrap` state 추가 (기본값: false)
+- 헤더에 `WrapText` 아이콘 토글 버튼 추가 — 활성화 시 파란 배경으로 강조
+- `getWordWrapStyle(wordWrap)` 순수 함수 export
+  - `wordWrap=true`: `white-space: pre-wrap`, `overflow-x: hidden`, `overflow-wrap: break-word`
+  - `wordWrap=false`: `white-space: pre`, `overflow-x: auto`, `overflow-wrap: normal`
+- Word Wrap 활성화 시 줄 번호 패널 숨김 (줄 바꿈 시 줄 번호와 정렬 불일치 방지)
+- 상태바에 `WRAP` 표시 추가
+
+#### 테스트
+- `WW-01~WW-04`: `getWordWrapStyle` 반환값 검증 (false/true 각 속성 확인)
+- 전체 프론트엔드 테스트 126개 통과
+
 ## 2026-04-23 (테스트 케이스 보강)
 
 ### 테스트 케이스 전면 보강

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle } from './FileViewer.jsx'
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -127,5 +127,31 @@ describe('clampFontSize', () => {
   it('CF-08: MIN_FONT와 MAX_FONT 사이 정상 범위에서 정확히 동작한다', () => {
     expect(clampFontSize(10, 5)).toBe(15)
     expect(clampFontSize(20, -5)).toBe(15)
+  })
+})
+
+// ─── getWordWrapStyle ──────────────────────────────────────────────────────────
+
+describe('getWordWrapStyle', () => {
+  it('WW-01: wordWrap=false 시 pre 스타일을 반환한다', () => {
+    const style = getWordWrapStyle(false)
+    expect(style.whiteSpace).toBe('pre')
+    expect(style.overflowX).toBe('auto')
+    expect(style.overflowWrap).toBe('normal')
+  })
+
+  it('WW-02: wordWrap=true 시 pre-wrap 스타일을 반환한다', () => {
+    const style = getWordWrapStyle(true)
+    expect(style.whiteSpace).toBe('pre-wrap')
+    expect(style.overflowX).toBe('hidden')
+    expect(style.overflowWrap).toBe('break-word')
+  })
+
+  it('WW-03: wordWrap=false 시 overflowWrap은 normal이다', () => {
+    expect(getWordWrapStyle(false).overflowWrap).toBe('normal')
+  })
+
+  it('WW-04: wordWrap=true 시 overflowX는 hidden이다 (가로 스크롤 없음)', () => {
+    expect(getWordWrapStyle(true).overflowX).toBe('hidden')
   })
 })

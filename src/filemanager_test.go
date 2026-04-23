@@ -1083,3 +1083,182 @@ func TestBuildOpenCmd_NestedDir(t *testing.T) {
 		t.Errorf("cmd.Dir = %q, want %q", cmd.Dir, sub)
 	}
 }
+
+// ─── SearchFiles 추가 테스트 ──────────────────────────────────────────────────
+
+func TestSearchFiles_EmptyPattern_ReturnsEmpty(t *testing.T) {
+	base := t.TempDir()
+	os.WriteFile(filepath.Join(base, "file.txt"), []byte{}, 0644)
+
+	fm := newTestFM()
+	results, err := fm.SearchFiles(base, "", true)
+	if err != nil {
+		t.Fatalf("SearchFiles error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("빈 패턴은 결과가 없어야 함, got %d results", len(results))
+	}
+}
+
+func TestSearchFiles_AND_MultipleKeywords(t *testing.T) {
+	base := t.TempDir()
+	// "go" AND "test" 둘 다 포함하는 파일만 매칭되어야 함
+	os.WriteFile(filepath.Join(base, "filemanager_test.go"), []byte{}, 0644)
+	os.WriteFile(filepath.Join(base, "main.go"), []byte{}, 0644)
+	os.WriteFile(filepath.Join(base, "run_test.sh"), []byte{}, 0644)
+
+	fm := newTestFM()
+	results, err := fm.SearchFiles(base, "go,test", true)
+	if err != nil {
+		t.Fatalf("SearchFiles error: %v", err)
+	}
+
+	names := make(map[string]bool)
+	for _, r := range results {
+		names[r.Name] = true
+	}
+	if !names["filemanager_test.go"] {
+		t.Error("filemanager_test.go 는 'go'와 'test' 를 모두 포함하므로 매칭되어야 함")
+	}
+	if names["main.go"] {
+		t.Error("main.go 는 'test' 를 포함하지 않으므로 매칭되면 안 됨")
+	}
+	if names["run_test.sh"] {
+		t.Error("run_test.sh 는 'go' 를 포함하지 않으므로 매칭되면 안 됨")
+	}
+}
+
+func TestSearchFiles_NoMatch(t *testing.T) {
+	base := t.TempDir()
+	os.WriteFile(filepath.Join(base, "alpha.txt"), []byte{}, 0644)
+
+	fm := newTestFM()
+	results, err := fm.SearchFiles(base, "zzznomatch", true)
+	if err != nil {
+		t.Fatalf("SearchFiles error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("매칭 없으면 빈 결과여야 함, got %d", len(results))
+	}
+}
+
+// ─── ReadTextFile 추가 테스트 ────────────────────────────────────────────────
+
+func TestReadTextFile_EmptyFile(t *testing.T) {
+	base := t.TempDir()
+	f := filepath.Join(base, "empty.txt")
+	os.WriteFile(f, []byte{}, 0644)
+
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	if got != "" {
+		t.Errorf("빈 파일은 빈 문자열을 반환해야 함, got %q", got)
+	}
+}
+
+// ─── RenameItem 추가 테스트 ──────────────────────────────────────────────────
+
+func TestRenameItem_MissingSource(t *testing.T) {
+	base := t.TempDir()
+	fm := newTestFM()
+	err := fm.RenameItem(filepath.Join(base, "ghost.txt"), filepath.Join(base, "new.txt"))
+	if err == nil {
+		t.Error("존재하지 않는 파일 이름 변경 시 에러가 반환되어야 함")
+	}
+}
+
+func TestRenameItem_Directory(t *testing.T) {
+	base := t.TempDir()
+	oldDir := filepath.Join(base, "old_folder")
+	newDir := filepath.Join(base, "new_folder")
+	os.MkdirAll(filepath.Join(oldDir, "sub"), 0755)
+	os.WriteFile(filepath.Join(oldDir, "file.txt"), []byte("data"), 0644)
+
+	fm := newTestFM()
+	if err := fm.RenameItem(oldDir, newDir); err != nil {
+		t.Fatalf("RenameItem(directory) error: %v", err)
+	}
+	if _, err := os.Stat(oldDir); err == nil {
+		t.Error("원래 폴더가 사라져야 함")
+	}
+	if _, err := os.Stat(filepath.Join(newDir, "file.txt")); err != nil {
+		t.Error("이름 변경된 폴더 안에 파일이 있어야 함")
+	}
+}
+
+// ─── CopyItems / MoveItems / DeleteItems 다중 파일 테스트 ────────────────────
+
+func TestCopyItems_MultipleFiles(t *testing.T) {
+	base := t.TempDir()
+	src1 := filepath.Join(base, "a.txt")
+	src2 := filepath.Join(base, "b.txt")
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(dst, 0755)
+	os.WriteFile(src1, []byte("aaa"), 0644)
+	os.WriteFile(src2, []byte("bbb"), 0644)
+
+	fm := newTestFM()
+	if err := fm.CopyItems([]string{src1, src2}, dst); err != nil {
+		t.Fatalf("CopyItems error: %v", err)
+	}
+
+	for _, name := range []string{"a.txt", "b.txt"} {
+		if _, err := os.Stat(filepath.Join(dst, name)); err != nil {
+			t.Errorf("%s 가 대상 폴더에 없습니다", name)
+		}
+	}
+	// 원본 모두 존재
+	if _, err := os.Stat(src1); err != nil {
+		t.Error("복사 후 원본 a.txt 가 사라지면 안 됩니다")
+	}
+}
+
+func TestMoveItems_MultipleFiles(t *testing.T) {
+	base := t.TempDir()
+	src1 := filepath.Join(base, "c.txt")
+	src2 := filepath.Join(base, "d.txt")
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(dst, 0755)
+	os.WriteFile(src1, []byte("ccc"), 0644)
+	os.WriteFile(src2, []byte("ddd"), 0644)
+
+	fm := newTestFM()
+	if err := fm.MoveItems([]string{src1, src2}, dst); err != nil {
+		t.Fatalf("MoveItems error: %v", err)
+	}
+
+	// 원본 사라짐
+	for _, src := range []string{src1, src2} {
+		if _, err := os.Stat(src); err == nil {
+			t.Errorf("%s 원본이 이동 후에도 남아있습니다", src)
+		}
+	}
+	// 대상에 존재
+	for _, name := range []string{"c.txt", "d.txt"} {
+		if _, err := os.Stat(filepath.Join(dst, name)); err != nil {
+			t.Errorf("%s 가 대상 폴더에 없습니다", name)
+		}
+	}
+}
+
+func TestDeleteItems_MultipleFiles(t *testing.T) {
+	base := t.TempDir()
+	f1 := filepath.Join(base, "x.txt")
+	f2 := filepath.Join(base, "y.txt")
+	os.WriteFile(f1, []byte("x"), 0644)
+	os.WriteFile(f2, []byte("y"), 0644)
+
+	fm := newTestFM()
+	if err := fm.DeleteItems([]string{f1, f2}); err != nil {
+		t.Fatalf("DeleteItems error: %v", err)
+	}
+
+	for _, f := range []string{f1, f2} {
+		if _, err := os.Stat(f); err == nil {
+			t.Errorf("%s 가 삭제 후에도 남아있습니다", f)
+		}
+	}
+}

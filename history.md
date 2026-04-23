@@ -1,5 +1,40 @@
 # 변경 이력
 
+## 2026-04-23 (테스트 케이스 보강)
+
+### 테스트 케이스 전면 보강
+
+#### 프론트엔드 테스트 (Vitest)
+
+**FileViewer.test.js**
+- `isViewableFile`: FV-09~FV-16 추가 (.star, .bzl, .py, .json, .yaml, .toml, .png, .pdf)
+- `isMarkdownFile`: MD-01~MD-05 (MD-05: .mdx는 .md 아님 추가)
+- `clampFontSize`: FV 번호 충돌 해소 → CF-01~CF-08으로 분리 (CF-06 최솟값 위에서 내려오기, CF-07 delta=0, CF-08 정상 범위)
+
+**FilePanel.test.js**
+- `getQuickJumpTarget`: QJ-08~QJ-12 추가 (빈 목록, 단일 항목 순환, 이름 중간 글자 미매칭, 혼합 대소문자, matchPos 범위 초과 안전 순환)
+
+**fileStore.test.js**
+- `getLastPathSegment`: GPS-06~GPS-09 추가 (깊은 중첩 경로, 단일 세그먼트, 한글 폴더명, 공백 경로)
+- `joinPath`: JP-09~JP-10 추가 (한글 파일명, 공백 포함 파일명)
+- `rename 후 커서 위치 로직`: RN-04 (디렉토리 이름 변경), RN-05 (단일 파일 목록)
+- `fileStore 동기 작업`: SS-21~SS-25 추가 (setSort size 오름/내림, setSort modified, setActivePanel)
+- Wails mock에 `ChangeWorkingDirectory` 추가 (SS-25 픽스)
+
+#### Go 테스트 (testing 패키지)
+
+**filemanager_test.go**
+- `SearchFiles`: 빈 패턴 → 빈 결과, AND 키워드(쉼표 구분) 매칭, 매칭 없음
+- `ReadTextFile`: 빈 파일 → 빈 문자열 반환
+- `RenameItem`: 없는 소스 → 에러, 디렉토리 이름 변경
+- `CopyItems`: 다중 파일 복사 (원본 보존 확인)
+- `MoveItems`: 다중 파일 이동 (원본 삭제 확인)
+- `DeleteItems`: 다중 파일 삭제
+
+#### 최종 테스트 결과
+- 프론트엔드: 122개 테스트 전체 통과
+- Go: 전체 테스트 통과 (ok totalcmd)
+
 ## 2026-04-24 (42, 43)
 
 ### #42 F3 뷰어 조합형 한글(NFD) 지원

@@ -19,6 +19,7 @@ vi.mock('../wailsjs/runtime', () => ({
     OpenFile: vi.fn(),
     ReadTextFile: vi.fn(),
     WriteTextFile: vi.fn(),
+    ChangeWorkingDirectory: vi.fn().mockResolvedValue(undefined),
   }
 }))
 
@@ -85,6 +86,14 @@ describe('joinPath', () => {
   it('JP-08: 디렉토리 이름을 결합한다 (Windows)', () => {
     expect(joinPath('D:\\Projects', 'my_app')).toBe('D:\\Projects\\my_app')
   })
+
+  it('JP-09: 한글 파일명을 Unix 경로에 결합한다', () => {
+    expect(joinPath('/home/사용자', '문서.txt')).toBe('/home/사용자/문서.txt')
+  })
+
+  it('JP-10: 공백이 포함된 파일명을 결합한다', () => {
+    expect(joinPath('/home/user', 'my file.txt')).toBe('/home/user/my file.txt')
+  })
 })
 
 // ─── getLastPathSegment 단위 테스트 ───────────────────────────────────────────
@@ -108,6 +117,22 @@ describe('getLastPathSegment', () => {
 
   it('GPS-05: Windows 드라이브 루트는 빈 문자열을 반환한다', () => {
     expect(getLastPathSegment('C:\\')).toBe('')
+  })
+
+  it('GPS-06: 깊은 중첩 Unix 경로에서 마지막 세그먼트를 반환한다', () => {
+    expect(getLastPathSegment('/a/b/c/d/e')).toBe('e')
+  })
+
+  it('GPS-07: 단일 세그먼트 Unix 경로(/home)에서 마지막 세그먼트를 반환한다', () => {
+    expect(getLastPathSegment('/home')).toBe('home')
+  })
+
+  it('GPS-08: 한글 폴더명도 올바르게 추출한다', () => {
+    expect(getLastPathSegment('/home/사용자/문서')).toBe('문서')
+  })
+
+  it('GPS-09: 공백이 포함된 폴더명도 올바르게 추출한다', () => {
+    expect(getLastPathSegment('/Users/My Documents/projects')).toBe('projects')
   })
 })
 
@@ -138,6 +163,22 @@ describe('rename 후 커서 위치 로직', () => {
     const visible = files.filter(f => !f.isHidden)
     expect(visible.length).toBe(1)
     expect(visible[0].name).toBe('visible.txt')
+  })
+
+  it('RN-04: 디렉토리 이름 변경 후 visible 목록에서 새 이름의 인덱스를 찾는다', () => {
+    const files = makeFiles(['docs/', 'alpha.txt', 'beta.txt'])
+    const newName = 'documents/'
+    const refreshed = files.map(f => f.name === 'docs/' ? { ...f, name: newName } : f)
+    const idx = refreshed.findIndex(f => f.name === newName)
+    expect(idx).toBe(0)
+  })
+
+  it('RN-05: 단일 파일 목록에서 이름 변경 후 인덱스는 0이다', () => {
+    const files = makeFiles(['only.txt'])
+    const newName = 'renamed.txt'
+    const refreshed = files.map(f => f.name === 'only.txt' ? { ...f, name: newName } : f)
+    const idx = refreshed.findIndex(f => f.name === newName)
+    expect(idx).toBe(0)
   })
 })
 
@@ -424,6 +465,51 @@ describe('fileStore 동기 작업', () => {
     useFileStore.getState().setCursorOnParent('right', true)
     expect(useFileStore.getState().right.cursorOnParent).toBe(true)
     expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('SS-21: setSort("size") - 파일 크기 기준 오름차순으로 정렬된다', () => {
+    const files = [
+      { name: 'big.txt',    path: '/test/big.txt',    isDir: false, size: 3000, modified: '', extension: '.txt' },
+      { name: 'small.txt',  path: '/test/small.txt',  isDir: false, size: 100,  modified: '', extension: '.txt' },
+      { name: 'medium.txt', path: '/test/medium.txt', isDir: false, size: 1500, modified: '', extension: '.txt' },
+    ]
+    useFileStore.setState(s => ({ left: { ...s.left, files, sortBy: 'name', sortDir: 'asc' } }))
+    useFileStore.getState().setSort('left', 'size')
+    const result = useFileStore.getState().left.files
+    expect(result[0].name).toBe('small.txt')
+    expect(result[1].name).toBe('medium.txt')
+    expect(result[2].name).toBe('big.txt')
+  })
+
+  it('SS-22: setSort("size") 두 번 클릭 시 내림차순으로 전환된다', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, sortBy: 'size', sortDir: 'asc' } }))
+    useFileStore.getState().setSort('left', 'size')
+    expect(useFileStore.getState().left.sortDir).toBe('desc')
+  })
+
+  it('SS-23: setSort("modified") - 수정 일시 기준 오름차순으로 정렬된다', () => {
+    const files = [
+      { name: 'new.txt', path: '/test/new.txt', isDir: false, size: 100, modified: '2026-03-01T00:00:00Z', extension: '.txt' },
+      { name: 'old.txt', path: '/test/old.txt', isDir: false, size: 100, modified: '2024-01-01T00:00:00Z', extension: '.txt' },
+      { name: 'mid.txt', path: '/test/mid.txt', isDir: false, size: 100, modified: '2025-06-15T00:00:00Z', extension: '.txt' },
+    ]
+    useFileStore.setState(s => ({ left: { ...s.left, files, sortBy: 'name', sortDir: 'asc' } }))
+    useFileStore.getState().setSort('left', 'modified')
+    const result = useFileStore.getState().left.files
+    expect(result[0].name).toBe('old.txt')
+    expect(result[1].name).toBe('mid.txt')
+    expect(result[2].name).toBe('new.txt')
+  })
+
+  it('SS-24: setActivePanel - 활성 패널이 right으로 변경된다', () => {
+    useFileStore.getState().setActivePanel('right')
+    expect(useFileStore.getState().activePanel).toBe('right')
+  })
+
+  it('SS-25: setActivePanel - 활성 패널이 다시 left로 변경된다', () => {
+    useFileStore.setState({ activePanel: 'right' })
+    useFileStore.getState().setActivePanel('left')
+    expect(useFileStore.getState().activePanel).toBe('left')
   })
 })
 

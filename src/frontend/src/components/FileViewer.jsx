@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen } from 'lucide-react'
+import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen, Pencil } from 'lucide-react'
 import { marked } from 'marked'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
@@ -29,7 +29,7 @@ export function clampFontSize(current, delta) {
 
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
-export default function FileViewer({ path, onClose }) {
+export default function FileViewer({ path, onClose, onSwitchToEditor }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -212,6 +212,15 @@ export default function FileViewer({ path, onClose }) {
           <span className={styles.readonlyBadge}>READ ONLY</span>
 
           <div className={styles.actions}>
+            {onSwitchToEditor && (
+              <button
+                className={styles.btnSearch}
+                onClick={onSwitchToEditor}
+                title="편집기로 열기 (F4)"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
             {isMarkdown && (
               <button
                 className={`${styles.btnSearch} ${mdRendered ? styles.btnActive : ''}`}

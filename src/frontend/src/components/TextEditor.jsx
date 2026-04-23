@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Save, X, FileText, Search, ChevronUp, ChevronDown } from 'lucide-react'
+import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/TextEditor.module.css'
 
 const LINE_HEIGHT = 20  // matches CSS line-height: 20px
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
-export default function TextEditor({ path, onClose }) {
+export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [content, setContent]           = useState('')
   const [original, setOriginal]         = useState('')
   const [loading, setLoading]           = useState(true)
@@ -238,6 +238,15 @@ export default function TextEditor({ path, onClose }) {
           <span className={styles.filePath}>{path}</span>
 
           <div className={styles.actions}>
+            {onSwitchToViewer && (
+              <button
+                className={styles.btnSearch}
+                onClick={onSwitchToViewer}
+                title="뷰어로 열기 (F3)"
+              >
+                <Eye size={13} />
+              </button>
+            )}
             <button
               className={styles.btnSearch}
               onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}

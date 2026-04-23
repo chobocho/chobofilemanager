@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-04-24 (34)
+
+### #34 F4 에디터 <-> F3 뷰어 전환 버튼 지원
+
+#### 구현 내용
+- `FileViewer.jsx`: `onSwitchToEditor` prop 추가, 헤더에 "편집기로 열기 (F4)" 버튼(Pencil 아이콘) 추가
+- `TextEditor.jsx`: `onSwitchToViewer` prop 추가, 헤더에 "뷰어로 열기 (F3)" 버튼(Eye 아이콘) 추가
+- `App.jsx`: 두 컴포넌트에 전환 콜백 연결
+  - 뷰어→에디터: `viewerFile` 초기화 후 `editorFile`로 동일 경로 설정
+  - 에디터→뷰어: `editorFile` 초기화 후 `viewerFile`로 동일 경로 설정
+
+#### 테스트
+- 기존 77개 테스트 모두 통과
+
 ## 2026-04-23 (33)
 
 ### #33 F3 파일 뷰어에서 마크다운(.md) 렌더링 지원

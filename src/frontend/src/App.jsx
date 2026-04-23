@@ -289,8 +289,10 @@ export default function App() {
           onClose={() => { setFileSizeError(null); focusActivePanel() }}
         />
       )}
-      {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }} />}
-      {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }} />}
+      {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }}
+        onSwitchToEditor={() => { const p = viewerFile; setViewerFile(null); setEditorFile(p) }} />}
+      {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }}
+        onSwitchToViewer={() => { const p = editorFile; setEditorFile(null); setViewerFile(p) }} />}
     </div>
   )
 }

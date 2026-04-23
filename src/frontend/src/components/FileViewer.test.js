@@ -35,6 +35,14 @@ describe('isViewableFile', () => {
   it('FV-08: .log 파일은 뷰어로 열 수 있다', () => {
     expect(isViewableFile('.log')).toBe(true)
   })
+
+  it('FV-09: .star (Starlark) 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.star')).toBe(true)
+  })
+
+  it('FV-10: .bzl (Bazel) 파일은 뷰어로 열 수 있다', () => {
+    expect(isViewableFile('.bzl')).toBe(true)
+  })
 })
 
 // ─── isMarkdownFile ────────────────────────────────────────────────────────────

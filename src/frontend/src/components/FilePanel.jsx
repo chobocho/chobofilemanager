@@ -40,6 +40,8 @@ const FILE_ICONS_DARK = {
   '.gz':   { icon: FileArchive, color: '#f0a040' },
   '.rar':  { icon: FileArchive, color: '#ff6040' },
   '.7z':   { icon: FileArchive, color: '#ff8040' },
+  '.star': { icon: FileCode,    color: '#50d0a0' },
+  '.bzl':  { icon: FileCode,    color: '#50d0a0' },
 }
 
 const FILE_ICONS_LIGHT = {
@@ -74,6 +76,8 @@ const FILE_ICONS_LIGHT = {
   '.gz':   { icon: FileArchive, color: '#b06000' },
   '.rar':  { icon: FileArchive, color: '#c02000' },
   '.7z':   { icon: FileArchive, color: '#b04000' },
+  '.star': { icon: FileCode,    color: '#207060' },
+  '.bzl':  { icon: FileCode,    color: '#207060' },
 }
 
 function formatSize(bytes, isDir) {
@@ -176,7 +180,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel 
       await store.navigate(side, file.path)
     } else {
       const ext = file.extension
-      const textExts = ['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.log','.ini','.cfg','.conf','.env']
+      const textExts = ['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.log','.ini','.cfg','.conf','.env','.star','.bzl']
       if (textExts.includes(ext)) {
         onEdit(file)
       } else {

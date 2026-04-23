@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-04-24 (41)
+
+### #41 F4 에디터 및 F3 뷰어에 Starlark 스크립트(.star, .bzl) 지원
+
+#### 구현 내용
+- `FileViewer.jsx`의 `VIEWABLE_EXTS`에 `.star`, `.bzl` 추가 → F3 뷰어로 열기 가능
+- `FilePanel.jsx`의 더블클릭 `textExts` 배열에 `.star`, `.bzl` 추가 → F4 에디터로 열기 가능
+- `FILE_ICONS_DARK` / `FILE_ICONS_LIGHT`에 `.star`, `.bzl` 아이콘 추가 (FileCode, 초록 계열)
+
+#### 테스트
+- `FileViewer.test.js`에 FV-09, FV-10 테스트 케이스 추가
+  - `isViewableFile('.star')` → true
+  - `isViewableFile('.bzl')` → true
+- 전체 94개 테스트 통과
+
 ## 2026-04-24 (40)
 
 ### #40 `-` 키로 이전 방문 폴더로 이동

@@ -13,6 +13,7 @@ export const VIEWABLE_EXTS = new Set([
   '.html', '.css', '.json', '.xml', '.yaml', '.yml',
   '.sh', '.bat', '.log', '.ini', '.cfg', '.conf', '.env',
   '.csv', '.sql', '.toml', '.gitignore', '.dockerfile',
+  '.star', '.bzl',
 ])
 
 export function isViewableFile(ext) {

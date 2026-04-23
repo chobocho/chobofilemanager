@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown } from 'lucide-react'
+import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen } from 'lucide-react'
+import { marked } from 'marked'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
 
@@ -18,6 +19,10 @@ export function isViewableFile(ext) {
   return VIEWABLE_EXTS.has(ext.toLowerCase())
 }
 
+export function isMarkdownFile(ext) {
+  return ext.toLowerCase() === '.md'
+}
+
 export function clampFontSize(current, delta) {
   return Math.min(MAX_FONT, Math.max(MIN_FONT, current + delta))
 }
@@ -34,10 +39,15 @@ export default function FileViewer({ path, onClose }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [noMatch, setNoMatch]         = useState(false)
 
+  const ext = path ? '.' + (path.split('.').pop() || '') : ''
+  const isMarkdown = isMarkdownFile(ext)
+  const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
+
   const lineNumbersRef = useRef(null)
   const textareaRef    = useRef(null)
   const bodyRef        = useRef(null)
   const searchInputRef = useRef(null)
+  const mdBodyRef      = useRef(null)
 
   const { readFile } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
@@ -62,8 +72,7 @@ export default function FileViewer({ path, onClose }) {
         setError(String(e))
       } finally {
         setLoading(false)
-        // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
-        setTimeout(() => textareaRef.current?.focus(), 0)
+        setTimeout(() => (isMarkdown && mdRendered ? mdBodyRef.current : textareaRef.current)?.focus(), 0)
       }
     }
     load()
@@ -73,7 +82,8 @@ export default function FileViewer({ path, onClose }) {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault()
-        e.stopPropagation()  // 캡처 페이즈에서 부모 Ctrl+F 핸들러 차단
+        e.stopPropagation()
+        if (isMarkdown && mdRendered) return  // 렌더링 모드에서는 검색 불가
         setSearchOpen(true)
         setNoMatch(false)
         setTimeout(() => searchInputRef.current?.focus(), 0)
@@ -91,10 +101,9 @@ export default function FileViewer({ path, onClose }) {
       }
       if (e.key === 'F3') { e.preventDefault(); e.stopPropagation(); onClose() }
     }
-    // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [onClose, searchOpen])
+  }, [onClose, searchOpen, isMarkdown, mdRendered])
 
   // Reset scroll when font size changes so line numbers re-sync
   useEffect(() => {
@@ -187,6 +196,11 @@ export default function FileViewer({ path, onClose }) {
     textareaRef.current?.focus()
   }, [])
 
+  const mdHtml = useMemo(() => {
+    if (!isMarkdown || !content) return ''
+    return marked.parse(content)
+  }, [isMarkdown, content])
+
   return (
     <div className={styles.overlay}>
       <div className={styles.viewer}>
@@ -198,28 +212,44 @@ export default function FileViewer({ path, onClose }) {
           <span className={styles.readonlyBadge}>READ ONLY</span>
 
           <div className={styles.actions}>
-            <button
-              className={styles.btnSearch}
-              onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
-              title="검색 (Ctrl+F)"
-            >
-              <Search size={13} />
-            </button>
-            <button
-              className={styles.btnFont}
-              onClick={() => changeFontSize(-1)}
-              title="글자 작게 (A-)"
-            >
-              <AArrowDown size={14} />
-            </button>
-            <span className={styles.fontSizeLabel}>{fontSize}px</span>
-            <button
-              className={styles.btnFont}
-              onClick={() => changeFontSize(1)}
-              title="글자 크게 (A+)"
-            >
-              <AArrowUp size={14} />
-            </button>
+            {isMarkdown && (
+              <button
+                className={`${styles.btnSearch} ${mdRendered ? styles.btnActive : ''}`}
+                onClick={() => {
+                  setMdRendered(v => !v)
+                  setSearchOpen(false)
+                }}
+                title={mdRendered ? '원본 텍스트 보기' : '마크다운 렌더링 보기'}
+              >
+                {mdRendered ? <Code size={13} /> : <BookOpen size={13} />}
+              </button>
+            )}
+            {(!isMarkdown || !mdRendered) && (
+              <button
+                className={styles.btnSearch}
+                onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
+                title="검색 (Ctrl+F)"
+              >
+                <Search size={13} />
+              </button>
+            )}
+            {(!isMarkdown || !mdRendered) && <>
+              <button
+                className={styles.btnFont}
+                onClick={() => changeFontSize(-1)}
+                title="글자 작게 (A-)"
+              >
+                <AArrowDown size={14} />
+              </button>
+              <span className={styles.fontSizeLabel}>{fontSize}px</span>
+              <button
+                className={styles.btnFont}
+                onClick={() => changeFontSize(1)}
+                title="글자 크게 (A+)"
+              >
+                <AArrowUp size={14} />
+              </button>
+            </>}
             <button className={styles.btnClose} onClick={onClose} title="Close (Esc / F3)">
               <X size={14} />
             </button>
@@ -257,6 +287,13 @@ export default function FileViewer({ path, onClose }) {
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
             <div className={styles.error}>⚠ {error}</div>
+          ) : isMarkdown && mdRendered ? (
+            <div
+              ref={mdBodyRef}
+              className={styles.markdownBody}
+              tabIndex={0}
+              dangerouslySetInnerHTML={{ __html: mdHtml }}
+            />
           ) : (
             <>
               {/* Virtual line numbers — only visible range + buffer is in DOM */}
@@ -295,10 +332,16 @@ export default function FileViewer({ path, onClose }) {
 
         {/* Status bar */}
         <div className={styles.statusBar}>
-          <span>{lineCount} lines</span>
-          <span>{content.length} chars</span>
-          <span>{fontSize}px</span>
-          <span className={styles.viewMode}>View Mode — F3 / Esc to close</span>
+          {isMarkdown && mdRendered ? (
+            <span className={styles.viewMode}>Markdown 렌더링 — F3 / Esc to close</span>
+          ) : (
+            <>
+              <span>{lineCount} lines</span>
+              <span>{content.length} chars</span>
+              <span>{fontSize}px</span>
+              <span className={styles.viewMode}>View Mode — F3 / Esc to close</span>
+            </>
+          )}
         </div>
       </div>
     </div>

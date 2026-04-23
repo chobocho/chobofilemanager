@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isViewableFile, clampFontSize, MIN_FONT, MAX_FONT } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT } from './FileViewer.jsx'
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -34,6 +34,26 @@ describe('isViewableFile', () => {
 
   it('FV-08: .log 파일은 뷰어로 열 수 있다', () => {
     expect(isViewableFile('.log')).toBe(true)
+  })
+})
+
+// ─── isMarkdownFile ────────────────────────────────────────────────────────────
+
+describe('isMarkdownFile', () => {
+  it('FV-14: .md 파일은 마크다운 파일이다', () => {
+    expect(isMarkdownFile('.md')).toBe(true)
+  })
+
+  it('FV-15: .MD 대문자도 마크다운 파일이다', () => {
+    expect(isMarkdownFile('.MD')).toBe(true)
+  })
+
+  it('FV-16: .txt 파일은 마크다운 파일이 아니다', () => {
+    expect(isMarkdownFile('.txt')).toBe(false)
+  })
+
+  it('FV-17: 빈 확장자는 마크다운 파일이 아니다', () => {
+    expect(isMarkdownFile('')).toBe(false)
   })
 })
 

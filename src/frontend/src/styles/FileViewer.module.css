@@ -121,6 +121,11 @@
   background: var(--bg-input);
   color: var(--text-primary);
 }
+.btnActive {
+  background: rgba(42, 92, 255, 0.15) !important;
+  color: var(--text-accent) !important;
+  border-color: rgba(42, 92, 255, 0.4) !important;
+}
 
 .btnClose {
   display: flex;
@@ -276,6 +281,98 @@
   resize: none;
   cursor: text;
 }
+
+/* Markdown rendered body */
+.markdownBody {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 28px;
+  color: var(--text-primary);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.7;
+  outline: none;
+}
+
+.markdownBody h1,
+.markdownBody h2,
+.markdownBody h3,
+.markdownBody h4,
+.markdownBody h5,
+.markdownBody h6 {
+  color: var(--text-primary);
+  margin: 1.2em 0 0.4em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.markdownBody h1 { font-size: 1.8em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+.markdownBody h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+.markdownBody h3 { font-size: 1.15em; }
+
+.markdownBody p { margin: 0.6em 0; }
+
+.markdownBody a { color: var(--text-accent); text-decoration: underline; }
+
+.markdownBody code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: rgba(42, 92, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+}
+
+.markdownBody pre {
+  background: var(--bg-header);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.markdownBody pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+}
+
+.markdownBody blockquote {
+  border-left: 3px solid var(--border-active);
+  margin: 0.8em 0;
+  padding: 4px 0 4px 16px;
+  color: var(--text-muted);
+}
+
+.markdownBody ul, .markdownBody ol {
+  padding-left: 1.6em;
+  margin: 0.4em 0;
+}
+.markdownBody li { margin: 0.2em 0; }
+
+.markdownBody table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  width: 100%;
+}
+.markdownBody th, .markdownBody td {
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  text-align: left;
+}
+.markdownBody th {
+  background: var(--bg-header);
+  font-weight: 600;
+}
+.markdownBody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+.markdownBody hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.2em 0;
+}
+
+.markdownBody img { max-width: 100%; border-radius: 4px; }
 
 /* Status bar */
 .statusBar {

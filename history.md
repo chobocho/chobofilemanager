@@ -1,5 +1,27 @@
 # 변경 이력
 
+## 2026-04-23 (33)
+
+### #33 F3 파일 뷰어에서 마크다운(.md) 렌더링 지원
+
+#### 구현 내용
+- `marked` 라이브러리 추가 (npm install marked)
+- `FileViewer.jsx`에 `isMarkdownFile(ext)` 함수 추가
+- `.md` 파일 열람 시 기본적으로 마크다운 렌더링 모드로 표시
+- 헤더에 렌더링/원본 토글 버튼 추가 (BookOpen ↔ Code 아이콘)
+- 렌더링 모드: `dangerouslySetInnerHTML`로 HTML 출력, 검색 불가
+- 원본 모드: 기존 텍스트 뷰어(라인 번호 + textarea) 그대로 사용
+- `FileViewer.module.css`에 `.markdownBody`, `.btnActive` 스타일 추가
+  - 헤딩, 코드블록, 인용구, 표, 목록 등 마크다운 요소 스타일링
+
+#### 테스트
+- `FileViewer.test.js`에 FV-14 ~ FV-17 테스트 케이스 추가
+  - `isMarkdownFile('.md')` → true
+  - `isMarkdownFile('.MD')` → true (대소문자 무관)
+  - `isMarkdownFile('.txt')` → false
+  - `isMarkdownFile('')` → false
+- 전체 77개 테스트 통과
+
 ## 2026-04-16 (53)
 
 ### #53 hide off 상태에서 F2/F5/F6/F8 키가 잘못된 파일을 대상으로 동작하는 버그 수정

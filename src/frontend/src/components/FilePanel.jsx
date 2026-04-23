@@ -227,6 +227,13 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel 
         e.preventDefault()
         store.navigateUp(side)
         break
+      case '-':
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          // 이전 방문 폴더로 이동 (히스토리 백)
+          e.preventDefault()
+          store.navigateBack(side)
+        }
+        break
       case ' ':
         e.preventDefault()
         if (files[cur]) store.toggleSelect(side, files[cur].path)

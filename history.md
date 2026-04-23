@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-04-24 (40)
+
+### #40 `-` 키로 이전 방문 폴더로 이동
+
+#### 구현 내용
+- `FilePanel.jsx`의 `handleKeyDown`에 `-` 키 처리 추가
+  - Ctrl/Alt/Shift/Meta 없는 단독 `-` 키 입력 시 `store.navigateBack(side)` 호출
+  - `navigateBack`은 이미 fileStore에 구현된 히스토리 기반 뒤로가기 함수
+
+#### 테스트
+- 기존 92개 테스트 통과
+
 ## 2026-04-24 (38, 39)
 
 ### #38 vim 스타일 j/k/h/l 키 네비게이션

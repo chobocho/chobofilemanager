@@ -92,6 +92,19 @@ function formatDate(dateStr) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+export function getQuickJumpTarget(files, ch, lastChar, lastMatchIdx) {
+  const lower = ch.toLowerCase()
+  if (!/^[a-z0-9]$/.test(lower)) return null
+  const matchIndices = []
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].name.toLowerCase().startsWith(lower)) matchIndices.push(i)
+  }
+  if (matchIndices.length === 0) return null
+  let matchPos = 0
+  if (lastChar === lower) matchPos = (lastMatchIdx + 1) % matchIndices.length
+  return { fileIdx: matchIndices[matchPos], matchPos }
+}
+
 function getFileIcon(file, theme) {
   const icons = theme === 'light' ? FILE_ICONS_LIGHT : FILE_ICONS_DARK
   const folderColor = theme === 'light' ? '#b07800' : '#f0c040'
@@ -124,6 +137,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
   const [editingPath, setEditingPath] = useState(false)
   const cursorOnParent = panel.cursorOnParent
   const drives = store.drives
+  const quickJumpRef = useRef({ char: '', matchPos: 0 })
 
   useEffect(() => {
     setPathInput(panel.path)
@@ -270,6 +284,18 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit }, ref) {
         }
         break
       default:
+        // Shift+a-z/0-9: 해당 글자로 시작하는 파일로 커서 이동 (반복 입력 시 순차 이동)
+        if (e.shiftKey && !e.ctrlKey && !e.altKey && /^[a-z0-9]$/i.test(e.key)) {
+          e.preventDefault()
+          const qj = quickJumpRef.current
+          const result = getQuickJumpTarget(files, e.key, qj.char, qj.matchPos)
+          if (result) {
+            quickJumpRef.current = { char: e.key.toLowerCase(), matchPos: result.matchPos }
+            store.setCursor(side, result.fileIdx)
+            store.setCursorOnParent(side, false)
+            scrollToCursor(result.fileIdx, showParent)
+          }
+        }
         break
     }
   }, [isActive, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent])

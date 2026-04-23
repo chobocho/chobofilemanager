@@ -1,5 +1,43 @@
 # 변경 이력
 
+## 2026-04-24 (46)
+
+### #46 F4 에디터에서 Starlark 스크립트 실행
+
+#### 구현 내용
+
+**Go 백엔드 (filemanager.go)**
+- `go.starlark.net/starlark` 라이브러리 추가 (`go get go.starlark.net`)
+- `RunStarlarkFile(path string) (string, error)` 구현
+  - `starlark.ExecFileOptions` 로 스크립트 실행
+  - `print()` 출력을 `strings.Builder`로 캡처하여 반환
+  - 문법/런타임 오류는 Go error가 아닌 출력 문자열로 반환 (UI에 표시)
+  - 파일 미존재는 Go error 반환
+- `app.go`에 `RunStarlarkFile` wrapper 추가
+
+**Frontend (TextEditor.jsx)**
+- `isStarlarkFile(ext)` 순수 함수 export (`.star`, `.bzl` 감지)
+- `.star`/`.bzl` 파일 편집 시 헤더에 녹색 **Run** 버튼 표시
+- **F5** 키로도 실행 가능
+- 출력 패널: 실행 결과를 에디터 아래 패널에 표시, X 버튼으로 닫기
+- 상태바에 `Starlark` 배지 표시
+- `TextEditor.module.css`에 `.btnRun`, `.outputPanel`, `.starlarkBadge` 등 추가
+- `wailsjs/runtime.js` mock에 `RunStarlarkFile` 추가
+
+#### 테스트
+**Go (filemanager_test.go)**
+- `TestRunStarlarkFile_PrintOutput`: print() 출력 캡처 확인
+- `TestRunStarlarkFile_ArithmeticAndVar`: 변수/연산 결과 확인
+- `TestRunStarlarkFile_SyntaxError`: 문법 오류 → 출력 문자열 반환
+- `TestRunStarlarkFile_RuntimeError`: 런타임 오류 → 출력 문자열 반환
+- `TestRunStarlarkFile_MultipleLines`: 복수 print() 줄 출력
+- `TestRunStarlarkFile_NotFound`: 파일 미존재 → Go error 반환
+
+**Frontend (TextEditor.test.js)**
+- `TE-01~08`: `isStarlarkFile` 확장자 판별 (star/bzl 대소문자, py/go/txt/빈 문자열)
+
+최종: 프론트엔드 138개, Go 전체 테스트 통과
+
 ## 2026-04-24 (45)
 
 ### #45 - 키로 이전 폴더 이동 후 커서 위치 복원

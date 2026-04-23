@@ -384,3 +384,100 @@
   cursor: pointer;
 }
 .btnCancel:hover { color: var(--text-primary); }
+
+/* Run button */
+.btnRun {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.btnRun:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.6);
+}
+.btnRun:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnRunning {
+  opacity: 0.7;
+  animation: pulse 1s infinite;
+}
+
+/* Output panel */
+.outputPanel {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  background: var(--bg-editor);
+  max-height: 200px;
+  flex-shrink: 0;
+}
+
+.outputHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.outputClose {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.outputClose:hover {
+  background: rgba(255, 80, 96, 0.15);
+  color: var(--text-red);
+}
+
+.outputBody {
+  flex: 1;
+  margin: 0;
+  padding: 10px 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Starlark badge in status bar */
+.starlarkBadge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  letter-spacing: 0.05em;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}

@@ -1262,3 +1262,97 @@ func TestDeleteItems_MultipleFiles(t *testing.T) {
 		}
 	}
 }
+
+// ─── RunStarlarkFile ──────────────────────────────────────────────────────────
+
+func TestRunStarlarkFile_PrintOutput(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "hello.star")
+	os.WriteFile(script, []byte(`print("hello, starlark!")`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "hello, starlark!") {
+		t.Errorf("출력에 'hello, starlark!'가 없습니다: %q", out)
+	}
+}
+
+func TestRunStarlarkFile_ArithmeticAndVar(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "calc.star")
+	os.WriteFile(script, []byte(`
+x = 6 * 7
+print(x)
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "42") {
+		t.Errorf("6*7=42 가 출력에 없습니다: %q", out)
+	}
+}
+
+func TestRunStarlarkFile_SyntaxError(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "bad.star")
+	os.WriteFile(script, []byte(`def (`), 0644) // 문법 오류
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile should not return Go error for syntax errors: %v", err)
+	}
+	if out == "" {
+		t.Error("문법 오류 메시지가 출력에 있어야 합니다")
+	}
+}
+
+func TestRunStarlarkFile_RuntimeError(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "runtime_err.star")
+	os.WriteFile(script, []byte(`x = 1 // 0`), 0644) // 런타임 오류 (0 나누기)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile should not return Go error for runtime errors: %v", err)
+	}
+	if out == "" {
+		t.Error("런타임 오류 메시지가 출력에 있어야 합니다")
+	}
+}
+
+func TestRunStarlarkFile_MultipleLines(t *testing.T) {
+	base := t.TempDir()
+	script := filepath.Join(base, "multi.star")
+	os.WriteFile(script, []byte(`
+print("line1")
+print("line2")
+print("line3")
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	for _, expected := range []string{"line1", "line2", "line3"} {
+		if !strings.Contains(out, expected) {
+			t.Errorf("출력에 %q 가 없습니다", expected)
+		}
+	}
+}
+
+func TestRunStarlarkFile_NotFound(t *testing.T) {
+	fm := newTestFM()
+	_, err := fm.RunStarlarkFile("/nonexistent/path/script.star")
+	if err == nil {
+		t.Error("존재하지 않는 파일 실행 시 에러가 반환되어야 합니다")
+	}
+}

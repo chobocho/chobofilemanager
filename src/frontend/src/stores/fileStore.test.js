@@ -20,6 +20,7 @@ vi.mock('../wailsjs/runtime', () => ({
     ReadTextFile: vi.fn(),
     WriteTextFile: vi.fn(),
     ChangeWorkingDirectory: vi.fn().mockResolvedValue(undefined),
+    RunStarlarkFile: vi.fn().mockResolvedValue(''),
   }
 }))
 

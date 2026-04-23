@@ -14,6 +14,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/unicode/norm"
 )
@@ -686,4 +688,32 @@ func copyDir(src, dst string) error {
 		}
 		return copyFile(path, target)
 	})
+}
+
+// ─── RunStarlarkFile ──────────────────────────────────────────────────────────
+
+func (fm *FileManager) RunStarlarkFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	var buf strings.Builder
+	thread := &starlark.Thread{
+		Name: filepath.Base(path),
+		Print: func(_ *starlark.Thread, msg string) {
+			buf.WriteString(msg)
+			buf.WriteByte('\n')
+		},
+	}
+
+	_, execErr := starlark.ExecFileOptions(&syntax.FileOptions{}, thread, path, data, nil)
+	output := buf.String()
+	if execErr != nil {
+		if output != "" {
+			return output + "\n" + execErr.Error(), nil
+		}
+		return execErr.Error(), nil
+	}
+	return output, nil
 }

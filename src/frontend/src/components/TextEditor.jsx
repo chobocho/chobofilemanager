@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye } from 'lucide-react'
+import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye, Play, Terminal } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/TextEditor.module.css'
+
+export function isStarlarkFile(ext) {
+  const lower = ext.toLowerCase()
+  return lower === '.star' || lower === '.bzl'
+}
 
 const LINE_HEIGHT = 20  // matches CSS line-height: 20px
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
@@ -18,6 +23,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [searchOpen, setSearchOpen]     = useState(false)
   const [searchQuery, setSearchQuery]   = useState('')
   const [noMatch, setNoMatch]           = useState(false)
+  const [running, setRunning]           = useState(false)
+  const [runOutput, setRunOutput]       = useState(null) // null = 패널 미표시
 
   const textareaRef    = useRef(null)
   const lineNumbersRef = useRef(null)
@@ -25,7 +32,9 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const searchInputRef = useRef(null)
 
   const { readFile, writeFile } = useFileStore.getState()
-  const fileName = path?.split('/').pop() || path?.split('\\').pop() || 'file'
+  const fileName = path?.split(/[/\\]/).pop() || 'file'
+  const ext = path ? '.' + (path.split('.').pop() || '') : ''
+  const isStarlark = isStarlarkFile(ext)
   const isDirty = content !== original
 
   // Compute line count only when content changes
@@ -83,11 +92,16 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         e.stopPropagation()
         handleSave()
       }
+      if (e.key === 'F5' && isStarlark) {
+        e.preventDefault()
+        e.stopPropagation()
+        handleRun()
+      }
     }
     // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [content, isDirty, searchOpen])
+  }, [content, isDirty, searchOpen, isStarlark, handleRun])
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -105,6 +119,21 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     await handleSave()
     onClose()
   }, [handleSave, onClose])
+
+  const handleRun = useCallback(async () => {
+    if (running) return
+    setRunning(true)
+    setRunOutput('실행 중...')
+    try {
+      const api = (await import('../wailsjs/runtime.js')).default
+      const result = await api.RunStarlarkFile(path)
+      setRunOutput(result || '(출력 없음)')
+    } catch (e) {
+      setRunOutput('오류: ' + String(e))
+    } finally {
+      setRunning(false)
+    }
+  }, [path, running])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {
@@ -247,6 +276,17 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
                 <Eye size={13} />
               </button>
             )}
+            {isStarlark && (
+              <button
+                className={`${styles.btnRun} ${running ? styles.btnRunning : ''}`}
+                onClick={handleRun}
+                disabled={running}
+                title="Starlark 스크립트 실행 (F5)"
+              >
+                <Play size={13} />
+                {running ? '실행 중...' : 'Run'}
+              </button>
+            )}
             <button
               className={styles.btnSearch}
               onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
@@ -340,12 +380,27 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
           )}
         </div>
 
+        {/* Run output panel */}
+        {runOutput !== null && (
+          <div className={styles.outputPanel}>
+            <div className={styles.outputHeader}>
+              <Terminal size={12} />
+              <span>출력</span>
+              <button className={styles.outputClose} onClick={() => setRunOutput(null)} title="닫기">
+                <X size={12} />
+              </button>
+            </div>
+            <pre className={styles.outputBody}>{runOutput}</pre>
+          </div>
+        )}
+
         {/* Status bar */}
         <div className={styles.statusBar}>
           <span>{lineCount} lines</span>
           <span>Ln {cursor.line}, Col {cursor.col}</span>
           <span>{content.length} chars</span>
           {isDirty && <span className={styles.unsaved}>Unsaved changes</span>}
+          {isStarlark && <span className={styles.starlarkBadge}>Starlark</span>}
         </div>
       </div>
     </div>

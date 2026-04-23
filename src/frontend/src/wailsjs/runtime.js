@@ -53,6 +53,7 @@ const createMockAPI = () => ({
   CompressItems: async () => null,
   ExtractArchive: async () => null,
   OpenCmdWindow: async () => null,
+  RunStarlarkFile: async () => 'hello, starlark!\n',
 
   FTPConnect: async () => null,
   FTPDisconnect: async () => null,

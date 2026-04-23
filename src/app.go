@@ -138,6 +138,10 @@ func (a *App) ExtractArchive(archivePath, destDir string) error {
 	return a.fileManager.ExtractArchive(archivePath, destDir)
 }
 
+func (a *App) RunStarlarkFile(path string) (string, error) {
+	return a.fileManager.RunStarlarkFile(path)
+}
+
 // ─── FTP Manager API ─────────────────────────────────────────────────────────
 
 func (a *App) FTPConnect(config FTPConfig) error {

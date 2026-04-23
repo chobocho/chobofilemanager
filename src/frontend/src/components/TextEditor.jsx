@@ -95,11 +95,17 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     }
   }, [path, running])
 
+  // 최신 핸들러를 ref에 유지 — useEffect 클로저에서 안전하게 참조
+  const handleRunRef  = useRef(handleRun)
+  const handleSaveRef = useRef(handleSave)
+  useEffect(() => { handleRunRef.current  = handleRun  }, [handleRun])
+  useEffect(() => { handleSaveRef.current = handleSave }, [handleSave])
+
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault()
-        e.stopPropagation()  // 캡처 페이즈에서 부모 Ctrl+F 핸들러 차단
+        e.stopPropagation()
         setSearchOpen(true)
         setNoMatch(false)
         setTimeout(() => searchInputRef.current?.focus(), 0)
@@ -122,18 +128,17 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
         e.stopPropagation()
-        handleSave()
+        handleSaveRef.current()
       }
       if (e.key === 'F5' && isStarlark) {
         e.preventDefault()
         e.stopPropagation()
-        handleRun()
+        handleRunRef.current()
       }
     }
-    // capture: true — 버블 페이즈 Toolbar 핸들러보다 먼저 실행되어 이벤트를 선점
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [content, isDirty, searchOpen, isStarlark, handleSave, handleRun, onClose])
+  }, [isDirty, searchOpen, isStarlark, onClose])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {

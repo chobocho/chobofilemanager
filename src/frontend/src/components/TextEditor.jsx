@@ -15,6 +15,13 @@ export function buildCursorPosition(text, selectionStart) {
   return { line: lines.length, col: lines[lines.length - 1].length + 1 }
 }
 
+// Starlark 실행 단축키 매처 (Todo #50). F5 또는 Ctrl/Cmd+Enter.
+export function isStarlarkRunShortcut(e) {
+  if (e.key === 'F5') return true
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') return true
+  return false
+}
+
 const LINE_HEIGHT = 20  // matches CSS line-height: 20px
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
@@ -150,7 +157,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         e.stopPropagation()
         handleSaveRef.current()
       }
-      if (e.key === 'F5' && isStarlark) {
+      if (isStarlark && isStarlarkRunShortcut(e)) {
         e.preventDefault()
         e.stopPropagation()
         handleRunRef.current()
@@ -304,7 +311,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
                 className={`${styles.btnRun} ${running ? styles.btnRunning : ''}`}
                 onClick={handleRun}
                 disabled={running}
-                title="Starlark 스크립트 실행 (F5)"
+                title="Starlark 스크립트 실행 (F5 / Ctrl+Enter)"
               >
                 <Play size={13} />
                 {running ? '실행 중...' : 'Run'}

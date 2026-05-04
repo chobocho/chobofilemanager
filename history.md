@@ -1,5 +1,14 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #50 Ctrl+Enter로 Starlark 실행)
+
+### Todo #50
+- `TextEditor.jsx`: `isStarlarkRunShortcut(e)` 순수 함수 export — F5 또는 Ctrl/Cmd+Enter
+- 키 핸들러를 `isStarlark && isStarlarkRunShortcut(e)`로 단순화
+- Run 버튼 툴팁에 `Ctrl+Enter` 표기 추가
+- `TextEditor.test.js`: SR-01~06 단위 테스트 6개
+- 프론트엔드 16 → 22 (TextEditor 파일) / 전체 통과
+
 ## 2026-05-05 (Todo #48 복사/이동 후 대상 폴더 포커스)
 
 ### Todo #48

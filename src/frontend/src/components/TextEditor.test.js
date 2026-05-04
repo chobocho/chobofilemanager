@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isStarlarkFile, buildCursorPosition } from './TextEditor.jsx'
+import { isStarlarkFile, buildCursorPosition, isStarlarkRunShortcut } from './TextEditor.jsx'
 
 // ─── isStarlarkFile ────────────────────────────────────────────────────────────
 
@@ -71,5 +71,33 @@ describe('buildCursorPosition', () => {
 
   it('CP-08: 첫 줄이 빈 줄 (\\n으로 시작) → line 1, col 1 후 다음 줄', () => {
     expect(buildCursorPosition('\nhello', 1)).toEqual({ line: 2, col: 1 })
+  })
+})
+
+// ─── isStarlarkRunShortcut (Todo #50: F5 / Ctrl+Enter) ────────────────────────
+
+describe('isStarlarkRunShortcut', () => {
+  it('SR-01: F5는 실행 단축키', () => {
+    expect(isStarlarkRunShortcut({ key: 'F5' })).toBe(true)
+  })
+
+  it('SR-02: Ctrl+Enter는 실행 단축키', () => {
+    expect(isStarlarkRunShortcut({ key: 'Enter', ctrlKey: true })).toBe(true)
+  })
+
+  it('SR-03: Cmd+Enter (macOS)도 실행 단축키', () => {
+    expect(isStarlarkRunShortcut({ key: 'Enter', metaKey: true })).toBe(true)
+  })
+
+  it('SR-04: Enter 단독은 실행 단축키 아님', () => {
+    expect(isStarlarkRunShortcut({ key: 'Enter' })).toBe(false)
+  })
+
+  it('SR-05: Ctrl+S는 실행 단축키 아님', () => {
+    expect(isStarlarkRunShortcut({ key: 's', ctrlKey: true })).toBe(false)
+  })
+
+  it('SR-06: F4는 실행 단축키 아님', () => {
+    expect(isStarlarkRunShortcut({ key: 'F4' })).toBe(false)
   })
 })

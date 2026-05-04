@@ -20,7 +20,7 @@ export default function App() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
   const theme       = useThemeStore(s => s.theme)
-  const MAX_FILE_SIZE = 3 * 1024 * 1024 // 3 MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
   const [view, setView]             = useState('files')
   const [modal, setModal]           = useState(null)
@@ -292,7 +292,7 @@ export default function App() {
       {fileSizeError && (
         <ConfirmDialog
           title="파일 크기 초과"
-          message={`"${fileSizeError}" 파일이 3MB를 초과하여 내장 뷰어/에디터로 열 수 없습니다.`}
+          message={`"${fileSizeError}" 파일이 10MB를 초과하여 내장 뷰어/에디터로 열 수 없습니다.`}
           confirmLabel="확인"
           hideCancel
           onConfirm={() => { setFileSizeError(null); focusActivePanel() }}

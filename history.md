@@ -1,5 +1,29 @@
 # 변경 이력
 
+## 2026-05-05 (F3 이미지 뷰어 ←/→ 네비게이션)
+
+### 배경
+F3로 이미지를 보고 있을 때 폴더 안의 다음/이전 이미지로 즉시 이동할 수 있어야 사진 일괄 확인이 편함. 갤러리 뷰어 표준 UX.
+
+### 변경
+- `FileViewer.jsx`:
+  - `siblingImagePath(siblings, currentPath, dir)` 순수 함수 export — wrap-around 순환, 안전 폴백
+  - props `siblingImages: string[]`, `onChangePath: (path) => void` 추가
+  - keydown 핸들러: 이미지 모드에서 ←/→ 처리 → siblingImagePath로 새 경로 계산 → onChangePath 호출
+  - 상태바에 `1 / 5 (←/→로 이동)` 표시
+- `App.jsx`:
+  - `isImageFile` 재사용 import
+  - FileViewer 호출 시 `siblingImages`(활성 패널의 visible 이미지 파일 경로 배열) + `onChangePath={setViewerFile}` 전달
+- `FileViewer.test.js`: IMN-01~08 단위 테스트 8개 (next/prev/wrap-around/안전폴백)
+- 프론트엔드 213 → 221개 테스트 모두 통과
+
+### 동작
+1. F3로 이미지 열기 (예: `/d/a.png`)
+2. → 키 → `/d/b.jpg`로 이동, 다시 → → `/d/c.gif`
+3. 마지막에서 → 누르면 첫 번째로 순환
+4. ← 키도 동일하게 역방향 순환
+5. 활성 패널에 이미지가 1개뿐이면 ←/→ 무반응
+
 ## 2026-05-05 (Todo #53 북마크 정렬 + 정렬 버튼)
 
 ### Todo #53

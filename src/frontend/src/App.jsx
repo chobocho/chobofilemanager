@@ -8,7 +8,7 @@ import StatusBar from './components/StatusBar'
 import FKeyBar from './components/FKeyBar'
 import FTPManager from './components/FTPManager'
 import TextEditor from './components/TextEditor'
-import FileViewer from './components/FileViewer'
+import FileViewer, { isImageFile } from './components/FileViewer'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
@@ -318,7 +318,16 @@ export default function App() {
         />
       )}
       {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }}
-        onSwitchToEditor={() => { const p = viewerFile; setViewerFile(null); setEditorFile(p) }} />}
+        onSwitchToEditor={() => { const p = viewerFile; setViewerFile(null); setEditorFile(p) }}
+        siblingImages={(() => {
+          // 활성 패널의 visible 파일 중 이미지만 절대 경로로 추출 (←/→ 네비게이션용)
+          const s = useFileStore.getState()
+          const panel = s[s.activePanel]
+          if (!panel) return null
+          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+          return visible.filter(f => !f.isDir && isImageFile(f.extension || '')).map(f => f.path)
+        })()}
+        onChangePath={(p) => setViewerFile(p)} />}
       {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }}
         onSwitchToViewer={() => { const p = editorFile; setEditorFile(null); setViewerFile(p) }} />}
     </div>

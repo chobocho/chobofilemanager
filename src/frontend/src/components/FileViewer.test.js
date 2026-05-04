@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath } from './FileViewer.jsx'
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -259,5 +259,44 @@ describe('isImageFile / IMAGE_EXTS', () => {
   it('IMG-06: 이미지도 isViewableFile=true (F3로 열 수 있어야 함)', () => {
     expect(isViewableFile('.png')).toBe(true)
     expect(isViewableFile('.jpg')).toBe(true)
+  })
+})
+
+// ─── siblingImagePath (이미지 뷰어 ←/→ 네비게이션) ───────────────────────────
+
+describe('siblingImagePath', () => {
+  const sibs = ['/d/a.png', '/d/b.jpg', '/d/c.gif']
+
+  it('IMN-01: next는 다음 이미지로', () => {
+    expect(siblingImagePath(sibs, '/d/a.png', 'next')).toBe('/d/b.jpg')
+  })
+
+  it('IMN-02: prev는 이전 이미지로', () => {
+    expect(siblingImagePath(sibs, '/d/b.jpg', 'prev')).toBe('/d/a.png')
+  })
+
+  it('IMN-03: 마지막에서 next는 첫 번째로 순환', () => {
+    expect(siblingImagePath(sibs, '/d/c.gif', 'next')).toBe('/d/a.png')
+  })
+
+  it('IMN-04: 첫 번째에서 prev는 마지막으로 순환', () => {
+    expect(siblingImagePath(sibs, '/d/a.png', 'prev')).toBe('/d/c.gif')
+  })
+
+  it('IMN-05: 현재 경로가 siblings에 없으면 null', () => {
+    expect(siblingImagePath(sibs, '/other/x.png', 'next')).toBeNull()
+  })
+
+  it('IMN-06: siblings가 비어있으면 null', () => {
+    expect(siblingImagePath([], '/d/a.png', 'next')).toBeNull()
+  })
+
+  it('IMN-07: siblings가 1개뿐이면 이동 불가 (null)', () => {
+    expect(siblingImagePath(['/d/a.png'], '/d/a.png', 'next')).toBeNull()
+  })
+
+  it('IMN-08: null/undefined siblings는 안전 처리 (null)', () => {
+    expect(siblingImagePath(null, '/d/a.png', 'next')).toBeNull()
+    expect(siblingImagePath(undefined, '/d/a.png', 'next')).toBeNull()
   })
 })

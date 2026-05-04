@@ -25,6 +25,18 @@ export function isImageFile(ext) {
   return IMAGE_EXTS.has(ext.toLowerCase())
 }
 
+// 이미지 뷰어에서 ←/→로 폴더 안 이전/다음 이미지로 이동.
+// dir: 'prev' | 'next'. 끝에 도달하면 순환(wrap-around).
+// 반환: 새 경로 또는 null(이동 불가 — siblings 비어있음/1개/현재 경로 못 찾음).
+export function siblingImagePath(siblings, currentPath, dir) {
+  if (!Array.isArray(siblings) || siblings.length < 2) return null
+  const idx = siblings.indexOf(currentPath)
+  if (idx === -1) return null
+  const delta = dir === 'next' ? 1 : -1
+  const newIdx = (idx + delta + siblings.length) % siblings.length
+  return siblings[newIdx]
+}
+
 export function isViewableFile(ext) {
   const lower = ext.toLowerCase()
   return VIEWABLE_EXTS.has(lower) || IMAGE_EXTS.has(lower)
@@ -64,7 +76,7 @@ export function nextEncoding(current) {
 
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
-export default function FileViewer({ path, onClose, onSwitchToEditor }) {
+export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -144,10 +156,20 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
         onClose()
       }
       if (e.key === 'F3') { e.preventDefault(); e.stopPropagation(); onClose() }
+      // 이미지 모드에서 ←/→ 로 폴더 안 이전/다음 이미지로 이동
+      if (isImage && onChangePath && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        const dir = e.key === 'ArrowRight' ? 'next' : 'prev'
+        const newPath = siblingImagePath(siblingImages, path, dir)
+        if (newPath) {
+          e.preventDefault()
+          e.stopPropagation()
+          onChangePath(newPath)
+        }
+      }
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [onClose, searchOpen, isMarkdown, mdRendered])
+  }, [onClose, searchOpen, isMarkdown, mdRendered, isImage, onChangePath, siblingImages, path])
 
   // Reset scroll when font size changes so line numbers re-sync
   useEffect(() => {
@@ -420,7 +442,12 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
         {/* Status bar */}
         <div className={styles.statusBar}>
           {isImage ? (
-            <span className={styles.viewMode}>이미지 — {ext.replace('.', '').toUpperCase()} — F3 / Esc to close</span>
+            <span className={styles.viewMode}>
+              이미지 — {ext.replace('.', '').toUpperCase()}
+              {Array.isArray(siblingImages) && siblingImages.length > 1 && siblingImages.indexOf(path) >= 0 &&
+                ` — ${siblingImages.indexOf(path) + 1} / ${siblingImages.length} (←/→로 이동)`}
+              {' — F3 / Esc to close'}
+            </span>
           ) : isMarkdown && mdRendered ? (
             <span className={styles.viewMode}>Markdown 렌더링 — F3 / Esc to close</span>
           ) : (

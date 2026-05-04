@@ -194,8 +194,16 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       setTimeout(() => {
         ta.selectionStart = ta.selectionEnd = start + 2
       }, 0)
+      return
     }
-  }, [content])
+    // Ctrl/Cmd+Enter: Starlark 실행 (Todo #50). textarea 단계에서도 처리해
+    // window 캡처 핸들러 외에 이중 안전장치.
+    if (isStarlark && isStarlarkRunShortcut(e)) {
+      e.preventDefault()
+      e.stopPropagation()
+      handleRunRef.current()
+    }
+  }, [content, isStarlark])
 
   // Scroll to match: positions match 1/3 from top (ssMemo scrollToIndex pattern)
   const scrollToMatch = useCallback((el, index) => {

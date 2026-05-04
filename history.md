@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #50 수정 — Ctrl+Enter 미동작 보강)
+
+### 배경
+Todo #50로 window 캡처 단계에서 Ctrl/Cmd+Enter를 매처로 처리했지만 사용자 환경에서 동작하지 않는다는 보고. 캡처 핸들러가 어떤 이유로든 이벤트를 못 잡는 케이스를 대비해 textarea의 onKeyDown(`handleKeyDown`)에도 동일한 핸들링을 추가했다.
+
+- `TextEditor.jsx` `handleKeyDown`: Tab 외에 `isStarlark && isStarlarkRunShortcut(e)`도 처리 → handleRunRef 호출
+- 이중화이므로 둘 중 하나만 작동해도 OK
+- 단, `.star`/`.bzl` 확장자 파일에서만 동작 (isStarlark 조건은 그대로)
+- 기존 199개 테스트 모두 통과
+
 ## 2026-05-05 (MAX_FILE_SIZE 3MB → 10MB)
 
 ### 배경

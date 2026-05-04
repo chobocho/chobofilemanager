@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #47 검증 + Todo #49 삭제 후 커서 위치)
+
+### Todo #47 (rename 포커스)
+이미 Todo #36에서 구현되어 있음 (`fileStore.rename`이 새 이름 파일에 커서 설정 + RN-01~05 테스트 존재). Todo.md만 ✓ 표시.
+
+### Todo #49 (삭제 후 위 파일로 포커스)
+- `fileStore.js`: 순수 함수 `cursorAfterDelete(minDeletedIdx, remainingCount)` export 추가
+  - `Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)`
+  - 못 찾았거나(-1) 빈 목록(0)이면 -1 반환 (변경 없음)
+- `confirmDelete`: 삭제 직전 visible 인덱스를 기록 → API 호출 → refresh 후 새 visible 길이로 커서 재계산
+- `fileStore.test.js`: DEL-01~06 테스트 6개 추가
+- 프론트엔드 175 → 181개 테스트 모두 통과
+
 ## 2026-05-05 (F3/F4 뷰어·편집기 인코딩 수동 변경 버튼)
 
 ### 배경

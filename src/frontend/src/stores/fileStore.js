@@ -20,6 +20,15 @@ export function getLastPathSegment(path) {
   return clean.split(/[/\\]/).pop() || ''
 }
 
+// 삭제 후 커서 위치 계산 (Todo #49).
+// minDeletedIdx: 삭제 전 visible 목록에서 삭제된 항목들의 최소 인덱스 (-1이면 못 찾음)
+// remainingCount: 삭제 후 visible 목록 길이
+// 반환: 새 커서 인덱스, 또는 -1(변경하지 않음 — 못 찾았거나 빈 목록)
+export function cursorAfterDelete(minDeletedIdx, remainingCount) {
+  if (minDeletedIdx < 0 || remainingCount === 0) return -1
+  return Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)
+}
+
 let _tabCounter = 0
 const createTabState = (path = '') => ({
   id: `tab-${++_tabCounter}`,
@@ -363,12 +372,34 @@ export const useFileStore = create((set, get) => ({
   },
 
   confirmDelete: async (paths) => {
-    const panel = get().activePanel
+    const state = get()
+    const panel = state.activePanel
+    // 삭제 전 visible 인덱스를 기록 — 삭제 후 커서 위치 계산용 (Todo #49)
+    const before = state[panel]
+    const visibleBefore = before.showHidden
+      ? before.files
+      : before.files.filter(f => !f.isHidden)
+    const deletedSet = new Set(paths)
+    const deletedIndices = visibleBefore
+      .map((f, i) => deletedSet.has(f.path) ? i : -1)
+      .filter(i => i >= 0)
+    const minDeletedIdx = deletedIndices.length > 0 ? Math.min(...deletedIndices) : -1
+
     set({ status: `Deleting ${paths.length} item(s)...` })
     try {
       await api.DeleteItems(paths)
       await get()._refreshAffected([...new Set(paths.map(p => parentDir(p)))])
       set({ status: `Deleted ${paths.length} item(s)` })
+
+      // 삭제된 위치 바로 위 파일로 커서 이동
+      const after = get()[panel]
+      const visibleAfter = after.showHidden
+        ? after.files
+        : after.files.filter(f => !f.isHidden)
+      const newCursor = cursorAfterDelete(minDeletedIdx, visibleAfter.length)
+      if (newCursor >= 0) {
+        set(s => ({ [panel]: { ...s[panel], cursor: newCursor, cursorOnParent: false } }))
+      }
     } catch (err) {
       set({ status: `Delete failed: ${err}` })
       throw err

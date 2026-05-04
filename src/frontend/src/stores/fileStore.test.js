@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath, getLastPathSegment } from './fileStore.js'
+import { joinPath, getLastPathSegment, cursorAfterDelete } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -293,6 +293,37 @@ describe('rename 경로 구성', () => {
 
   it('RP-06: 디렉토리 이름을 교체한다 (Windows)', () => {
     expect(buildRenamePath('C:\\Users\\user\\old_folder', 'new_folder')).toBe('C:\\Users\\user\\new_folder')
+  })
+})
+
+// ─── 삭제 후 커서 위치 (Todo #49) ─────────────────────────────────────────────
+
+describe('cursorAfterDelete', () => {
+  it('DEL-01: 가운데 항목 삭제 시 한 칸 위로 이동', () => {
+    // 인덱스 5 삭제, 9개 남음 → 4
+    expect(cursorAfterDelete(5, 9)).toBe(4)
+  })
+
+  it('DEL-02: 첫 항목 삭제 시 새 첫 항목(인덱스 0)으로', () => {
+    expect(cursorAfterDelete(0, 5)).toBe(0)
+  })
+
+  it('DEL-03: 삭제 항목 못 찾으면(-1) 변경 신호(-1) 반환', () => {
+    expect(cursorAfterDelete(-1, 10)).toBe(-1)
+  })
+
+  it('DEL-04: 모두 삭제(remaining=0)면 변경 신호 없음(-1)', () => {
+    expect(cursorAfterDelete(3, 0)).toBe(-1)
+  })
+
+  it('DEL-05: 마지막 항목 삭제 시 한 칸 위(remaining-1)로 클램프', () => {
+    // 인덱스 9 삭제, 9개 남음 → min(8, 8) = 8
+    expect(cursorAfterDelete(9, 9)).toBe(8)
+  })
+
+  it('DEL-06: 여러 항목 삭제 시 최상단 삭제 인덱스 기준', () => {
+    // [3, 5, 7] 삭제 → minDeletedIdx=3 → 2
+    expect(cursorAfterDelete(3, 7)).toBe(2)
   })
 })
 

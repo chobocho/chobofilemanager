@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath, getLastPathSegment, cursorAfterDelete } from './fileStore.js'
+import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -324,6 +324,41 @@ describe('cursorAfterDelete', () => {
   it('DEL-06: 여러 항목 삭제 시 최상단 삭제 인덱스 기준', () => {
     // [3, 5, 7] 삭제 → minDeletedIdx=3 → 2
     expect(cursorAfterDelete(3, 7)).toBe(2)
+  })
+})
+
+// ─── 복사/이동 후 커서 위치 (Todo #48) ────────────────────────────────────────
+
+describe('cursorAfterCopy', () => {
+  const makeFiles = (names) => names.map(n => ({ name: n }))
+
+  it('CPC-01: 첫 source 의 basename이 visible에 있으면 그 인덱스', () => {
+    const visible = makeFiles(['alpha.txt', 'beta.txt', 'gamma.txt'])
+    expect(cursorAfterCopy(visible, ['/src/beta.txt'])).toBe(1)
+  })
+
+  it('CPC-02: 못 찾으면 -1', () => {
+    const visible = makeFiles(['alpha.txt'])
+    expect(cursorAfterCopy(visible, ['/src/missing.txt'])).toBe(-1)
+  })
+
+  it('CPC-03: 빈 sources면 -1', () => {
+    expect(cursorAfterCopy(makeFiles(['x']), [])).toBe(-1)
+  })
+
+  it('CPC-04: Windows 경로의 basename도 추출', () => {
+    const visible = makeFiles(['app.exe', 'README.md'])
+    expect(cursorAfterCopy(visible, ['C:\\src\\app.exe'])).toBe(0)
+  })
+
+  it('CPC-05: 디렉토리 (trailing separator 없는 경로)', () => {
+    const visible = makeFiles(['docs', 'src'])
+    expect(cursorAfterCopy(visible, ['/home/user/docs'])).toBe(0)
+  })
+
+  it('CPC-06: null/undefined sources면 -1', () => {
+    expect(cursorAfterCopy(makeFiles(['a']), null)).toBe(-1)
+    expect(cursorAfterCopy(makeFiles(['a']), undefined)).toBe(-1)
   })
 })
 

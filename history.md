@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #48 복사/이동 후 대상 폴더 포커스)
+
+### Todo #48
+- `fileStore.js`:
+  - `cursorAfterCopy(visibleAfter, sourcePaths)` 순수 함수 export — 첫 source의 basename으로 visible에서 인덱스 검색
+  - `_focusCopiedFile(dest, sources)` 헬퍼 — dest 경로와 일치하는 패널 양쪽 모두 커서 갱신
+  - `copy`/`copyWithMode`/`move`/`moveWithMode` 4곳 모두 `_refreshAffected` 직후 `_focusCopiedFile` 호출
+- `fileStore.test.js`: CPC-01~06 단위 테스트 6개 추가 (basename 추출/Windows 경로/null 입력)
+- 프론트엔드 96 → 102개 테스트 모두 통과
+
 ## 2026-05-05 (Todo #47 검증 + Todo #49 삭제 후 커서 위치)
 
 ### Todo #47 (rename 포커스)

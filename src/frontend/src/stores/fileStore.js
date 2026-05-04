@@ -29,6 +29,18 @@ export function cursorAfterDelete(minDeletedIdx, remainingCount) {
   return Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)
 }
 
+// 복사/이동 후 대상 패널 커서 위치 계산 (Todo #48).
+// visibleAfter: 대상 패널의 refresh 후 visible 파일 목록
+// sourcePaths: 복사/이동된 source 절대 경로 배열
+// 반환: 첫 source의 basename에 해당하는 인덱스, 또는 -1(못 찾음/빈 입력)
+export function cursorAfterCopy(visibleAfter, sourcePaths) {
+  if (!sourcePaths || sourcePaths.length === 0) return -1
+  const first = sourcePaths[0]
+  const sep = Math.max(first.lastIndexOf('/'), first.lastIndexOf('\\'))
+  const basename = sep >= 0 ? first.substring(sep + 1) : first
+  return visibleAfter.findIndex(f => f.name === basename)
+}
+
 let _tabCounter = 0
 const createTabState = (path = '') => ({
   id: `tab-${++_tabCounter}`,
@@ -282,6 +294,7 @@ export const useFileStore = create((set, get) => ({
     try {
       await api.CopyItems(selected, dest)
       await get()._refreshAffected([dest])
+      get()._focusCopiedFile(dest, selected)
       set({ status: `Copied ${selected.length} item(s)` })
     } catch (err) {
       set({ status: `Copy failed: ${err}` })
@@ -291,9 +304,6 @@ export const useFileStore = create((set, get) => ({
 
   copyWithMode: async (sources, dest, mode) => {
     set({ status: `Copying ${sources.length} item(s)...` })
-    const state = get()
-    const panel = state.activePanel
-    const other = panel === 'left' ? 'right' : 'left'
     try {
       if (mode === 'overwrite') {
         await api.CopyItems(sources, dest)
@@ -303,6 +313,7 @@ export const useFileStore = create((set, get) => ({
         await api.CopyItemsSkipConflicts(sources, dest)
       }
       await get()._refreshAffected([dest])
+      get()._focusCopiedFile(dest, sources)
       set({ status: `Copied ${sources.length} item(s)` })
     } catch (err) {
       set({ status: `Copy failed: ${err}` })
@@ -332,6 +343,7 @@ export const useFileStore = create((set, get) => ({
       await api.MoveItems(selected, dest)
       const affectedDirs = [...new Set([...selected.map(p => parentDir(p)), dest])]
       await get()._refreshAffected(affectedDirs)
+      get()._focusCopiedFile(dest, selected)
       set({ status: `Moved ${selected.length} item(s)` })
     } catch (err) {
       set({ status: `Move failed: ${err}` })
@@ -349,6 +361,7 @@ export const useFileStore = create((set, get) => ({
       }
       const affectedDirs = [...new Set([...sources.map(p => parentDir(p)), dest])]
       await get()._refreshAffected(affectedDirs)
+      get()._focusCopiedFile(dest, sources)
       set({ status: `Moved ${sources.length} item(s)` })
     } catch (err) {
       set({ status: `Move failed: ${err}` })
@@ -498,6 +511,21 @@ export const useFileStore = create((set, get) => ({
   setStatus: (status) => set({ status }),
 
   // 영향 받은 디렉토리를 표시 중인 패널의 활성 탭을 모두 리프레시합니다.
+  // 복사/이동 후 dest 폴더를 표시 중인 패널의 커서를 첫 source 파일에 위치시킨다 (Todo #48).
+  // dest와 일치하는 패널이 양쪽 모두에 있을 수 있으므로 둘 다 처리.
+  _focusCopiedFile: (dest, sources) => {
+    const st = get()
+    const lowerDest = dest.toLowerCase()
+    for (const p of ['left', 'right']) {
+      if (st[p].path.toLowerCase() !== lowerDest) continue
+      const visible = st[p].showHidden ? st[p].files : st[p].files.filter(f => !f.isHidden)
+      const idx = cursorAfterCopy(visible, sources)
+      if (idx >= 0) {
+        set(s => ({ [p]: { ...s[p], cursor: idx, cursorOnParent: false } }))
+      }
+    }
+  },
+
   _refreshAffected: async (dirs) => {
     const lower = new Set(dirs.map(d => d.toLowerCase()))
     const st = get()

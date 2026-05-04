@@ -476,6 +476,66 @@ func TestReadTextFile_NFD_조합형(t *testing.T) {
 	}
 }
 
+// ─── CreateStarlarkScratchFile (Ctrl+Enter scratch buffer) ────────────────────
+
+func TestCreateStarlarkScratchFile_파일존재(t *testing.T) {
+	fm := newTestFM()
+	path, err := fm.CreateStarlarkScratchFile()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(path)
+	if _, statErr := os.Stat(path); statErr != nil {
+		t.Errorf("scratch 파일이 생성되지 않음: %v", statErr)
+	}
+}
+
+func TestCreateStarlarkScratchFile_확장자는Star(t *testing.T) {
+	fm := newTestFM()
+	path, err := fm.CreateStarlarkScratchFile()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(path)
+	if !strings.HasSuffix(path, ".star") {
+		t.Errorf("확장자가 .star가 아님: %s", path)
+	}
+}
+
+func TestCreateStarlarkScratchFile_고유경로(t *testing.T) {
+	fm := newTestFM()
+	p1, err := fm.CreateStarlarkScratchFile()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(p1)
+	p2, err := fm.CreateStarlarkScratchFile()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(p2)
+	if p1 == p2 {
+		t.Errorf("연속 호출 시 같은 경로 반환 (고유성 위반): %s", p1)
+	}
+}
+
+func TestCreateStarlarkScratchFile_초기내용(t *testing.T) {
+	fm := newTestFM()
+	path, err := fm.CreateStarlarkScratchFile()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(path)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("읽기 실패: %v", err)
+	}
+	// 템플릿이 비어있지 않고 'Starlark' 키워드 포함 (사용자 가이드)
+	if !strings.Contains(string(data), "Starlark") {
+		t.Errorf("초기 내용에 Starlark 가이드 누락: got %q", string(data))
+	}
+}
+
 // ─── ReadImageFile (Todo #52) ─────────────────────────────────────────────────
 
 func TestReadImageFile_PNG(t *testing.T) {

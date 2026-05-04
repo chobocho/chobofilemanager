@@ -447,6 +447,28 @@ func imageMimeType(ext string) string {
 	return "application/octet-stream"
 }
 
+// CreateStarlarkScratchFile: Ctrl+Enter로 호출되는 Starlark 스크래치 버퍼를 위한
+// 임시 .star 파일을 생성하고 절대 경로를 반환한다.
+//
+// 사용 흐름: 파일패널 등에서 Ctrl+Enter → 본 API로 임시 파일 생성 → F4 에디터로
+// 열어서 Starlark 스니펫 작성 → F5/Ctrl+Enter로 실행.
+//
+// 위치는 OS 임시 디렉터리(os.TempDir())이며, 패턴은 chobofm-scratch-*.star.
+// OS가 주기적으로 정리하므로 별도 cleanup 코드 불필요.
+func (fm *FileManager) CreateStarlarkScratchFile() (string, error) {
+	f, err := os.CreateTemp("", "chobofm-scratch-*.star")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	template := fmt.Sprintf("# Starlark 스크래치 (%s)\n# F5 또는 Ctrl+Enter로 실행\n\nprint(\"Hello, Starlark!\")\n",
+		time.Now().Format("2006-01-02 15:04:05"))
+	if _, err := f.WriteString(template); err != nil {
+		return "", err
+	}
+	return f.Name(), nil
+}
+
 // ReadImageFile: 이미지 파일을 base64 데이터 URL로 읽는다 (Todo #52).
 // 프론트엔드는 <img src={dataUrl}>로 그대로 사용. Wails에서 file:// URL을
 // 직접 띄우는 것보다 이식성·보안 측면에서 단순.

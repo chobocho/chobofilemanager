@@ -32,6 +32,7 @@ const createMockAPI = () => ({
   ReadTextFile: async () => '# Sample file content\nHello, World!\n',
   ReadTextFileWithEncoding: async (_path, _enc) => '# Sample file content\nHello, World!\n',
   ReadImageFile: async () => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  CreateStarlarkScratchFile: async () => '/tmp/chobofm-scratch-mock.star',
   WriteTextFile: async () => null,
   OpenFile: async () => null,
   GetPathParts: async (path) => {

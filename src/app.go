@@ -98,6 +98,10 @@ func (a *App) ReadImageFile(path string) (string, error) {
 	return a.fileManager.ReadImageFile(path)
 }
 
+func (a *App) CreateStarlarkScratchFile() (string, error) {
+	return a.fileManager.CreateStarlarkScratchFile()
+}
+
 func (a *App) WriteTextFile(path string, content string) error {
 	return a.fileManager.WriteTextFile(path, content)
 }

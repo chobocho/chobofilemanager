@@ -1,5 +1,35 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #50 재해석 — Ctrl+Enter로 Starlark 스크래치 버퍼)
+
+### 배경
+사용자 의도 재확인: Ctrl+Enter는 "F4 에디터에서 현재 코드 실행"이 아니라
+"임시 .star 파일을 만들어 F4 에디터로 띄우는 스크래치 버퍼" 단축키였다.
+에디터를 띄우지 않고도 Ctrl+Enter 한 번으로 Starlark 스니펫을 작성·실행할 수 있게 하는 의도.
+
+### 변경
+- 백엔드:
+  - `filemanager.go` `CreateStarlarkScratchFile()` 추가 — `os.CreateTemp("", "chobofm-scratch-*.star")`로 OS 임시 디렉터리에 고유 .star 파일 생성, 템플릿 내용(타임스탬프 + 가이드 주석 + print 예시) 작성, 절대 경로 반환
+  - `app.go` Wails 노출 래퍼
+  - `filemanager_test.go`: 파일존재/확장자/고유경로/초기내용 4개 테스트
+- 프론트엔드:
+  - `App.jsx`:
+    - `handleStarlarkScratch()` callback — API 호출 → 반환된 경로로 `setEditorFile`
+    - 전역 keydown 핸들러에 Ctrl/Cmd+Enter 추가
+    - **충돌 방지**: editorFile/viewerFile/modal 중 하나라도 떠 있으면 무시 → 에디터 내부 Ctrl+Enter=Run, 뷰어 ESC 등 기존 단축키 보존
+  - `wailsjs/runtime.js` mock 갱신
+- 테스트: Go 230 / 프론트 199개 모두 통과
+
+### UX
+1. 파일패널/메인 화면에서 Ctrl+Enter
+2. OS 임시 폴더에 `chobofm-scratch-XXXXX.star` 자동 생성
+3. F4 에디터가 그 파일을 열고 템플릿 내용 표시
+4. 사용자가 편집 후 F5 또는 (에디터 내부) Ctrl+Enter로 실행
+
+### 직전 텍스트에어리어 보강 유지
+직전 커밋(`b43e9cd`)의 textarea-level Ctrl+Enter=Run 처리는 그대로 유지.
+에디터 내부에서는 Run, 외부에서는 Scratch — 두 동작이 서로 다른 컨텍스트에서 자연스럽게 동작.
+
 ## 2026-05-05 (Todo #50 수정 — Ctrl+Enter 미동작 보강)
 
 ### 배경

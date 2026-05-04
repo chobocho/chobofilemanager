@@ -58,6 +58,18 @@ export default function App() {
     })
   }, [])
 
+  // Ctrl+Enter: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기.
+  // 에디터/뷰어/모달이 떠 있을 때는 그쪽 핸들러에 양보.
+  const handleStarlarkScratch = useCallback(async () => {
+    try {
+      const api = (await import('./wailsjs/runtime')).default
+      const path = await api.CreateStarlarkScratchFile()
+      if (path) setEditorFile(path)
+    } catch (e) {
+      console.error('Starlark scratch 생성 실패:', e)
+    }
+  }, [])
+
   useEffect(() => {
     const handler = (e) => {
       if (e.ctrlKey && e.key === 'o') {
@@ -70,10 +82,16 @@ export default function App() {
         const workDir = s[s.activePanel].path
         import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
       }
+      // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'
+          && !editorFile && !viewerFile && !modal) {
+        e.preventDefault()
+        handleStarlarkScratch()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [editorFile, viewerFile, modal, handleStarlarkScratch])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()

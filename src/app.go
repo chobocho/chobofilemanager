@@ -90,6 +90,10 @@ func (a *App) ReadTextFile(path string) (string, error) {
 	return a.fileManager.ReadTextFile(path)
 }
 
+func (a *App) ReadTextFileWithEncoding(path string, encName string) (string, error) {
+	return a.fileManager.ReadTextFileWithEncoding(path, encName)
+}
+
 func (a *App) WriteTextFile(path string, content string) error {
 	return a.fileManager.WriteTextFile(path, content)
 }

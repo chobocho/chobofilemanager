@@ -30,6 +30,7 @@ const createMockAPI = () => ({
   RenameItem: async () => null,
   GetFileInfo: async (path) => mockFiles.find(f => f.path === path) || mockFiles[0],
   ReadTextFile: async () => '# Sample file content\nHello, World!\n',
+  ReadTextFileWithEncoding: async (_path, _enc) => '# Sample file content\nHello, World!\n',
   WriteTextFile: async () => null,
   OpenFile: async () => null,
   GetPathParts: async (path) => {

@@ -1,5 +1,39 @@
 # 변경 이력
 
+## 2026-05-05 (F3/F4 뷰어·편집기 인코딩 수동 변경 버튼)
+
+### 배경
+직전 작업에서 인코딩 자동 판별을 도입했지만 짧은 한글 파일·혼합 인코딩에서는 휴리스틱이 틀릴 수 있음. hviewer가 메뉴(F2)로 인코딩 순환을 제공하는 것처럼, FileViewer(F3)·TextEditor(F4) 헤더에 클릭으로 순환 가능한 인코딩 버튼을 추가하여 사용자가 즉시 다른 인코딩으로 다시 읽을 수 있게 함.
+
+### 변경 파일
+- 백엔드:
+  - `src/filemanager.go` — `ReadTextFileWithEncoding(path, encName)` 신규 추가. encName: "auto"/"utf-8"/"utf-16le"/"utf-16be"/"cp949"(=euc-kr)/"johab". 미지원 이름은 auto 폴백. `parseEncodingName` 헬퍼 추가.
+  - `src/app.go` — Wails 노출용 래퍼 추가
+  - `src/filemanager_test.go` — 5개 테스트 추가 (auto/명시 johab/cp949/utf-8/미지원)
+- 프론트엔드:
+  - `src/frontend/wailsjs/go/main/App.{d.ts,js}` — Wails 자동 재생성
+  - `src/frontend/src/wailsjs/runtime.js` — mock에 `ReadTextFileWithEncoding` 추가
+  - `src/frontend/src/stores/fileStore.js` — `readFile(path, encoding)` 시그니처 확장 (auto면 기존 경로, 그 외는 `ReadTextFileWithEncoding` 호출)
+  - `src/frontend/src/components/FileViewer.jsx`
+    - export 추가: `ENCODINGS`, `ENCODING_LABELS`, `nextEncoding`
+    - state `encoding` 추가, useEffect 의존성에 포함 → 인코딩 변경 시 재로드
+    - 헤더에 인코딩 라벨 버튼 (클릭으로 6개 옵션 순환), 상태바에도 현재 인코딩 표시
+  - `src/frontend/src/components/TextEditor.jsx`
+    - FileViewer.jsx에서 `ENCODING_LABELS`, `nextEncoding` 재사용
+    - `handleEncodingCycle`: dirty 시 `window.confirm`으로 손실 경고 후 변경
+    - 헤더 버튼 + 상태바 표시 동일
+  - `src/frontend/src/components/FileViewer.test.js` — 8개 테스트 추가 (EN-01~EN-08: ENCODINGS 구성/순환/폴백)
+
+### UX 동작
+1. F3(뷰어) / F4(편집기)에서 헤더에 현재 인코딩 라벨 버튼 표시 (예: `Auto`)
+2. 클릭 시 다음 인코딩으로 순환: `Auto → UTF-8 → UTF-16 LE → UTF-16 BE → CP949 → Johab → Auto`
+3. 인코딩이 변경되면 즉시 해당 인코딩으로 파일 재로드
+4. 편집기에서 미저장 변경분이 있을 때 인코딩 변경 시 confirm 경고
+
+### 테스트 결과
+- Go: 222개 모두 통과 (이전 217 + 새 5)
+- 프론트엔드 (Vitest): 175개 모두 통과 (이전 167 + 새 8)
+
 ## 2026-05-04 (조합형(Johab) 한글 인코딩 지원 + 인코딩 자동 판별)
 
 ### 배경

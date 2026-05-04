@@ -35,6 +35,23 @@ export function getWordWrapStyle(wordWrap) {
   return { whiteSpace: 'pre', overflowX: 'auto', overflowWrap: 'normal' }
 }
 
+// 인코딩 순환 — F3/F4 뷰어/편집기 UI에서 자동 판별이 틀렸을 때 수동 변경.
+// 백엔드 ReadTextFileWithEncoding 의 encName 인자와 일치해야 함.
+export const ENCODINGS = ['auto', 'utf-8', 'utf-16le', 'utf-16be', 'cp949', 'johab']
+export const ENCODING_LABELS = {
+  'auto':     'Auto',
+  'utf-8':    'UTF-8',
+  'utf-16le': 'UTF-16 LE',
+  'utf-16be': 'UTF-16 BE',
+  'cp949':    'CP949',
+  'johab':    'Johab',
+}
+export function nextEncoding(current) {
+  const idx = ENCODINGS.indexOf(current)
+  if (idx === -1) return 'auto'
+  return ENCODINGS[(idx + 1) % ENCODINGS.length]
+}
+
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
 export default function FileViewer({ path, onClose, onSwitchToEditor }) {
@@ -47,6 +64,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [noMatch, setNoMatch]         = useState(false)
+  const [encoding, setEncoding]       = useState('auto')
 
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isMarkdown = isMarkdownFile(ext)
@@ -75,7 +93,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
     const load = async () => {
       setLoading(true)
       try {
-        const text = await readFile(path)
+        const text = await readFile(path, encoding)
         setContent(text)
       } catch (e) {
         setError(String(e))
@@ -85,7 +103,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
       }
     }
     load()
-  }, [path])
+  }, [path, encoding])
 
   useEffect(() => {
     const handler = (e) => {
@@ -253,6 +271,16 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
             )}
             {(!isMarkdown || !mdRendered) && (
               <button
+                className={`${styles.btnSearch} ${encoding !== 'auto' ? styles.btnActive : ''}`}
+                onClick={() => setEncoding(prev => nextEncoding(prev))}
+                title={`인코딩: ${ENCODING_LABELS[encoding]} (클릭하여 변경)`}
+                style={{ width: 'auto', padding: '0 8px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+              >
+                {ENCODING_LABELS[encoding]}
+              </button>
+            )}
+            {(!isMarkdown || !mdRendered) && (
+              <button
                 className={styles.btnSearch}
                 onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
                 title="검색 (Ctrl+F)"
@@ -366,6 +394,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
               <span>{lineCount} lines</span>
               <span>{content.length} chars</span>
               <span>{fontSize}px</span>
+              <span>{ENCODING_LABELS[encoding]}</span>
               {wordWrap && <span>WRAP</span>}
               <span className={styles.viewMode}>View Mode — F3 / Esc to close</span>
             </>

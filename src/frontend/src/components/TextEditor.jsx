@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye, Play, Terminal } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
+import { ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
 import styles from '../styles/TextEditor.module.css'
 
 export function isStarlarkFile(ext) {
@@ -31,6 +32,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [noMatch, setNoMatch]           = useState(false)
   const [running, setRunning]           = useState(false)
   const [runOutput, setRunOutput]       = useState(null) // null = 패널 미표시
+  const [encoding, setEncoding]         = useState('auto')
 
   const textareaRef    = useRef(null)
   const lineNumbersRef = useRef(null)
@@ -55,7 +57,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     const load = async () => {
       setLoading(true)
       try {
-        const text = await readFile(path)
+        const text = await readFile(path, encoding)
         setContent(text)
         setOriginal(text)
       } catch(e) {
@@ -67,7 +69,19 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       }
     }
     load()
-  }, [path])
+  }, [path, encoding])
+
+  // 인코딩 변경: 미저장 변경분이 있으면 확인 — 사용자 실수로 편집 내용 잃는 걸 방지
+  const handleEncodingCycle = useCallback(() => {
+    const next = nextEncoding(encoding)
+    if (content !== original) {
+      const ok = window.confirm(
+        `저장하지 않은 변경사항이 있습니다.\n인코딩을 "${ENCODING_LABELS[next]}"로 변경하면 변경 내용이 사라집니다. 계속하시겠습니까?`
+      )
+      if (!ok) return
+    }
+    setEncoding(next)
+  }, [encoding, content, original])
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -304,6 +318,14 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
               <Search size={13} />
             </button>
             <button
+              className={`${styles.btnSearch} ${encoding !== 'auto' ? styles.btnSaveDirty : ''}`}
+              onClick={handleEncodingCycle}
+              title={`인코딩: ${ENCODING_LABELS[encoding]} (클릭하여 변경)`}
+              style={{ width: 'auto', padding: '0 8px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+            >
+              {ENCODING_LABELS[encoding]}
+            </button>
+            <button
               className={`${styles.btnSave} ${isDirty ? styles.btnSaveDirty : ''}`}
               onClick={handleSave}
               disabled={saving || !isDirty}
@@ -408,6 +430,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
           <span>{lineCount} lines</span>
           <span>Ln {cursor.line}, Col {cursor.col}</span>
           <span>{content.length} chars</span>
+          <span>{ENCODING_LABELS[encoding]}</span>
           {isDirty && <span className={styles.unsaved}>Unsaved changes</span>}
           {isStarlark && <span className={styles.starlarkBadge}>Starlark</span>}
         </div>

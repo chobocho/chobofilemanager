@@ -359,29 +359,64 @@ func (fm *FileManager) GetFileInfo(path string) (*FileInfo, error) {
 const detectionWindow = 64 * 1024
 
 func (fm *FileManager) ReadTextFile(path string) (string, error) {
+	return fm.ReadTextFileWithEncoding(path, "auto")
+}
+
+// ReadTextFileWithEncoding: 사용자 지정 인코딩으로 파일을 읽는다.
+// encName 값:
+//   - "auto" 또는 "" — DetectEncoding으로 자동 판별
+//   - "utf-8", "utf-16le", "utf-16be", "cp949"(=euc-kr), "johab"(=조합형)
+//   - 알 수 없는 값은 "auto"로 폴백
+//
+// 인코딩 자동 판별이 틀린 케이스(짧은 한글 파일, 혼합 인코딩 등)에서
+// 사용자가 F3/F4 뷰어/편집기 UI로 수동 변경할 때 사용.
+func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	// 자동 판별: UTF-8/UTF-16 BOM, UTF-8 (no BOM), CP949, Johab(조합형).
-	// UTF-8 결과는 DecodeToUTF8 내부에서 NFC 정규화.
-	window := data
-	if len(window) > detectionWindow {
-		window = window[:detectionWindow]
+	enc, isAuto := parseEncodingName(encName)
+	if isAuto {
+		window := data
+		if len(window) > detectionWindow {
+			window = window[:detectionWindow]
+		}
+		enc = DetectEncoding(window)
 	}
-	enc := DetectEncoding(window)
 	if decoded, decErr := DecodeToUTF8(data, enc); decErr == nil {
 		return decoded, nil
 	}
-	// CP949 디코더가 strict 에러를 낸 경우 — fallback 으로 EUC-KR 관용 모드 시도
+	// CP949 strict 실패 → EUC-KR 관용 모드 폴백
 	if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(data); decErr == nil {
 		return string(decoded), nil
 	}
-	// 최종 폴백: utf8 valid면 그대로, 아니면 원본 바이트
 	if utf8.Valid(data) {
 		return norm.NFC.String(string(data)), nil
 	}
 	return string(data), nil
+}
+
+// parseEncodingName: UI에서 받은 문자열을 Encoding으로 변환.
+// 두 번째 반환값이 true면 "auto" — 호출 측에서 자동 판별 수행.
+func parseEncodingName(name string) (Encoding, bool) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "", "auto":
+		return EncUnknown, true
+	case "utf-8", "utf8":
+		return EncUTF8, false
+	case "utf-8-bom", "utf8-bom":
+		return EncUTF8BOM, false
+	case "utf-16le", "utf-16-le", "utf16le":
+		return EncUTF16LE, false
+	case "utf-16be", "utf-16-be", "utf16be":
+		return EncUTF16BE, false
+	case "cp949", "euc-kr", "euckr":
+		return EncCP949, false
+	case "johab", "조합형":
+		return EncJohab, false
+	}
+	// 미지원 인코딩 이름은 auto 폴백
+	return EncUnknown, true
 }
 
 func (fm *FileManager) WriteTextFile(path string, content string) error {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -185,5 +185,47 @@ describe('getWordWrapStyle', () => {
 
   it('WW-04: wordWrap=true 시 overflowX는 hidden이다 (가로 스크롤 없음)', () => {
     expect(getWordWrapStyle(true).overflowX).toBe('hidden')
+  })
+})
+
+// ─── 인코딩 순환 (Auto/UTF-8/UTF-16/CP949/Johab) ──────────────────────────────
+
+describe('ENCODINGS / nextEncoding', () => {
+  it('EN-01: ENCODINGS 첫 항목은 auto', () => {
+    expect(ENCODINGS[0]).toBe('auto')
+  })
+
+  it('EN-02: ENCODINGS는 6개 항목 (auto + 5개 인코딩)', () => {
+    expect(ENCODINGS).toHaveLength(6)
+  })
+
+  it('EN-03: ENCODINGS는 johab을 포함한다 (조합형)', () => {
+    expect(ENCODINGS).toContain('johab')
+  })
+
+  it('EN-04: ENCODING_LABELS는 모든 인코딩에 대한 라벨이 있다', () => {
+    for (const e of ENCODINGS) {
+      expect(ENCODING_LABELS[e]).toBeTruthy()
+    }
+  })
+
+  it('EN-05: nextEncoding(auto) → utf-8', () => {
+    expect(nextEncoding('auto')).toBe('utf-8')
+  })
+
+  it('EN-06: nextEncoding은 마지막에서 처음으로 순환', () => {
+    const last = ENCODINGS[ENCODINGS.length - 1]
+    expect(nextEncoding(last)).toBe('auto')
+  })
+
+  it('EN-07: 알 수 없는 인코딩은 auto로 폴백', () => {
+    expect(nextEncoding('klingon')).toBe('auto')
+  })
+
+  it('EN-08: johab → 다음 항목으로 진행 (auto로 순환)', () => {
+    // ENCODINGS 마지막이 johab이라는 가정 — 순환 동작 확인
+    const idx = ENCODINGS.indexOf('johab')
+    const expected = ENCODINGS[(idx + 1) % ENCODINGS.length]
+    expect(nextEncoding('johab')).toBe(expected)
   })
 })

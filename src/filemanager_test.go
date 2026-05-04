@@ -476,6 +476,91 @@ func TestReadTextFile_NFD_조합형(t *testing.T) {
 	}
 }
 
+// ─── ReadTextFileWithEncoding (수동 인코딩 지정) ───────────────────────────────
+
+func TestReadTextFileWithEncoding_Auto는기본동작(t *testing.T) {
+	// "auto"는 ReadTextFile과 동일 — 자동 판별
+	one := []byte{0x88, 0x61, 0x90, 0x61, 0x94, 0x61}
+	var content []byte
+	for i := 0; i < 5; i++ {
+		content = append(content, one...)
+	}
+	base := t.TempDir()
+	f := filepath.Join(base, "k.txt")
+	os.WriteFile(f, content, 0644)
+	fm := newTestFM()
+	got, err := fm.ReadTextFileWithEncoding(f, "auto")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !strings.Contains(got, "가나다") {
+		t.Errorf("auto 판별 실패: got %q", got)
+	}
+}
+
+func TestReadTextFileWithEncoding_명시Johab(t *testing.T) {
+	// 자동 판별이 다른 인코딩을 골라도 사용자가 johab 강제 가능해야 함
+	src := []byte{0x88, 0x61, 0x90, 0x61, 0x94, 0x61}
+	base := t.TempDir()
+	f := filepath.Join(base, "short.txt")
+	os.WriteFile(f, src, 0644)
+	fm := newTestFM()
+	got, err := fm.ReadTextFileWithEncoding(f, "johab")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got != "가나다" {
+		t.Errorf("johab 강제 실패: got %q", got)
+	}
+}
+
+func TestReadTextFileWithEncoding_명시CP949(t *testing.T) {
+	enc, encErr := korean.EUCKR.NewEncoder().Bytes([]byte("안녕"))
+	if encErr != nil {
+		t.Skip("EUC-KR 인코딩 환경 없음:", encErr)
+	}
+	base := t.TempDir()
+	f := filepath.Join(base, "k.txt")
+	os.WriteFile(f, enc, 0644)
+	fm := newTestFM()
+	got, err := fm.ReadTextFileWithEncoding(f, "cp949")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got != "안녕" {
+		t.Errorf("cp949 강제 실패: got %q", got)
+	}
+}
+
+func TestReadTextFileWithEncoding_명시UTF8(t *testing.T) {
+	base := t.TempDir()
+	f := filepath.Join(base, "k.txt")
+	os.WriteFile(f, []byte("hello 한글"), 0644)
+	fm := newTestFM()
+	got, err := fm.ReadTextFileWithEncoding(f, "utf-8")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got != "hello 한글" {
+		t.Errorf("utf-8 강제 실패: got %q", got)
+	}
+}
+
+func TestReadTextFileWithEncoding_UnknownEnc는Auto폴백(t *testing.T) {
+	// 알 수 없는 인코딩 이름은 auto로 폴백
+	base := t.TempDir()
+	f := filepath.Join(base, "k.txt")
+	os.WriteFile(f, []byte("hello"), 0644)
+	fm := newTestFM()
+	got, err := fm.ReadTextFileWithEncoding(f, "klingon")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got != "hello" {
+		t.Errorf("미지원 인코딩 폴백 실패: got %q", got)
+	}
+}
+
 // ─── SearchFiles ──────────────────────────────────────────────────────────────
 
 func TestSearchFiles_CaseInsensitive(t *testing.T) {

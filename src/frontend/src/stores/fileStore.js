@@ -431,7 +431,15 @@ export const useFileStore = create((set, get) => ({
     await api.OpenFile(path)
   },
 
-  readFile: async (path) => {
+  readFile: async (path, encoding) => {
+    // encoding 미지정/auto는 기존 자동 판별 경로 사용
+    if (!encoding || encoding === 'auto') {
+      return await api.ReadTextFile(path)
+    }
+    // 명시적 인코딩 — UI에서 사용자가 선택한 경우
+    if (api.ReadTextFileWithEncoding) {
+      return await api.ReadTextFileWithEncoding(path, encoding)
+    }
     return await api.ReadTextFile(path)
   },
 

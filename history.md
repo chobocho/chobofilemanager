@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #51 Enter로 텍스트 파일 → F3 뷰어)
+
+### Todo #51
+기존: Enter와 더블클릭 모두 `handleRowDoubleClick`을 호출 → 텍스트 파일은 F4 편집기 열림.
+변경: Enter는 별도의 `handleEnter`로 분기 → 텍스트/소스 파일은 F3 뷰어 열림. 더블클릭은 기존 동작 유지(F4 편집기).
+
+- `App.jsx`: FilePanel에 `onView={tryOpenViewer}` 추가
+- `FilePanel.jsx`:
+  - `isViewableFile` import (FileViewer.jsx에서 재사용)
+  - `onView` prop 추가
+  - `handleEnter(file)` 함수 분리 — viewable이면 onView, 아니면 openFile
+  - 키 핸들러 case 'Enter' → handleEnter 호출
+- 기존 193개 테스트 모두 통과 (Enter 동작 분리는 통합 테스트 부재라 별도 단위 테스트 미추가; viewable 판별은 FileViewer.test.js FV-01~FV-24가 커버)
+
 ## 2026-05-05 (Todo #50 Ctrl+Enter로 Starlark 실행)
 
 ### Todo #50

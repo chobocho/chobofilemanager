@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
 import { useFileStore } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
+import { isViewableFile } from './FileViewer.jsx'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
@@ -126,7 +127,7 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel }, ref) {
   const store = useFileStore()
   const panel = store[side]
   const isActive = store.activePanel === side
@@ -189,6 +190,19 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel 
     }
   }
 
+  // Enter 키 동작 (Todo #51): 텍스트/소스 파일이면 F3 뷰어, 그 외는 더블클릭과 동일.
+  const handleEnter = async (file) => {
+    if (file.isDir) {
+      await store.navigate(side, file.path)
+      return
+    }
+    if (isViewableFile(file.extension) && onView) {
+      onView(file)
+    } else {
+      await store.openFile(file.path)
+    }
+  }
+
   const handleKeyDown = useCallback((e) => {
     if (!isActive) return
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
@@ -224,7 +238,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onSwitchToPanel 
         if (cursorOnParent) {
           store.navigateUp(side)
         } else if (files[cur]) {
-          handleRowDoubleClick(files[cur])
+          handleEnter(files[cur])
         }
         break
       case 'Backspace':

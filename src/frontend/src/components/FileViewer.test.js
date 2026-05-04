@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS } from './FileViewer.jsx'
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -60,8 +60,8 @@ describe('isViewableFile', () => {
     expect(isViewableFile('.toml')).toBe(true)
   })
 
-  it('FV-15: .png 파일은 뷰어로 열 수 없다', () => {
-    expect(isViewableFile('.png')).toBe(false)
+  it('FV-15: .png 파일은 이미지로 뷰어에서 열 수 있다 (Todo #52 이후)', () => {
+    expect(isViewableFile('.png')).toBe(true)
   })
 
   it('FV-16: .pdf 파일은 뷰어로 열 수 없다', () => {
@@ -227,5 +227,37 @@ describe('ENCODINGS / nextEncoding', () => {
     const idx = ENCODINGS.indexOf('johab')
     const expected = ENCODINGS[(idx + 1) % ENCODINGS.length]
     expect(nextEncoding('johab')).toBe(expected)
+  })
+})
+
+// ─── 이미지 파일 판별 (Todo #52) ──────────────────────────────────────────────
+
+describe('isImageFile / IMAGE_EXTS', () => {
+  it('IMG-01: .png는 이미지 파일', () => {
+    expect(isImageFile('.png')).toBe(true)
+  })
+
+  it('IMG-02: .jpg/.jpeg 둘 다 이미지', () => {
+    expect(isImageFile('.jpg')).toBe(true)
+    expect(isImageFile('.jpeg')).toBe(true)
+  })
+
+  it('IMG-03: 대문자 확장자도 이미지로 인식', () => {
+    expect(isImageFile('.PNG')).toBe(true)
+  })
+
+  it('IMG-04: .txt는 이미지 아님', () => {
+    expect(isImageFile('.txt')).toBe(false)
+  })
+
+  it('IMG-05: IMAGE_EXTS는 SVG/WebP/GIF 포함', () => {
+    expect(IMAGE_EXTS.has('.svg')).toBe(true)
+    expect(IMAGE_EXTS.has('.webp')).toBe(true)
+    expect(IMAGE_EXTS.has('.gif')).toBe(true)
+  })
+
+  it('IMG-06: 이미지도 isViewableFile=true (F3로 열 수 있어야 함)', () => {
+    expect(isViewableFile('.png')).toBe(true)
+    expect(isViewableFile('.jpg')).toBe(true)
   })
 })

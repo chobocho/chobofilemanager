@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -421,6 +422,41 @@ func parseEncodingName(name string) (Encoding, bool) {
 
 func (fm *FileManager) WriteTextFile(path string, content string) error {
 	return os.WriteFile(path, []byte(content), 0644)
+}
+
+// imageMimeType: 파일 확장자를 보고 표준 MIME 타입을 결정.
+// 미지원 확장자는 application/octet-stream (브라우저가 처리 불가능하지만
+// 호출자에게 "지원 안 됨"을 명확히 알리는 표식).
+func imageMimeType(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".bmp":
+		return "image/bmp"
+	case ".svg":
+		return "image/svg+xml"
+	case ".ico":
+		return "image/x-icon"
+	}
+	return "application/octet-stream"
+}
+
+// ReadImageFile: 이미지 파일을 base64 데이터 URL로 읽는다 (Todo #52).
+// 프론트엔드는 <img src={dataUrl}>로 그대로 사용. Wails에서 file:// URL을
+// 직접 띄우는 것보다 이식성·보안 측면에서 단순.
+func (fm *FileManager) ReadImageFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	mime := imageMimeType(filepath.Ext(path))
+	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
 func buildOpenCmd(path string) (*exec.Cmd, error) {

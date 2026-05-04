@@ -476,6 +476,87 @@ func TestReadTextFile_NFD_조합형(t *testing.T) {
 	}
 }
 
+// ─── ReadImageFile (Todo #52) ─────────────────────────────────────────────────
+
+func TestReadImageFile_PNG(t *testing.T) {
+	// 1×1 투명 PNG (89 bytes)
+	pngBytes := []byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+		0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+		0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x62, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+		0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+	}
+	base := t.TempDir()
+	f := filepath.Join(base, "tiny.png")
+	if err := os.WriteFile(f, pngBytes, 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadImageFile(f)
+	if err != nil {
+		t.Fatalf("ReadImageFile error: %v", err)
+	}
+	if !strings.HasPrefix(got, "data:image/png;base64,") {
+		t.Errorf("PNG data URL 접두사 누락: got %q", got[:min(40, len(got))])
+	}
+}
+
+func TestReadImageFile_JPG_MIME(t *testing.T) {
+	// JPEG SOI marker
+	jpgBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+	base := t.TempDir()
+	f := filepath.Join(base, "x.jpg")
+	os.WriteFile(f, jpgBytes, 0644)
+	fm := newTestFM()
+	got, err := fm.ReadImageFile(f)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !strings.HasPrefix(got, "data:image/jpeg;base64,") {
+		t.Errorf("JPEG MIME 누락: got %q", got[:min(40, len(got))])
+	}
+}
+
+func TestReadImageFile_확장자별MIME(t *testing.T) {
+	cases := map[string]string{
+		"a.gif":  "data:image/gif;base64,",
+		"a.webp": "data:image/webp;base64,",
+		"a.bmp":  "data:image/bmp;base64,",
+		"a.svg":  "data:image/svg+xml;base64,",
+	}
+	for name, prefix := range cases {
+		base := t.TempDir()
+		f := filepath.Join(base, name)
+		os.WriteFile(f, []byte("dummy"), 0644)
+		fm := newTestFM()
+		got, err := fm.ReadImageFile(f)
+		if err != nil {
+			t.Errorf("%s: err %v", name, err)
+			continue
+		}
+		if !strings.HasPrefix(got, prefix) {
+			t.Errorf("%s: expected prefix %q, got %q", name, prefix, got[:min(40, len(got))])
+		}
+	}
+}
+
+func TestReadImageFile_미지원확장자는기본MIME(t *testing.T) {
+	base := t.TempDir()
+	f := filepath.Join(base, "x.unknown")
+	os.WriteFile(f, []byte("data"), 0644)
+	fm := newTestFM()
+	got, err := fm.ReadImageFile(f)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// 미지원 확장자는 octet-stream 또는 지원되지 않는다고 명시
+	if !strings.HasPrefix(got, "data:application/octet-stream;base64,") {
+		t.Errorf("기본 MIME 미적용: got %q", got[:min(50, len(got))])
+	}
+}
+
 // ─── ReadTextFileWithEncoding (수동 인코딩 지정) ───────────────────────────────
 
 func TestReadTextFileWithEncoding_Auto는기본동작(t *testing.T) {

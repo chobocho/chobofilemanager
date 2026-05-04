@@ -1,5 +1,24 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #52 F3으로 이미지 보기)
+
+### Todo #52
+이미지 파일(F3 또는 Enter)을 base64 data URL로 백엔드에서 읽어 `<img>`로 표시. file:// URL 직접 사용보다 이식성·보안 측면에서 단순.
+
+- 백엔드:
+  - `filemanager.go`: `imageMimeType(ext)` + `ReadImageFile(path)` 신규. PNG/JPG/GIF/WebP/BMP/SVG/ICO 지원, 미지원 확장자는 `application/octet-stream`.
+  - `app.go`: Wails 노출 래퍼 추가
+  - `filemanager_test.go`: PNG/JPG/확장자별/미지원 4개 테스트
+- 프론트엔드:
+  - `FileViewer.jsx`:
+    - `IMAGE_EXTS` / `isImageFile(ext)` export 추가
+    - `isViewableFile`이 이미지도 포함하도록 확장 (F3·Enter로 이미지 열기 가능)
+    - `isImage` 분기 — 이미지 모드에서 `readImage()` 호출, `<img src={dataUrl}>` 렌더, 인코딩/줄바꿈/폰트/검색 버튼 숨김, 상태바에 확장자 표시
+  - `fileStore.js`: `readImage(path)` 추가 (api.ReadImageFile 래퍼)
+  - `wailsjs/runtime.js` mock: `ReadImageFile` 추가
+  - `FileViewer.test.js`: IMG-01~06 단위 테스트 6개. 기존 FV-15(.png 미지원)는 새 정책에 맞춰 갱신.
+- Go 226 / 프론트엔드 199개 테스트 모두 통과
+
 ## 2026-05-05 (Todo #51 Enter로 텍스트 파일 → F3 뷰어)
 
 ### Todo #51

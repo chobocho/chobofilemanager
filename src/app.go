@@ -94,6 +94,10 @@ func (a *App) ReadTextFileWithEncoding(path string, encName string) (string, err
 	return a.fileManager.ReadTextFileWithEncoding(path, encName)
 }
 
+func (a *App) ReadImageFile(path string) (string, error) {
+	return a.fileManager.ReadImageFile(path)
+}
+
 func (a *App) WriteTextFile(path string, content string) error {
 	return a.fileManager.WriteTextFile(path, content)
 }

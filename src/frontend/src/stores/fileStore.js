@@ -487,6 +487,14 @@ export const useFileStore = create((set, get) => ({
     return await api.ReadTextFile(path)
   },
 
+  // 이미지 파일을 base64 data URL로 읽는다 (Todo #52).
+  readImage: async (path) => {
+    if (api.ReadImageFile) {
+      return await api.ReadImageFile(path)
+    }
+    return ''
+  },
+
   writeFile: async (path, content) => {
     await api.WriteTextFile(path, content)
     await get()._refreshAffected([parentDir(path)])

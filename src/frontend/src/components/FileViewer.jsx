@@ -16,8 +16,18 @@ export const VIEWABLE_EXTS = new Set([
   '.star', '.bzl',
 ])
 
+// 이미지 확장자 (Todo #52). F3 뷰어에서 base64 data URL로 표시.
+export const IMAGE_EXTS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico',
+])
+
+export function isImageFile(ext) {
+  return IMAGE_EXTS.has(ext.toLowerCase())
+}
+
 export function isViewableFile(ext) {
-  return VIEWABLE_EXTS.has(ext.toLowerCase())
+  const lower = ext.toLowerCase()
+  return VIEWABLE_EXTS.has(lower) || IMAGE_EXTS.has(lower)
 }
 
 export function isMarkdownFile(ext) {
@@ -68,6 +78,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
 
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isMarkdown = isMarkdownFile(ext)
+  const isImage    = isImageFile(ext)
   const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
 
   const lineNumbersRef = useRef(null)
@@ -76,7 +87,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
   const searchInputRef = useRef(null)
   const mdBodyRef      = useRef(null)
 
-  const { readFile } = useFileStore.getState()
+  const { readFile, readImage } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
 
   const lineHeight = fontSize + 7  // matches CSS lineHeight formula
@@ -93,8 +104,13 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
     const load = async () => {
       setLoading(true)
       try {
-        const text = await readFile(path, encoding)
-        setContent(text)
+        if (isImage) {
+          const dataUrl = await readImage(path)
+          setContent(dataUrl)
+        } else {
+          const text = await readFile(path, encoding)
+          setContent(text)
+        }
       } catch (e) {
         setError(String(e))
       } finally {
@@ -103,13 +119,14 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
       }
     }
     load()
-  }, [path, encoding])
+  }, [path, encoding, isImage])
 
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault()
         e.stopPropagation()
+        if (isImage) return  // 이미지에는 검색 불가
         if (isMarkdown && mdRendered) return  // 렌더링 모드에서는 검색 불가
         setSearchOpen(true)
         setNoMatch(false)
@@ -260,7 +277,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
                 {mdRendered ? <Code size={13} /> : <BookOpen size={13} />}
               </button>
             )}
-            {(!isMarkdown || !mdRendered) && (
+            {!isImage && (!isMarkdown || !mdRendered) && (
               <button
                 className={`${styles.btnSearch} ${wordWrap ? styles.btnActive : ''}`}
                 onClick={() => setWordWrap(v => !v)}
@@ -269,7 +286,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
                 <WrapText size={13} />
               </button>
             )}
-            {(!isMarkdown || !mdRendered) && (
+            {!isImage && (!isMarkdown || !mdRendered) && (
               <button
                 className={`${styles.btnSearch} ${encoding !== 'auto' ? styles.btnActive : ''}`}
                 onClick={() => setEncoding(prev => nextEncoding(prev))}
@@ -279,7 +296,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
                 {ENCODING_LABELS[encoding]}
               </button>
             )}
-            {(!isMarkdown || !mdRendered) && (
+            {!isImage && (!isMarkdown || !mdRendered) && (
               <button
                 className={styles.btnSearch}
                 onClick={() => { setSearchOpen(v => !v); setTimeout(() => searchInputRef.current?.focus(), 0) }}
@@ -288,7 +305,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
                 <Search size={13} />
               </button>
             )}
-            {(!isMarkdown || !mdRendered) && <>
+            {!isImage && (!isMarkdown || !mdRendered) && <>
               <button
                 className={styles.btnFont}
                 onClick={() => changeFontSize(-1)}
@@ -342,6 +359,21 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
             <div className={styles.error}>⚠ {error}</div>
+          ) : isImage ? (
+            <div
+              tabIndex={0}
+              style={{
+                width: '100%', height: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'auto', padding: '12px',
+              }}
+            >
+              <img
+                src={content}
+                alt={fileName}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+              />
+            </div>
           ) : isMarkdown && mdRendered ? (
             <div
               ref={mdBodyRef}
@@ -387,7 +419,9 @@ export default function FileViewer({ path, onClose, onSwitchToEditor }) {
 
         {/* Status bar */}
         <div className={styles.statusBar}>
-          {isMarkdown && mdRendered ? (
+          {isImage ? (
+            <span className={styles.viewMode}>이미지 — {ext.replace('.', '').toUpperCase()} — F3 / Esc to close</span>
+          ) : isMarkdown && mdRendered ? (
             <span className={styles.viewMode}>Markdown 렌더링 — F3 / Esc to close</span>
           ) : (
             <>

@@ -397,6 +397,64 @@ func TestReadTextFile_EUCKR_완성형(t *testing.T) {
 	}
 }
 
+func TestReadTextFile_Johab조합형인코딩(t *testing.T) {
+	// 조합형(Johab/CP1361) 한글 파일 — "가나다" 5회 반복 (음절 15개 → johab_hangul_count >= 10)
+	one := []byte{0x88, 0x61, 0x90, 0x61, 0x94, 0x61}
+	var content []byte
+	for i := 0; i < 5; i++ {
+		content = append(content, one...)
+	}
+	base := t.TempDir()
+	f := filepath.Join(base, "korean_johab.txt")
+	if err := os.WriteFile(f, content, 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	if !strings.Contains(got, "가나다") {
+		t.Errorf("Johab 디코딩 실패: got %q", got)
+	}
+}
+
+func TestReadTextFile_UTF16LE_BOM(t *testing.T) {
+	// UTF-16 LE BOM + "안녕" — '안' U+C548 → 0x48,0xC5  '녕' U+B155 → 0x55,0xB1
+	content := []byte{0xFF, 0xFE, 0x48, 0xC5, 0x55, 0xB1}
+	base := t.TempDir()
+	f := filepath.Join(base, "korean_utf16le.txt")
+	if err := os.WriteFile(f, content, 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	if got != "안녕" {
+		t.Errorf("UTF-16 LE 디코딩 실패: got %q", got)
+	}
+}
+
+func TestReadTextFile_UTF16BE_BOM(t *testing.T) {
+	// UTF-16 BE BOM + "안녕"
+	content := []byte{0xFE, 0xFF, 0xC5, 0x48, 0xB1, 0x55}
+	base := t.TempDir()
+	f := filepath.Join(base, "korean_utf16be.txt")
+	if err := os.WriteFile(f, content, 0644); err != nil {
+		t.Fatalf("파일 쓰기 실패: %v", err)
+	}
+	fm := newTestFM()
+	got, err := fm.ReadTextFile(f)
+	if err != nil {
+		t.Fatalf("ReadTextFile error: %v", err)
+	}
+	if got != "안녕" {
+		t.Errorf("UTF-16 BE 디코딩 실패: got %q", got)
+	}
+}
+
 func TestReadTextFile_NFD_조합형(t *testing.T) {
 	// NFD 정규화 (조합형 유니코드 한글) → NFC 변환 확인
 	// "가" NFD = ㄱ(U+1100) + ㅏ(U+1161)

@@ -1,5 +1,40 @@
 # 변경 이력
 
+## 2026-05-04 (조합형(Johab) 한글 인코딩 지원 + 인코딩 자동 판별)
+
+### 배경
+hviewer(D:\github3\hviewer)의 조합형 한글 디코더와 인코딩 자동 판별 휴리스틱을 참고하여 코드 뷰어의 인코딩 처리 능력을 보강. 기존에는 UTF-8 + EUC-KR/CP949 만 지원 → 조합형(KS X 1001-1992 부속서 3 / CP1361)과 UTF-16 LE/BE BOM 파일이 깨져 보였음.
+
+### 변경 파일
+- `src/johab.go` — Johab 비트 디코더 신규 (hviewer/johab.h 포팅)
+  - `johabDecodeSyllable(uint16) rune` — 2바이트 음절 → 유니코드
+  - `johabToString([]byte) string` — 바이트 스트림 → UTF-8 (잘림은 U+FFFD)
+  - `johabScore`, `johabHangulCount` — 자동 판별용 휴리스틱
+- `src/johab_test.go` — 11개 단위 테스트
+- `src/encoding_detect.go` — 인코딩 enum + 자동 판별 + UTF-8 변환 통합 (hviewer/encoding.h 포팅)
+  - `Encoding` enum: UTF-8 BOM/UTF-16 LE/UTF-16 BE/UTF-8/CP949/Johab
+  - `DetectEncoding([]byte) Encoding` — BOM → UTF-8 유효성 → CP949 vs Johab 점수/보조영역 비율
+  - `DecodeToUTF8([]byte, Encoding) (string, error)` — BOM 제거 + 인코딩별 변환 + NFC 정규화
+- `src/encoding_detect_test.go` — 12개 단위 테스트
+- `src/filemanager.go` `ReadTextFile()` — 자동 판별 통합, 64KB 윈도우만 휴리스틱에 사용. CP949 strict 실패 시 관용 모드 폴백.
+- `src/filemanager_test.go` — 통합 테스트 3개 추가 (Johab 파일, UTF-16 LE/BE BOM)
+
+### 휴리스틱 요약 (hviewer 기반)
+1. BOM 검사 (가장 신뢰)
+2. UTF-8 멀티바이트 시퀀스 valid 카운트 — 3개 이상이면 UTF-8, 1~2개라도 utf8.Valid 통과하면 UTF-8 (NFD 짧은 텍스트 케이스)
+3. CP949 vs Johab 점수 비교
+   - 둘 다 낮으면 UTF-8 기본값 (본 프로젝트는 UTF-8 환경 주류)
+   - CP949 strict invalid + johab 음절 ≥ 10 → Johab 확정
+   - johab 점수 ≥ 80 + cp949 보조영역 비율 ≥ 30% → Johab
+   - johab 점수 > cp949 + 10 → Johab, 아니면 CP949
+
+### 테스트 결과
+- Go: 217개 모두 통과
+- 프론트엔드 (Vitest): 167개 모두 통과
+
+### 영향 범위
+프론트엔드 `FileViewer.jsx`는 백엔드에서 UTF-8 문자열을 받아 표시하므로 변경 없음. 백엔드만 강화한 결과 코드 뷰어/편집기 양쪽이 자동으로 조합형 + UTF-16 BOM 파일을 올바르게 표시.
+
 ## 2026-04-24 (테스트 케이스 보강 2차)
 
 ### 테스트 케이스 추가 보강

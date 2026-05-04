@@ -354,20 +354,33 @@ func (fm *FileManager) GetFileInfo(path string) (*FileInfo, error) {
 	return fi, nil
 }
 
+// detectionWindow: DetectEncoding이 검사하는 파일 앞부분 크기.
+// 큰 파일에서 전체 바이트를 휴리스틱에 돌릴 필요는 없음.
+const detectionWindow = 64 * 1024
+
 func (fm *FileManager) ReadTextFile(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	// UTF-8이면 NFC로 정규화 (조합형 NFD 한글 → 완성형 NFC 변환)
-	if utf8.Valid(data) {
-		return norm.NFC.String(string(data)), nil
+	// 자동 판별: UTF-8/UTF-16 BOM, UTF-8 (no BOM), CP949, Johab(조합형).
+	// UTF-8 결과는 DecodeToUTF8 내부에서 NFC 정규화.
+	window := data
+	if len(window) > detectionWindow {
+		window = window[:detectionWindow]
 	}
-	// EUC-KR / CP949 (완성형 레거시 한글) 디코딩 시도
+	enc := DetectEncoding(window)
+	if decoded, decErr := DecodeToUTF8(data, enc); decErr == nil {
+		return decoded, nil
+	}
+	// CP949 디코더가 strict 에러를 낸 경우 — fallback 으로 EUC-KR 관용 모드 시도
 	if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(data); decErr == nil {
 		return string(decoded), nil
 	}
-	// 폴백: 원본 바이트 그대로 반환
+	// 최종 폴백: utf8 valid면 그대로, 아니면 원본 바이트
+	if utf8.Valid(data) {
+		return norm.NFC.String(string(data)), nil
+	}
 	return string(data), nil
 }
 

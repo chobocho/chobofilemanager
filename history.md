@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-05-05 (Todo #53 북마크 정렬 + 정렬 버튼)
+
+### Todo #53
+Ctrl+D로 뜨는 북마크 다이얼로그에 정렬 + 정렬 버튼 추가.
+
+- `BookmarkDialog.jsx`:
+  - `SORT_MODES = ['name-asc', 'name-desc', 'path-asc', 'path-desc']`
+  - `SORT_MODE_LABELS` 한국어 라벨 (이름 ↑/↓, 경로 ↑/↓)
+  - `nextSortMode(current)` 순환 (마지막 → 첫 번째 / 알 수 없는 모드 → name-asc)
+  - `sortBookmarks(list, mode)` 순수 함수 — 새 배열 반환(원본 불변), 대소문자 무시
+  - state `sortMode` 추가, 기본 `name-asc`
+  - 헤더에 정렬 버튼 (ArrowDownAZ 아이콘 + 현재 라벨), 클릭 시 순환
+- `BookmarkDialog.module.css`: `.sortBtn` 스타일 추가
+- `BookmarkDialog.test.js` 신규: BMS-01~08 (정렬 동작/대소문자/불변), BMNX-01~06 (순환/폴백) 14개 테스트
+- 프론트엔드 199 → 213개 테스트 모두 통과
+
 ## 2026-05-05 (Todo #50 재해석 — Ctrl+Enter로 Starlark 스크래치 버퍼)
 
 ### 배경

@@ -1,8 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Bookmark, Plus, Trash2, X, FolderOpen, FileText } from 'lucide-react'
+import { Bookmark, Plus, Trash2, X, FolderOpen, FileText, ArrowDownAZ } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import styles from '../styles/BookmarkDialog.module.css'
+
+// 북마크 정렬 (Todo #53). 헤더의 정렬 버튼으로 4개 모드를 순환한다.
+export const SORT_MODES = ['name-asc', 'name-desc', 'path-asc', 'path-desc']
+export const SORT_MODE_LABELS = {
+  'name-asc':  '이름 ↑',
+  'name-desc': '이름 ↓',
+  'path-asc':  '경로 ↑',
+  'path-desc': '경로 ↓',
+}
+
+export function nextSortMode(current) {
+  const idx = SORT_MODES.indexOf(current)
+  if (idx === -1) return SORT_MODES[0]
+  return SORT_MODES[(idx + 1) % SORT_MODES.length]
+}
+
+// 북마크 배열을 정렬한 새 배열을 반환한다 (원본 불변, 대소문자 무시).
+export function sortBookmarks(list, mode) {
+  if (!SORT_MODES.includes(mode)) return list
+  const [field, dir] = mode.split('-')  // 'name'|'path', 'asc'|'desc'
+  const factor = dir === 'asc' ? 1 : -1
+  return [...list].sort((a, b) => {
+    const va = (a[field] || '').toLowerCase()
+    const vb = (b[field] || '').toLowerCase()
+    if (va < vb) return -1 * factor
+    if (va > vb) return 1 * factor
+    return 0
+  })
+}
 
 function Modal({ children, onClose }) {
   useEffect(() => {
@@ -27,6 +56,7 @@ export default function BookmarkDialog({ onClose }) {
   const [addTarget, setAddTarget] = useState(null) // { path, isFile }
   const [newName, setNewName]     = useState('')
   const [error, setError]         = useState('')
+  const [sortMode, setSortMode]   = useState('name-asc')
   const nameInputRef = useRef(null)
 
   const panel = store.activePanel
@@ -85,6 +115,14 @@ export default function BookmarkDialog({ onClose }) {
       <div className={styles.header}>
         <Bookmark size={14} className={styles.headerIcon} />
         <span>바로가기</span>
+        <button
+          className={styles.sortBtn}
+          onClick={() => setSortMode(prev => nextSortMode(prev))}
+          title={`정렬: ${SORT_MODE_LABELS[sortMode]} (클릭하여 변경)`}
+        >
+          <ArrowDownAZ size={12} />
+          <span>{SORT_MODE_LABELS[sortMode]}</span>
+        </button>
         <button className={styles.closeBtn} onClick={onClose}><X size={13} /></button>
       </div>
 
@@ -127,7 +165,7 @@ export default function BookmarkDialog({ onClose }) {
           {bookmarks.length === 0 ? (
             <div className={styles.empty}>바로가기가 없습니다.</div>
           ) : (
-            bookmarks.map(bm => (
+            sortBookmarks(bookmarks, sortMode).map(bm => (
               <div
                 key={bm.id}
                 className={styles.row}

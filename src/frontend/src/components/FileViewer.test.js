@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath } from './FileViewer.jsx'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // ─── isViewableFile ────────────────────────────────────────────────────────────
 
@@ -298,5 +303,31 @@ describe('siblingImagePath', () => {
   it('IMN-08: null/undefined siblings는 안전 처리 (null)', () => {
     expect(siblingImagePath(null, '/d/a.png', 'next')).toBeNull()
     expect(siblingImagePath(undefined, '/d/a.png', 'next')).toBeNull()
+  })
+})
+
+// ─── Todo #58: 모달 95% 크기 ──────────────────────────────────────────────────
+
+describe('FileViewer 모달 크기 (Todo #58)', () => {
+  const css = readFileSync(
+    resolve(__dirname, '../styles/FileViewer.module.css'),
+    'utf8'
+  )
+  const viewerBlock = css.match(/\.viewer\s*\{([^}]+)\}/)?.[1] ?? ''
+
+  it('VS-01: .viewer는 너비 95vw로 설정된다', () => {
+    expect(viewerBlock).toMatch(/width:\s*95vw/)
+  })
+
+  it('VS-02: .viewer는 높이 95vh로 설정된다', () => {
+    expect(viewerBlock).toMatch(/height:\s*95vh/)
+  })
+
+  it('VS-03: .viewer max-width는 95vw 이내로 제한된다', () => {
+    expect(viewerBlock).toMatch(/max-width:\s*95vw/)
+  })
+
+  it('VS-04: .viewer max-height는 95vh 이내로 제한된다', () => {
+    expect(viewerBlock).toMatch(/max-height:\s*95vh/)
   })
 })

@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #58 — F3/F4 뷰어·에디터 95vw·95vh)
+
+### 배경
+모달이 1000×800px max-size에 묶여 있어 큰 모니터에서 가운데에만 떠 있고
+주변이 어두운 오버레이로 낭비됨. 95vw·95vh로 풀어 사용 영역을 키움.
+
+### 변경
+- `styles/FileViewer.module.css` `.viewer`:
+  - `width: 100%; max-width: 1000px` → `width: 95vw; max-width: 95vw`
+  - `height: 100%; max-height: 800px` → `height: 95vh; max-height: 95vh`
+- `styles/TextEditor.module.css` `.editor`: 동일하게 95vw / 95vh 적용
+- 테스트: VS-01~04 (FileViewer.test.js), ES-01~04 (TextEditor.test.js)
+  CSS 파일을 직접 읽어 `.viewer` / `.editor` 블록에 95vw·95vh 매칭 확인
+- 프론트엔드 246 → 254개 테스트 모두 통과 / Go 230개 통과
+
 ## 2026-05-08 (Todo #57 — F8/Delete = 휴지통 이동)
 
 ### 배경

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { isStarlarkFile, buildCursorPosition, isStarlarkRunShortcut } from './TextEditor.jsx'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // ─── isStarlarkFile ────────────────────────────────────────────────────────────
 
@@ -99,5 +104,31 @@ describe('isStarlarkRunShortcut', () => {
 
   it('SR-06: F4는 실행 단축키 아님', () => {
     expect(isStarlarkRunShortcut({ key: 'F4' })).toBe(false)
+  })
+})
+
+// ─── Todo #58: 모달 95% 크기 ──────────────────────────────────────────────────
+
+describe('TextEditor 모달 크기 (Todo #58)', () => {
+  const css = readFileSync(
+    resolve(__dirname, '../styles/TextEditor.module.css'),
+    'utf8'
+  )
+  const editorBlock = css.match(/\.editor\s*\{([^}]+)\}/)?.[1] ?? ''
+
+  it('ES-01: .editor는 너비 95vw로 설정된다', () => {
+    expect(editorBlock).toMatch(/width:\s*95vw/)
+  })
+
+  it('ES-02: .editor는 높이 95vh로 설정된다', () => {
+    expect(editorBlock).toMatch(/height:\s*95vh/)
+  })
+
+  it('ES-03: .editor max-width는 95vw 이내로 제한된다', () => {
+    expect(editorBlock).toMatch(/max-width:\s*95vw/)
+  })
+
+  it('ES-04: .editor max-height는 95vh 이내로 제한된다', () => {
+    expect(editorBlock).toMatch(/max-height:\s*95vh/)
   })
 })

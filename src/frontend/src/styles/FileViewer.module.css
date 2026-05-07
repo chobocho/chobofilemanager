@@ -13,10 +13,10 @@
 .viewer {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 1000px;
-  height: 100%;
-  max-height: 800px;
+  width: 95vw;
+  max-width: 95vw;
+  height: 95vh;
+  max-height: 95vh;
   background: var(--bg-panel);
   border: 1px solid var(--border-active);
   border-radius: var(--radius-lg);

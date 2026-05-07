@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #55 — Starlark 스크래치 Ctrl+M으로 변경)
+
+### 배경
+Ctrl+Enter는 TextEditor 내부에서 Starlark Run 단축키로도 사용되어 의미가 분산.
+스크래치 생성은 명시적인 Ctrl+M으로 분리해 충돌과 혼동을 줄임.
+
+### 변경
+- `App.jsx`:
+  - `isStarlarkScratchShortcut(e)` export — `ctrlKey||metaKey + key='m/M'`
+  - 전역 keydown 핸들러에서 Ctrl+Enter → Ctrl+M으로 트리거 변경
+- `HelpDialog.jsx`: "Ctrl+M — Starlark 스크래치" 항목 추가
+- `App.test.js` 신규: SS-01~06 6개 테스트
+- TextEditor 내부 Ctrl+Enter (in-editor Run, Todo #50) 동작은 그대로 유지
+- 프론트엔드 229 → 235개 테스트 모두 통과
+
 ## 2026-05-08 (Todo #54 — Shift+Delete만 영구 삭제)
 
 ### 배경

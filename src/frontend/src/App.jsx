@@ -16,6 +16,13 @@ import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import styles from './styles/App.module.css'
 
+// Todo #55: Starlark 스크래치 단축키 — Ctrl+M (이전 Ctrl+Enter는 TextEditor 내부 Run으로만 사용)
+export function isStarlarkScratchShortcut(e) {
+  if (!(e.ctrlKey || e.metaKey)) return false
+  const k = (e.key || '').toLowerCase()
+  return k === 'm'
+}
+
 export default function App() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
@@ -58,7 +65,7 @@ export default function App() {
     })
   }, [])
 
-  // Ctrl+Enter: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기.
+  // Ctrl+M: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기. (Todo #55, 이전 Ctrl+Enter)
   // 에디터/뷰어/모달이 떠 있을 때는 그쪽 핸들러에 양보.
   const handleStarlarkScratch = useCallback(async () => {
     try {
@@ -83,7 +90,7 @@ export default function App() {
         import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
       }
       // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'
+      if (isStarlarkScratchShortcut(e)
           && !editorFile && !viewerFile && !modal) {
         e.preventDefault()
         handleStarlarkScratch()

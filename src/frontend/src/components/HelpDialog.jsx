@@ -51,6 +51,7 @@ const SECTIONS = [
     title: '기타',
     rows: [
       { keys: ['F1'],              desc: '이 도움말 표시' },
+      { keys: ['Ctrl+M'],          desc: 'Starlark 스크래치 — 임시 .star 파일 생성 + F4 편집기 열기' },
       { keys: ['Ctrl+R'],          desc: '현재 패널 새로고침' },
       { keys: ['Ctrl+H'],          desc: '숨김 파일(.으로 시작) 표시 / 숨김 토글' },
       { keys: ['Ctrl+D'],          desc: '바로가기 목록 (추가 / 이동 / 삭제)' },

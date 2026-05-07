@@ -308,6 +308,11 @@ func (fm *FileManager) DeleteItems(paths []string) error {
 	return nil
 }
 
+// Todo #57: 휴지통(Recycle Bin)으로 이동. Windows: SHFileOperationW, 그 외: 미지원.
+func (fm *FileManager) TrashItems(paths []string) error {
+	return trashItems(paths)
+}
+
 func (fm *FileManager) CreateDirectory(path string) error {
 	if _, err := os.Stat(path); err == nil {
 		return fmt.Errorf("폴더가 이미 존재합니다: %s", filepath.Base(path))

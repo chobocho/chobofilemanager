@@ -35,6 +35,8 @@ export default function App() {
   const [viewerFile, setViewerFile] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError]   = useState(null)
+  const [trashTarget, setTrashTarget]   = useState(null) // Todo #57: F8/Delete 휴지통 대상
+  const [trashError, setTrashError]     = useState(null)
   const [copyConflict, setCopyConflict] = useState(null) // { conflicts, sources, dest }
   const [moveConflict, setMoveConflict] = useState(null) // { conflicts, sources, dest }
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
@@ -114,6 +116,25 @@ export default function App() {
         focusActivePanel()
       } catch (err) {
         setDeleteError(String(err))
+      }
+    }
+  }
+
+  // Todo #57: F8/Delete 휴지통 이동 흐름 (영구 삭제와 분리된 별도 확인 다이얼로그)
+  const handleTrash = async () => {
+    const result = await useFileStore.getState().trash()
+    if (result.count > 0) setTrashTarget(result)
+  }
+
+  const handleConfirmTrash = async () => {
+    if (trashTarget) {
+      try {
+        await useFileStore.getState().confirmTrash(trashTarget.paths)
+        setTrashTarget(null)
+        setTrashError(null)
+        focusActivePanel()
+      } catch (err) {
+        setTrashError(String(err))
       }
     }
   }
@@ -209,6 +230,7 @@ export default function App() {
         onMove={handleMove}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
+        onTrash={handleTrash}
         onSwitchPanel={handleSwitchPanel}
         onBookmarks={() => setModal('bookmarks')}
       />
@@ -257,6 +279,7 @@ export default function App() {
         onMove={handleMove}
         onNewDir={() => setModal('newdir')}
         onDelete={handleDelete}
+        onTrash={handleTrash}
         onShell={() => setModal('shell')}
         onCmd={() => {
           const s = useFileStore.getState()
@@ -285,11 +308,18 @@ export default function App() {
         return <ShellCommandDialog workDir={s[s.activePanel].path} onClose={() => { setModal(null); focusActivePanel() }} />
       })()}
       {deleteTarget && (
-        <ConfirmDialog title="Delete Items"
-          message={deleteError ? `삭제 실패: ${deleteError}` : `Permanently delete ${deleteTarget.count} item(s)?`}
+        <ConfirmDialog title="영구 삭제"
+          message={deleteError ? `삭제 실패: ${deleteError}` : `${deleteTarget.count}개 항목을 영구 삭제하시겠습니까? (복구 불가)`}
           items={deleteTarget.paths.map(p => p.split(/[/\\]/).pop())}
-          confirmLabel="Delete" danger
+          confirmLabel="영구 삭제" danger
           onConfirm={handleConfirmDelete} onClose={() => { setDeleteTarget(null); setDeleteError(null); focusActivePanel() }} />
+      )}
+      {trashTarget && (
+        <ConfirmDialog title="휴지통으로 이동"
+          message={trashError ? `휴지통 이동 실패: ${trashError}` : `${trashTarget.count}개 항목을 휴지통으로 이동하시겠습니까?`}
+          items={trashTarget.paths.map(p => p.split(/[/\\]/).pop())}
+          confirmLabel="휴지통으로 이동"
+          onConfirm={handleConfirmTrash} onClose={() => { setTrashTarget(null); setTrashError(null); focusActivePanel() }} />
       )}
       {copyConflict && (
         <CopyConflictDialog

@@ -70,6 +70,11 @@ func (a *App) DeleteItems(paths []string) error {
 	return a.fileManager.DeleteItems(paths)
 }
 
+// Todo #57: 휴지통으로 이동
+func (a *App) TrashItems(paths []string) error {
+	return a.fileManager.TrashItems(paths)
+}
+
 func (a *App) CreateDirectory(path string) error {
 	return a.fileManager.CreateDirectory(path)
 }

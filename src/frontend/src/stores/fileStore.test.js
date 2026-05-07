@@ -11,6 +11,7 @@ vi.mock('../wailsjs/runtime', () => ({
     CopyItems: vi.fn(),
     MoveItems: vi.fn(),
     DeleteItems: vi.fn(),
+    TrashItems: vi.fn(),
     CreateDirectory: vi.fn(),
     CreateFile: vi.fn(),
     RenameItem: vi.fn(),
@@ -846,5 +847,90 @@ describe('Todo #56 — 생성 후 커서 위치', () => {
     }))
     useFileStore.getState()._focusByName('left', 'missing.txt')
     expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+})
+
+// ─── Todo #57: 휴지통(Trash) 이동 ───────────────────────────────────────────
+
+describe('Todo #57 — confirmTrash / trash', () => {
+  let useFileStore
+  let api
+
+  const file = (name) => ({
+    name,
+    path: `/test/${name}`,
+    isDir: false,
+    isHidden: name.startsWith('.'),
+    size: 100,
+    modified: '2026-01-01T00:00:00Z',
+    extension: name.includes('.') ? '.' + name.split('.').pop() : '',
+  })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod    = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    // 이전 테스트의 mock 호출 기록 초기화 (toHaveBeenCalled 누적 방지)
+    api.TrashItems.mockClear?.()
+    api.DeleteItems.mockClear?.()
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: {
+        ...s.left,
+        path: '/test',
+        files: [file('alpha.txt'), file('beta.js'), file('gamma.go')],
+        selected: new Set(['/test/beta.js']),
+        cursor: 0,
+        showHidden: false,
+      }
+    }))
+    api.GetParentPath.mockReturnValue('/')
+    api.ChangeWorkingDirectory.mockResolvedValue(undefined)
+  })
+
+  it('TR-01: trash() — 선택된 파일이 있으면 그 목록 반환', async () => {
+    const r = await useFileStore.getState().trash()
+    expect(r.count).toBe(1)
+    expect(r.paths).toEqual(['/test/beta.js'])
+  })
+
+  it('TR-02: trash() — 선택이 없으면 cursor 위 파일 1개 반환', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(), cursor: 2 } }))
+    const r = await useFileStore.getState().trash()
+    expect(r.count).toBe(1)
+    expect(r.paths).toEqual(['/test/gamma.go'])
+  })
+
+  it('TR-03: confirmTrash() — api.TrashItems 호출 (DeleteItems 아님)', async () => {
+    api.TrashItems.mockResolvedValue(undefined)
+    api.ListDirectory.mockResolvedValue({
+      path: '/test',
+      files: [file('alpha.txt'), file('gamma.go')],
+    })
+    await useFileStore.getState().confirmTrash(['/test/beta.js'])
+    expect(api.TrashItems).toHaveBeenCalledWith(['/test/beta.js'])
+    expect(api.DeleteItems).not.toHaveBeenCalled()
+    expect(useFileStore.getState().status).toMatch(/Recycle Bin/)
+  })
+
+  it('TR-04: confirmDelete() — api.DeleteItems 호출 (TrashItems 아님)', async () => {
+    api.DeleteItems.mockResolvedValue(undefined)
+    api.ListDirectory.mockResolvedValue({
+      path: '/test',
+      files: [file('alpha.txt'), file('gamma.go')],
+    })
+    await useFileStore.getState().confirmDelete(['/test/beta.js'])
+    expect(api.DeleteItems).toHaveBeenCalledWith(['/test/beta.js'])
+    expect(api.TrashItems).not.toHaveBeenCalled()
+    expect(useFileStore.getState().status).toMatch(/Deleted/)
+  })
+
+  it('TR-05: confirmTrash() 실패 시 status에 Trash failed 기록 + throw', async () => {
+    api.TrashItems.mockRejectedValue(new Error('shell32 error'))
+    await expect(useFileStore.getState().confirmTrash(['/test/beta.js']))
+      .rejects.toThrow()
+    expect(useFileStore.getState().status).toMatch(/Trash failed/)
   })
 })

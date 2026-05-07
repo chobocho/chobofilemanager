@@ -25,6 +25,7 @@ const createMockAPI = () => ({
   CopyItems: async () => null,
   MoveItems: async () => null,
   DeleteItems: async () => null,
+  TrashItems: async () => null,
   CreateDirectory: async () => null,
   CreateFile: async () => null,
   RenameItem: async () => null,

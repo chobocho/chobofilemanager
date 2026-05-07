@@ -384,7 +384,23 @@ export const useFileStore = create((set, get) => ({
     return { paths: selected, count: selected.length }
   },
 
+  // Todo #57: 휴지통(F8/Delete)도 동일한 선택→대상 추출 로직.
+  // delete()와 의미적으로 같지만 호출자가 의도를 명확히 구분할 수 있도록 별도 메서드로 노출.
+  trash: async () => {
+    return get().delete()
+  },
+
   confirmDelete: async (paths) => {
+    return get()._removePaths(paths, { mode: 'permanent' })
+  },
+
+  // Todo #57: 휴지통 이동. confirmDelete와 동일한 후처리(커서 이동/리프레시)이지만
+  // 백엔드 API만 다르게 호출.
+  confirmTrash: async (paths) => {
+    return get()._removePaths(paths, { mode: 'trash' })
+  },
+
+  _removePaths: async (paths, { mode }) => {
     const state = get()
     const panel = state.activePanel
     // 삭제 전 visible 인덱스를 기록 — 삭제 후 커서 위치 계산용 (Todo #49)
@@ -398,11 +414,14 @@ export const useFileStore = create((set, get) => ({
       .filter(i => i >= 0)
     const minDeletedIdx = deletedIndices.length > 0 ? Math.min(...deletedIndices) : -1
 
-    set({ status: `Deleting ${paths.length} item(s)...` })
+    const verb = mode === 'trash' ? '휴지통으로 이동' : 'Deleting'
+    set({ status: `${verb} ${paths.length} item(s)...` })
     try {
-      await api.DeleteItems(paths)
+      if (mode === 'trash') await api.TrashItems(paths)
+      else                  await api.DeleteItems(paths)
       await get()._refreshAffected([...new Set(paths.map(p => parentDir(p)))])
-      set({ status: `Deleted ${paths.length} item(s)` })
+      const past = mode === 'trash' ? `Moved ${paths.length} item(s) to Recycle Bin` : `Deleted ${paths.length} item(s)`
+      set({ status: past })
 
       // 삭제된 위치 바로 위 파일로 커서 이동
       const after = get()[panel]
@@ -414,7 +433,8 @@ export const useFileStore = create((set, get) => ({
         set(s => ({ [panel]: { ...s[panel], cursor: newCursor, cursorOnParent: false } }))
       }
     } catch (err) {
-      set({ status: `Delete failed: ${err}` })
+      const failVerb = mode === 'trash' ? 'Trash' : 'Delete'
+      set({ status: `${failVerb} failed: ${err}` })
       throw err
     }
   },

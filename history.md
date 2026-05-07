@@ -1,5 +1,34 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #57 — F8/Delete = 휴지통 이동)
+
+### 배경
+F8/Delete가 영구 삭제로 직결되어 위험. Windows 기본 동작과 동일하게 휴지통으로
+이동하도록 변경. 영구 삭제는 Shift+Delete(Todo #54)로만 분기.
+
+### 변경
+- 백엔드(Go):
+  - `trash_windows.go` 신규 — `shell32.dll!SHFileOperationW`를 syscall로 호출.
+    더블-널-종단 UTF-16 다중 경로 버퍼 구성, `FOF_ALLOWUNDO|FOF_NOCONFIRMATION|FOF_NOERRORUI|FOF_SILENT` 플래그 사용. 추가 deps 없음.
+  - `trash_other.go` 신규 — 비-Windows 환경 stub (Windows 전용 안내 에러).
+  - `filemanager.go`: `TrashItems(paths []string) error` 메서드.
+  - `app.go`: Wails 노출 래퍼 `App.TrashItems`.
+- 프론트엔드:
+  - `wailsjs/runtime.js` mock에 `TrashItems` 추가
+  - `fileStore.js`:
+    - `trash()` — delete()와 동일 로직(선택→대상 추출), 의도 분리용 별칭
+    - `confirmTrash(paths)` 추가 — `_removePaths(paths, {mode:'trash'})`
+    - `_removePaths` 내부 헬퍼 — confirmDelete/confirmTrash 공통 후처리
+      (커서 이동, refresh, 상태 메시지) 통합
+  - `App.jsx`:
+    - `trashTarget`/`trashError` state, `handleTrash`/`handleConfirmTrash`
+    - `<ConfirmDialog>` "휴지통으로 이동" 별도 렌더 (영구 삭제와 분리)
+    - 영구 삭제 다이얼로그 문구 한글화 + "복구 불가" 명시
+  - `Toolbar.jsx`: `onTrash` prop 전달, `isTrashShortcut` 매처가 onTrash → onDelete fallback
+  - `FKeyBar.jsx`: F8 라벨 "Trash"로 변경, action = `onTrash ?? onDelete`
+- 테스트: `fileStore.test.js`에 TR-01~05 5개 시나리오 추가
+- 프론트엔드 241 → 246개 테스트 모두 통과 / Go 230개 통과
+
 ## 2026-05-08 (Todo #56 — 파일/폴더 생성 후 새 항목으로 커서·스크롤)
 
 ### 배경

@@ -1,5 +1,26 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #60·#61 — ConfirmDialog 좌우 커서 네비게이션)
+
+### 배경
+F8 휴지통 / Shift+Del 영구 삭제 팝업에서 마우스 클릭 외에 키보드만으로
+빠르게 취소/삭제를 선택하기 어려움. ←/→ 화살표로 두 버튼 사이 포커스
+이동, Enter로 확정. 두 다이얼로그 모두 `ConfirmDialog`를 공유하므로 한
+컴포넌트만 수정하면 동시에 적용됨.
+
+### 변경
+- `ConfirmDialog.jsx`:
+  - `nextConfirmFocusIndex(currentIndex, key, hideCancel)` 순수 함수 export
+    — Cancel(0) ↔ Confirm(1), 경계에서 클램프, hideCancel 시 Confirm 고정
+  - useState `focusIndex` (기본 1=Confirm), useRef로 cancelRef/confirmRef
+  - useEffect로 focusIndex 변화 시 해당 버튼에 .focus()
+  - `<div className={styles.footer} onKeyDown={handleKeyDown}>` ←/→ 처리
+  - 기존 `autoFocus` 제거 (useEffect로 대체)
+- 영구 삭제 문구는 Todo #57 시점에 이미 "영구 삭제하시겠습니까? (복구
+  불가)"로 한글 명료 → 별도 변경 없음
+- 테스트: `ConfirmDialog.test.js` 신규 — CD-01~07 7개 시나리오
+- 프론트엔드 266 → 273개 테스트 모두 통과 / Go 230개 통과
+
 ## 2026-05-08 (Todo #59 — F3/F4 뷰어·에디터 상호 전환)
 
 ### 배경

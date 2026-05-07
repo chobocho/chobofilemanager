@@ -28,7 +28,33 @@ function Modal({ children, onClose, width = 400 }) {
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
 
+// 좌우 화살표로 Cancel(0) ↔ Confirm(1) 포커스 이동 (Todo #60, #61)
+// hideCancel일 때는 항상 Confirm.
+export function nextConfirmFocusIndex(currentIndex, key, hideCancel) {
+  if (hideCancel) return 1
+  if (key === 'ArrowRight') return Math.min(1, currentIndex + 1)
+  if (key === 'ArrowLeft') return Math.max(0, currentIndex - 1)
+  return currentIndex
+}
+
 export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm', danger, hideCancel, onConfirm, onClose }) {
+  const cancelRef  = useRef(null)
+  const confirmRef = useRef(null)
+  const [focusIndex, setFocusIndex] = useState(1)  // 기본 Confirm
+
+  useEffect(() => {
+    const target = focusIndex === 0 ? cancelRef.current : confirmRef.current
+    target?.focus()
+  }, [focusIndex])
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      e.stopPropagation()
+      setFocusIndex(prev => nextConfirmFocusIndex(prev, e.key, hideCancel))
+    }
+  }
+
   return (
     <Modal onClose={onClose}>
       <div className={styles.header}>
@@ -48,12 +74,16 @@ export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm',
           </div>
         )}
       </div>
-      <div className={styles.footer}>
-        {!hideCancel && <button className={styles.btnCancel} onClick={onClose}>Cancel</button>}
+      <div className={styles.footer} onKeyDown={handleKeyDown}>
+        {!hideCancel && (
+          <button ref={cancelRef} className={styles.btnCancel} onClick={onClose}>
+            Cancel
+          </button>
+        )}
         <button
+          ref={confirmRef}
           className={`${styles.btnConfirm} ${danger ? styles.btnDanger : ''}`}
           onClick={() => { onConfirm(); onClose() }}
-          autoFocus
         >
           {confirmLabel}
         </button>

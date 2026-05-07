@@ -412,6 +412,18 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     if (rows[index]) rows[index].scrollIntoView({ block: 'nearest' })
   }
 
+  // Todo #56: store에서 외부로 커서를 옮긴 경우(파일 생성/이름 변경 등)에도
+  // 자동 스크롤되도록 cursor 변경에 반응. 키보드 네비게이션 핸들러도 같은 동작을
+  // 하지만 idempotent(scrollIntoView block:nearest)이므로 중복 호출은 무해.
+  useEffect(() => {
+    if (panel.cursorOnParent) return
+    requestAnimationFrame(() => {
+      if (!listRef.current) return
+      const rows = listRef.current.querySelectorAll('[data-row]')
+      if (rows[panel.cursor]) rows[panel.cursor].scrollIntoView({ block: 'nearest' })
+    })
+  }, [panel.cursor, panel.cursorOnParent])
+
   const scrollToParentRow = () => {
     if (!listRef.current) return
     const parentRow = listRef.current.querySelector('[data-parent-row]')

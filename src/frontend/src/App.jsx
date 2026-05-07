@@ -138,13 +138,8 @@ export default function App() {
 
   const handleNewFile = async (name) => {
     const store = useFileStore.getState()
-    const panel = store[store.activePanel]
-    const base  = panel.path
-    const sep   = base.includes('\\') ? '\\' : '/'
-    const path  = base.replace(/[/\\]+$/, '') + sep + name
-    const api = (await import('./wailsjs/runtime')).default
-    await api.CreateFile(path)  // 에러 시 throw → NewItemDialog에서 캐치
-    store.refresh(store.activePanel)
+    // Todo #56: 생성 후 커서가 새 파일로 이동 + 스크롤 (store가 처리)
+    await store.createFile(store.activePanel, name)
     setModal(null)
     focusActivePanel()
   }

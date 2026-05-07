@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #56 — 파일/폴더 생성 후 새 항목으로 커서·스크롤)
+
+### 배경
+F7로 폴더, Ctrl+N으로 파일 생성 후 목록 끝에서 새 항목을 찾기 어려움. 생성 직후 커서가 새 항목 위에 위치하고 자동 스크롤되도록 개선.
+
+### 변경
+- `fileStore.js`:
+  - `createFile(panel, name)` 신규 — api.CreateFile + refresh + 커서 이동까지 store에서 처리
+  - `createDirectory(panel, name)` 후처리에 `_focusByName` 호출 추가
+  - `_focusByName(panel, name)` 헬퍼 — visible(`showHidden` 반영) 인덱스에서 찾아 `cursor`/`cursorOnParent` 갱신
+- `App.jsx` `handleNewFile` — 직접 api 호출 + 수동 refresh 제거, `store.createFile()`로 위임
+- `FilePanel.jsx`: `panel.cursor` 변경 시 `requestAnimationFrame`으로 `scrollIntoView` 트리거 — 키보드 네비게이션 외부에서 커서가 이동돼도 화면 스크롤 동기화
+- `fileStore.test.js`: FN-01~06 6개 테스트 (createFile, createDirectory, 숨김 항목 폴백, 실패 시 throw, _focusByName)
+- 프론트엔드 235 → 241개 테스트 모두 통과
+
 ## 2026-05-08 (Todo #55 — Starlark 스크래치 Ctrl+M으로 변경)
 
 ### 배경

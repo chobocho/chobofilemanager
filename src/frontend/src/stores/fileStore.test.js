@@ -751,3 +751,100 @@ describe('getLastPathSegment 추가 엣지케이스', () => {
     expect(getLastPathSegment('/var/log/2024')).toBe('2024')
   })
 })
+
+// ─── Todo #56: 파일/폴더 생성 후 새 항목에 커서 ─────────────────────────────────
+
+describe('Todo #56 — 생성 후 커서 위치', () => {
+  let useFileStore
+  let api
+
+  const file = (name) => ({
+    name,
+    path: `/test/${name}`,
+    isDir: false,
+    isHidden: name.startsWith('.'),
+    size: 100,
+    modified: '2026-01-01T00:00:00Z',
+    extension: name.includes('.') ? '.' + name.split('.').pop() : '',
+  })
+  const dir = (name) => ({ ...file(name), isDir: true, extension: '' })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod  = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: {
+        ...s.left,
+        path: '/test',
+        files: [file('alpha.txt'), file('beta.js')],
+        selected: new Set(),
+        cursor: 0,
+        showHidden: false,
+      }
+    }))
+    api.GetParentPath.mockReturnValue('/')
+    api.ChangeWorkingDirectory.mockResolvedValue(undefined)
+  })
+
+  it('FN-01: createFile 후 커서가 새 파일로 이동', async () => {
+    api.CreateFile.mockResolvedValue(undefined)
+    api.ListDirectory.mockResolvedValue({
+      path: '/test',
+      files: [file('alpha.txt'), file('beta.js'), file('gamma.txt')],
+    })
+    await useFileStore.getState().createFile('left', 'gamma.txt')
+    expect(useFileStore.getState().left.cursor).toBe(2)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('FN-02: createDirectory 후 커서가 새 폴더로 이동', async () => {
+    api.CreateDirectory.mockResolvedValue(undefined)
+    api.ListDirectory.mockResolvedValue({
+      path: '/test',
+      files: [dir('newdir'), file('alpha.txt'), file('beta.js')],
+    })
+    await useFileStore.getState().createDirectory('left', 'newdir')
+    expect(useFileStore.getState().left.cursor).toBe(0)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('FN-03: 생성된 항목이 visible에 없으면(숨김 등) 커서는 refresh 후 기본값', async () => {
+    api.CreateFile.mockResolvedValue(undefined)
+    // 생성된 .secret이 visible에서 빠짐 (showHidden=false)
+    api.ListDirectory.mockResolvedValue({
+      path: '/test',
+      files: [file('alpha.txt'), file('beta.js'), file('.secret')],
+    })
+    await useFileStore.getState().createFile('left', '.secret')
+    // _focusByName이 visible에서 못 찾으면 refresh가 설정한 cursor=0 그대로
+    expect(useFileStore.getState().left.cursor).toBe(0)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('FN-04: createFile 실패 시 throw하고 status에 메시지 기록', async () => {
+    api.CreateFile.mockRejectedValue(new Error('exists'))
+    await expect(useFileStore.getState().createFile('left', 'alpha.txt'))
+      .rejects.toThrow()
+    expect(useFileStore.getState().status).toMatch(/Create file failed/)
+  })
+
+  it('FN-05: _focusByName — 이름이 visible에 있으면 cursor 갱신', () => {
+    useFileStore.setState(s => ({
+      left: { ...s.left, files: [file('a.txt'), file('b.txt'), file('c.txt')], cursor: 0 }
+    }))
+    useFileStore.getState()._focusByName('left', 'c.txt')
+    expect(useFileStore.getState().left.cursor).toBe(2)
+  })
+
+  it('FN-06: _focusByName — 이름이 없으면 cursor 유지', () => {
+    useFileStore.setState(s => ({
+      left: { ...s.left, files: [file('a.txt')], cursor: 0 }
+    }))
+    useFileStore.getState()._focusByName('left', 'missing.txt')
+    expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+})

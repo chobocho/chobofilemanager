@@ -425,9 +425,36 @@ export const useFileStore = create((set, get) => ({
     try {
       await api.CreateDirectory(path)
       await get().refresh(panel)
+      // Todo #56: 생성된 폴더에 커서 위치 (visible 인덱스). 스크롤은 FilePanel useEffect가 처리.
+      get()._focusByName(panel, name)
     } catch (err) {
       set({ status: `Create directory failed: ${err}` })
       throw err
+    }
+  },
+
+  // Todo #56: 새 파일 생성 후 해당 파일에 커서를 위치시키기 위한 store 진입점.
+  // (이전에는 App.jsx handleNewFile에서 직접 api.CreateFile을 호출했음)
+  createFile: async (panel, name) => {
+    const state = get()[panel]
+    const path = joinPath(state.path, name)
+    try {
+      await api.CreateFile(path)
+      await get().refresh(panel)
+      get()._focusByName(panel, name)
+    } catch (err) {
+      set({ status: `Create file failed: ${err}` })
+      throw err
+    }
+  },
+
+  // Todo #56: 패널 안에서 이름으로 visible 인덱스 찾아 커서 이동. 못 찾으면 무동작.
+  _focusByName: (panel, name) => {
+    const st = get()[panel]
+    const visible = st.showHidden ? st.files : st.files.filter(f => !f.isHidden)
+    const idx = visible.findIndex(f => f.name === name)
+    if (idx >= 0) {
+      set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
     }
   },
 

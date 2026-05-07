@@ -1,6 +1,23 @@
 # 변경 이력
 
-## 2026-05-05 (F3 이미지 뷰어 ←/→ 네비게이션)
+## 2026-05-08 (Todo #54 — Shift+Delete만 영구 삭제)
+
+### 배경
+영구 삭제는 위험하므로 단독 Delete가 아닌 명시적인 Shift+Delete만 동작하도록 변경.
+F8과 단독 Delete는 Todo #57에서 휴지통 이동으로 연결될 예정.
+
+### 변경
+- `Toolbar.jsx`:
+  - `isPermanentDeleteShortcut(e)` — Shift+Delete만 true (영구 삭제)
+  - `isTrashShortcut(e)` — F8 또는 단독 Delete만 true (휴지통; Todo #57)
+  - 키보드 핸들러 분기: 영구 삭제는 onDelete, 휴지통은 onTrash(없으면 onDelete fallback)
+  - `onTrash` prop 추가 (현 단계에서는 미바인딩 → onDelete fallback으로 기존 동작 유지)
+- `FilePanel.jsx`: F5/F6/F8/Delete 패스스루 주석 명료화
+- `HelpDialog.jsx`: "F8/Delete: 휴지통", "Shift+Delete: 영구 삭제" 항목 분리
+- `Toolbar.test.js`: PD-01~04, TR-01~04 8개 테스트 추가
+- 프론트엔드 221 → 229개 테스트 모두 통과
+
+
 
 ### 배경
 F3로 이미지를 보고 있을 때 폴더 안의 다음/이전 이미지로 즉시 이동할 수 있어야 사진 일괄 확인이 편함. 갤러리 뷰어 표준 UX.

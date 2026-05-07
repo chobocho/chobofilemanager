@@ -267,8 +267,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       case 'F6':
       case 'F8':
       case 'Delete':
+        // Toolbar의 window 핸들러가 처리 (F8/Delete=휴지통, Shift+Delete=영구삭제)
         e.preventDefault()
-        // handled by toolbar / app global handler
         break
       case 'c':
       case 'C':

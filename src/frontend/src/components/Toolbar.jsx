@@ -6,10 +6,22 @@ import {
 import styles from '../styles/Toolbar.module.css'
 import { useThemeStore } from '../stores/themeStore'
 
+// Todo #54: 영구 삭제는 Shift+Delete만 허용 (단독 Delete는 트래시 — Todo #57)
+export function isPermanentDeleteShortcut(e) {
+  return e.key === 'Delete' && e.shiftKey === true
+}
+
+// Todo #57: F8 또는 단독 Delete = 휴지통으로 이동 (단, Shift 동반은 영구 삭제로 분기)
+export function isTrashShortcut(e) {
+  if (e.key === 'F8') return true
+  if (e.key === 'Delete' && !e.shiftKey) return true
+  return false
+}
+
 export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
-  onRename, onCopy, onMove, onNewDir, onDelete, onView, onEdit, onSwitchPanel, onBookmarks, onHelp,
+  onRename, onCopy, onMove, onNewDir, onDelete, onTrash, onView, onEdit, onSwitchPanel, onBookmarks, onHelp,
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
@@ -18,6 +30,17 @@ export default function Toolbar({
   useEffect(() => {
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      // Todo #54: Shift+Delete = 영구 삭제. 일반 Delete + F8 = 휴지통(Todo #57)
+      if (isPermanentDeleteShortcut(e)) {
+        e.preventDefault()
+        onDelete?.()
+        return
+      }
+      if (isTrashShortcut(e)) {
+        e.preventDefault()
+        ;(onTrash ?? onDelete)?.()
+        return
+      }
       switch(e.key) {
         case 'F1': e.preventDefault(); onHelp?.();         break
         case 'Tab':
@@ -30,7 +53,6 @@ export default function Toolbar({
         case 'F5': e.preventDefault(); onCopy();           break
         case 'F6': e.preventDefault(); onMove();           break
         case 'F7': e.preventDefault(); onNewDir();         break
-        case 'F8': e.preventDefault(); onDelete();         break
         case 'f':
         case 'F':
           if (e.ctrlKey) { e.preventDefault(); onSearch?.(); }
@@ -49,7 +71,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onSwitchPanel, onNewFile, onBookmarks])
+  }, [onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onTrash, onSwitchPanel, onNewFile, onBookmarks])
 
   return (
     <div className={styles.toolbar}>

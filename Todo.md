@@ -124,3 +124,14 @@
 ## ~~61. Shift + Del로 파일을 삭제 할 때, 팝업에서 좌우 커서로 취소, 삭제 이동 가능 할 것 (문구 확인)~~ ✓ 완료 (2026-05-08)
 
 ## 62. ts_gwbasic_book 폴더 보고 GWBASIC 인터프리터 및 VM Typescript작성, 최대한 그대로 포팅 (Starlark로 작성해서 F4에서 실행 가능하게 하기
+
+### 진행 상황
+- ✓ 1단계 완료 (2026-05-08): `examples/gwbasic.star` — 렉서 + 최소 평가기
+  (PRINT/LET/REM/GOTO/END, 산술·비교 표현식, 라인번호). Starlark 런타임에
+  `While`/`Recursion` 옵션 활성화. Go 회귀 테스트 2건 추가.
+- 🔲 2단계 (예정): IF/THEN/ELSE, FOR/NEXT, GOSUB/RETURN, WHILE/WEND
+- 🔲 3단계 (예정): 배열 DIM, 문자열 함수(LEFT$/MID$/RIGHT$/LEN/INSTR),
+  수학 함수(SIN/COS/RND/INT), 부동소수점, 16/8진수
+- 🔲 4단계 (예정): DATA/READ/RESTORE, INPUT, DEF FN, 사용자 함수
+- 🔲 5단계 (예정): SCREEN/COLOR/LINE/CIRCLE/PSET 그래픽, SOUND/PLAY
+- 🔲 6단계 (예정): REPL, 디버거, 더 많은 예제 프로그램

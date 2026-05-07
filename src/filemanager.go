@@ -818,7 +818,11 @@ func (fm *FileManager) RunStarlarkFile(path string) (string, error) {
 		},
 	}
 
-	_, execErr := starlark.ExecFileOptions(&syntax.FileOptions{}, thread, path, data, nil)
+	// While/Recursion 활성화 — 트리 워킹 인터프리터(Todo #62) 등 반복 루프가 필요한
+	// 사용자 스크립트를 위해. 기본 비활성 옵션은 단순 표현 평가에는 충분하지만
+	// 조건부 반복문 작성을 막아 1980년대 BASIC을 포팅하기 어렵게 만듦.
+	opts := &syntax.FileOptions{While: true, Recursion: true}
+	_, execErr := starlark.ExecFileOptions(opts, thread, path, data, nil)
 	output := buf.String()
 	if execErr != nil {
 		if output != "" {

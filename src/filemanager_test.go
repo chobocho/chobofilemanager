@@ -1728,6 +1728,64 @@ print(len(items))
 	}
 }
 
+// ─── GW-BASIC 인터프리터 1단계 (Todo #62) ─────────────────────────────────────
+
+func TestRunStarlarkFile_GWBasicInterpreterStage1(t *testing.T) {
+	// 리포지토리 examples/gwbasic.star 데모 실행 → 렉서 + 평가기 1단계 검증.
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	mustContain := []string{
+		"HELLO, GW-BASIC!",
+		"A * B =42",
+		"(A + B) * 2 =26",
+		"EQ:1",
+		"NEQ:0",
+		"=== 끝 ===",
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(out, s) {
+			t.Errorf("출력에 %q가 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+}
+
+func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
+	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
+	base := t.TempDir()
+	script := filepath.Join(base, "while.star")
+	os.WriteFile(script, []byte(`
+def loop():
+    i = 0
+    s = 0
+    while i < 5:
+        s += i
+        i += 1
+    print(s)
+loop()
+`), 0644)
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+	if !strings.Contains(out, "10") {
+		t.Errorf("0+1+2+3+4=10 이 출력에 없음 (while 미활성?): %q", out)
+	}
+}
+
 // ─── GetFileInfo ──────────────────────────────────────────────────────────────
 
 func TestGetFileInfo_File(t *testing.T) {

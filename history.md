@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #62 — GW-BASIC 인터프리터 1단계, Starlark)
+
+### 배경
+`ts_gwbasic_book/` 12장(약 6600줄)에 기술된 TypeScript GW-BASIC 인터프리터를
+Starlark로 포팅, F4 에디터에서 실행 가능하게 함. 1단계는 렉서 + 최소 평가기.
+
+### 변경
+- `src/filemanager.go`:
+  - `RunStarlarkFile`의 FileOptions에 `While: true, Recursion: true` 추가
+    — 트리워킹 인터프리터 작성에 필수. 기존 스크립트 호환성 영향 없음(순수 추가).
+- `examples/gwbasic.star` 신규 (약 320줄):
+  - **Lexer**: NUMBER (정수만), STRING, IDENT, KEYWORD, OP(2자/1자), 구두점, EOL, EOF
+    `'` 줄코멘트, `?` → PRINT 단축
+  - **Expression parser** (재귀 하강): primary → mul → add → cmp
+    우선순위: 비교 < 가감 < 곱나, 단항 마이너스, 괄호
+  - **Statement evaluator** (라인번호 + GOTO): PRINT, LET(/암묵), REM, GOTO, END/STOP
+    문자열 + 숫자 자동 결합, ; (구분자) `,` (탭) 처리
+  - 데모 프로그램 내장 → `print()` 출력
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_StarlarkWhileEnabled` — While 옵션 활성화 회귀 테스트
+  - `TestRunStarlarkFile_GWBasicInterpreterStage1` — examples/gwbasic.star 실행 결과
+    `"HELLO, GW-BASIC!"`, `"A * B =42"`, `"(A + B) * 2 =26"`, 비교 결과 포함 검증
+- 미구현(향후 단계): IF/THEN, FOR/NEXT, GOSUB, WHILE/WEND, DEF FN, INPUT,
+  배열 DIM, 부동소수점/16진수, 문자열·수학 함수, 그래픽/사운드, REPL/디버거
+- 프론트엔드 273개 / Go 전체 테스트 통과
+
 ## 2026-05-08 (Todo #60·#61 — ConfirmDialog 좌우 커서 네비게이션)
 
 ### 배경

@@ -76,6 +76,11 @@ export function nextEncoding(current) {
 
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
+// F4: 뷰어 → 에디터 전환 단축키 (Todo #59)
+export function isSwitchToEditorShortcut(e) {
+  return e.key === 'F4' && !e.ctrlKey && !e.metaKey && !e.altKey
+}
+
 export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
@@ -156,6 +161,12 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         onClose()
       }
       if (e.key === 'F3') { e.preventDefault(); e.stopPropagation(); onClose() }
+      if (isSwitchToEditorShortcut(e) && onSwitchToEditor) {
+        e.preventDefault()
+        e.stopPropagation()
+        onSwitchToEditor()
+        return
+      }
       // 이미지 모드에서 ←/→ 로 폴더 안 이전/다음 이미지로 이동
       if (isImage && onChangePath && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         const dir = e.key === 'ArrowRight' ? 'next' : 'prev'
@@ -169,7 +180,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [onClose, searchOpen, isMarkdown, mdRendered, isImage, onChangePath, siblingImages, path])
+  }, [onClose, onSwitchToEditor, searchOpen, isMarkdown, mdRendered, isImage, onChangePath, siblingImages, path])
 
   // Reset scroll when font size changes so line numbers re-sync
   useEffect(() => {

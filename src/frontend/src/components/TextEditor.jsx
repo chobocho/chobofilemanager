@@ -22,6 +22,11 @@ export function isStarlarkRunShortcut(e) {
   return false
 }
 
+// F3: 에디터 → 뷰어 전환 단축키 (Todo #59)
+export function isSwitchToViewerShortcut(e) {
+  return e.key === 'F3' && !e.ctrlKey && !e.metaKey && !e.altKey
+}
+
 const LINE_HEIGHT = 20  // matches CSS line-height: 20px
 const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
@@ -162,10 +167,16 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         e.stopPropagation()
         handleRunRef.current()
       }
+      if (isSwitchToViewerShortcut(e) && onSwitchToViewer) {
+        e.preventDefault()
+        e.stopPropagation()
+        onSwitchToViewer()
+        return
+      }
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [isDirty, searchOpen, isStarlark, onClose])
+  }, [isDirty, searchOpen, isStarlark, onClose, onSwitchToViewer])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut } from './FileViewer.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -329,5 +329,33 @@ describe('FileViewer 모달 크기 (Todo #58)', () => {
 
   it('VS-04: .viewer max-height는 95vh 이내로 제한된다', () => {
     expect(viewerBlock).toMatch(/max-height:\s*95vh/)
+  })
+})
+
+// ─── Todo #59: F4 = 뷰어 → 에디터 전환 ────────────────────────────────────────
+
+describe('isSwitchToEditorShortcut (Todo #59)', () => {
+  it('SE-01: F4는 에디터 전환 단축키', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F4' })).toBe(true)
+  })
+
+  it('SE-02: F3는 에디터 전환 단축키 아님', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F3' })).toBe(false)
+  })
+
+  it('SE-03: Ctrl+F4는 에디터 전환 아님 (모디파이어 제외)', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F4', ctrlKey: true })).toBe(false)
+  })
+
+  it('SE-04: Alt+F4는 에디터 전환 아님 (창 닫기와 충돌 방지)', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F4', altKey: true })).toBe(false)
+  })
+
+  it('SE-05: Cmd+F4 (macOS)도 에디터 전환 아님', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F4', metaKey: true })).toBe(false)
+  })
+
+  it('SE-06: F5는 에디터 전환 아님', () => {
+    expect(isSwitchToEditorShortcut({ key: 'F5' })).toBe(false)
   })
 })

@@ -1,5 +1,23 @@
 # 변경 이력
 
+## 2026-05-08 (Todo #59 — F3/F4 뷰어·에디터 상호 전환)
+
+### 배경
+F3 뷰어에서 F4를 누르면 에디터로, F4 에디터에서 F3을 누르면 뷰어로 전환되어야
+하는데 키 핸들러에 전환 로직이 없어 동작하지 않음 (헤더의 전환 버튼만 작동).
+
+### 변경
+- `FileViewer.jsx`:
+  - `isSwitchToEditorShortcut(e)` export — F4 단독 (Ctrl/Alt/Meta 제외해 Alt+F4 창 닫기와 충돌 방지)
+  - keydown 핸들러에 F4 처리 추가 → `onSwitchToEditor()` 호출
+  - useEffect deps에 `onSwitchToEditor` 추가
+- `TextEditor.jsx`:
+  - `isSwitchToViewerShortcut(e)` export — F3 단독
+  - keydown 핸들러에 F3 처리 추가 → `onSwitchToViewer()` 호출
+  - useEffect deps에 `onSwitchToViewer` 추가
+- 테스트: SE-01~06 (FileViewer), SV-01~06 (TextEditor)
+- 프론트엔드 254 → 266개 테스트 모두 통과 / Go 230개 통과
+
 ## 2026-05-08 (Todo #58 — F3/F4 뷰어·에디터 95vw·95vh)
 
 ### 배경

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isStarlarkFile, buildCursorPosition, isStarlarkRunShortcut } from './TextEditor.jsx'
+import { isStarlarkFile, buildCursorPosition, isStarlarkRunShortcut, isSwitchToViewerShortcut } from './TextEditor.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -130,5 +130,33 @@ describe('TextEditor 모달 크기 (Todo #58)', () => {
 
   it('ES-04: .editor max-height는 95vh 이내로 제한된다', () => {
     expect(editorBlock).toMatch(/max-height:\s*95vh/)
+  })
+})
+
+// ─── Todo #59: F3 = 에디터 → 뷰어 전환 ─────────────────────────────────────────
+
+describe('isSwitchToViewerShortcut (Todo #59)', () => {
+  it('SV-01: F3는 뷰어 전환 단축키', () => {
+    expect(isSwitchToViewerShortcut({ key: 'F3' })).toBe(true)
+  })
+
+  it('SV-02: F4는 뷰어 전환 아님', () => {
+    expect(isSwitchToViewerShortcut({ key: 'F4' })).toBe(false)
+  })
+
+  it('SV-03: Ctrl+F3은 뷰어 전환 아님', () => {
+    expect(isSwitchToViewerShortcut({ key: 'F3', ctrlKey: true })).toBe(false)
+  })
+
+  it('SV-04: Alt+F3은 뷰어 전환 아님', () => {
+    expect(isSwitchToViewerShortcut({ key: 'F3', altKey: true })).toBe(false)
+  })
+
+  it('SV-05: Cmd+F3 (macOS)도 뷰어 전환 아님', () => {
+    expect(isSwitchToViewerShortcut({ key: 'F3', metaKey: true })).toBe(false)
+  })
+
+  it('SV-06: Esc는 뷰어 전환 아님', () => {
+    expect(isSwitchToViewerShortcut({ key: 'Escape' })).toBe(false)
   })
 })

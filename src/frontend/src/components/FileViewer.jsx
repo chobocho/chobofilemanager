@@ -103,6 +103,17 @@ export function isImageZoomResetShortcut(e) {
   return Boolean((e.ctrlKey || e.metaKey) && e.key === '0')
 }
 
+// 이미지 뷰어 vi 스타일 스크롤 (Todo #64): 확대로 스크롤바가 생겼을 때
+// h/l = 좌/우, j/k = 하/상. 다른 키는 null.
+export const IMAGE_SCROLL_STEP = 40
+export function imageScrollDelta(key) {
+  if (key === 'h') return { dx: -IMAGE_SCROLL_STEP, dy: 0 }
+  if (key === 'l') return { dx: IMAGE_SCROLL_STEP, dy: 0 }
+  if (key === 'j') return { dx: 0, dy: IMAGE_SCROLL_STEP }
+  if (key === 'k') return { dx: 0, dy: -IMAGE_SCROLL_STEP }
+  return null
+}
+
 export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
@@ -121,11 +132,12 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const isImage    = isImageFile(ext)
   const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
 
-  const lineNumbersRef = useRef(null)
-  const textareaRef    = useRef(null)
-  const bodyRef        = useRef(null)
-  const searchInputRef = useRef(null)
-  const mdBodyRef      = useRef(null)
+  const lineNumbersRef    = useRef(null)
+  const textareaRef       = useRef(null)
+  const bodyRef           = useRef(null)
+  const searchInputRef    = useRef(null)
+  const mdBodyRef         = useRef(null)
+  const imageContainerRef = useRef(null)
 
   const { readFile, readImage } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
@@ -207,6 +219,15 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
           setImageScale(DEFAULT_IMAGE_SCALE)
           return
         }
+        // h/j/k/l vi 스타일 스크롤 (Todo #64) — 모디파이어 없을 때만
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+          const delta = imageScrollDelta(e.key)
+          if (delta && imageContainerRef.current) {
+            e.preventDefault(); e.stopPropagation()
+            imageContainerRef.current.scrollBy(delta.dx, delta.dy)
+            return
+          }
+        }
       }
       // 이미지 모드에서 ←/→ 로 폴더 안 이전/다음 이미지로 이동
       if (isImage && onChangePath && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -236,7 +257,6 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   }, [path, isImage])
 
   // Ctrl + 휠로 이미지 확대/축소 (Todo #63). 비-passive 리스너로 등록해야 preventDefault가 동작.
-  const imageContainerRef = useRef(null)
   useEffect(() => {
     if (!isImage) return
     const el = imageContainerRef.current
@@ -527,7 +547,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
           {isImage ? (
             <span className={styles.viewMode}>
               이미지 — {ext.replace('.', '').toUpperCase()}
-              {' — '}{Math.round(imageScale * 100)}% (Ctrl +/- · Ctrl+휠 · Ctrl+0 리셋)
+              {' — '}{Math.round(imageScale * 100)}% (Ctrl +/- · Ctrl+휠 · Ctrl+0 리셋 · h/j/k/l 스크롤)
               {Array.isArray(siblingImages) && siblingImages.length > 1 && siblingImages.indexOf(path) >= 0 &&
                 ` — ${siblingImages.indexOf(path) + 1} / ${siblingImages.length} (←/→로 이동)`}
               {' — F3 / Esc to close'}

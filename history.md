@@ -1,5 +1,27 @@
 # 변경 이력
 
+## 2026-05-13 (Todo #64 — F3 이미지 뷰어 h/j/k/l 스크롤)
+
+### 배경
+Todo #63으로 이미지 줌이 가능해진 뒤, 확대 시 컨테이너에 스크롤바가 생기는데
+키보드만으로 스크롤할 수단이 없었음. vi 사용자에게 익숙한 h/j/k/l 매핑으로
+보강.
+
+### 변경
+- `FileViewer.jsx`:
+  - 순수 함수 `imageScrollDelta(key)` export — 'h'/'l'은 가로,
+    'j'/'k'는 세로 스크롤 델타 `{dx, dy}` 반환. 그 외 키는 null.
+  - 상수 `IMAGE_SCROLL_STEP = 40` (px/누름)
+  - 이미지 모드 키 핸들러에 분기 추가 — 모디파이어 없는 h/j/k/l 일 때
+    `imageContainerRef.current.scrollBy(dx, dy)` 호출, `preventDefault` +
+    `stopPropagation`. 줌되지 않아 스크롤할 영역이 없으면 브라우저가
+    자연스럽게 무시.
+  - 대문자 H/J/K/L 은 매칭하지 않음 (Shift 입력은 다른 용도와 충돌 방지)
+  - `imageContainerRef` 선언을 다른 ref들과 함께 상단으로 이동 (가독성)
+  - 상태바 힌트에 "h/j/k/l 스크롤" 추가
+- `FileViewer.test.js`: ISC-01~08 8개 케이스 추가
+- 프론트엔드 301/301 통과 (이전 293 → +8)
+
 ## 2026-05-13 (Todo #63 — F3 이미지 뷰어 Ctrl +/- · Ctrl+휠 줌)
 
 ### 배경

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut, imageScrollDelta, IMAGE_SCROLL_STEP } from './FileViewer.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -420,6 +420,48 @@ describe('isImageZoomResetShortcut (Todo #63)', () => {
 
   it('IZR-03: 모디파이어 없는 "0" 는 리셋 아님', () => {
     expect(isImageZoomResetShortcut({ key: '0' })).toBe(false)
+  })
+})
+
+// ─── Todo #64: 이미지 뷰어 vi 스타일 스크롤 (h/j/k/l) ─────────────────────────
+
+describe('imageScrollDelta (Todo #64)', () => {
+  it('ISC-01: h → 왼쪽 (dx < 0, dy = 0)', () => {
+    expect(imageScrollDelta('h')).toEqual({ dx: -IMAGE_SCROLL_STEP, dy: 0 })
+  })
+
+  it('ISC-02: l → 오른쪽 (dx > 0, dy = 0)', () => {
+    expect(imageScrollDelta('l')).toEqual({ dx: IMAGE_SCROLL_STEP, dy: 0 })
+  })
+
+  it('ISC-03: j → 아래 (dx = 0, dy > 0)', () => {
+    expect(imageScrollDelta('j')).toEqual({ dx: 0, dy: IMAGE_SCROLL_STEP })
+  })
+
+  it('ISC-04: k → 위 (dx = 0, dy < 0)', () => {
+    expect(imageScrollDelta('k')).toEqual({ dx: 0, dy: -IMAGE_SCROLL_STEP })
+  })
+
+  it('ISC-05: 다른 키는 null', () => {
+    expect(imageScrollDelta('a')).toBeNull()
+    expect(imageScrollDelta('Enter')).toBeNull()
+    expect(imageScrollDelta('ArrowLeft')).toBeNull()
+  })
+
+  it('ISC-06: 대문자 H/J/K/L 은 null (소문자만 매칭)', () => {
+    expect(imageScrollDelta('H')).toBeNull()
+    expect(imageScrollDelta('J')).toBeNull()
+    expect(imageScrollDelta('K')).toBeNull()
+    expect(imageScrollDelta('L')).toBeNull()
+  })
+
+  it('ISC-07: IMAGE_SCROLL_STEP 은 양수', () => {
+    expect(IMAGE_SCROLL_STEP).toBeGreaterThan(0)
+  })
+
+  it('ISC-08: 빈 문자열/undefined 키는 null', () => {
+    expect(imageScrollDelta('')).toBeNull()
+    expect(imageScrollDelta(undefined)).toBeNull()
   })
 })
 

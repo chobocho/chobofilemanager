@@ -114,6 +114,20 @@ export function imageScrollDelta(key) {
   return null
 }
 
+// Todo #65: transform: scale()은 시각만 키우고 레이아웃 박스는 그대로라
+// transformOrigin: center 와 결합되면 확대된 이미지가 컨테이너 바깥으로 사방 overflow,
+// scrollLeft=0이 시각적 좌측 끝이 아니라 좌측이 잘려 보였음.
+// CSS `zoom`은 시각과 레이아웃(스크롤 영역) 모두 확대하므로 정확히 스크롤됨.
+export function getImageStyle(imageScale) {
+  return {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    objectFit: 'contain',
+    zoom: imageScale,
+    cursor: imageScale > 1 ? 'zoom-out' : 'zoom-in',
+  }
+}
+
 export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
@@ -488,15 +502,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
                 src={content}
                 alt={fileName}
                 draggable={false}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  transform: `scale(${imageScale})`,
-                  transformOrigin: 'center center',
-                  transition: 'transform 80ms ease-out',
-                  cursor: imageScale > 1 ? 'zoom-out' : 'zoom-in',
-                }}
+                style={getImageStyle(imageScale)}
               />
             </div>
           ) : isMarkdown && mdRendered ? (

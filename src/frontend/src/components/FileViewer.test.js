@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut, imageScrollDelta, IMAGE_SCROLL_STEP } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut, imageScrollDelta, IMAGE_SCROLL_STEP, getImageStyle } from './FileViewer.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -462,6 +462,48 @@ describe('imageScrollDelta (Todo #64)', () => {
   it('ISC-08: 빈 문자열/undefined 키는 null', () => {
     expect(imageScrollDelta('')).toBeNull()
     expect(imageScrollDelta(undefined)).toBeNull()
+  })
+})
+
+// ─── Todo #65: 이미지 확대 시 좌측 짤림 수정 (transform:scale → zoom) ─────────
+
+describe('getImageStyle (Todo #65)', () => {
+  it('IST-01: zoom 값이 imageScale과 같다 (레이아웃과 시각 일치)', () => {
+    expect(getImageStyle(2).zoom).toBe(2)
+    expect(getImageStyle(0.5).zoom).toBe(0.5)
+  })
+
+  it('IST-02: transform: scale()은 사용하지 않는다 (스크롤 영역과 시각 불일치 원인)', () => {
+    const style = getImageStyle(2)
+    expect(style.transform).toBeUndefined()
+  })
+
+  it('IST-03: transformOrigin은 사용하지 않는다 (transform 미사용)', () => {
+    const style = getImageStyle(2)
+    expect(style.transformOrigin).toBeUndefined()
+  })
+
+  it('IST-04: objectFit은 contain (이미지 비율 유지)', () => {
+    expect(getImageStyle(1).objectFit).toBe('contain')
+  })
+
+  it('IST-05: maxWidth/maxHeight는 100% (zoom=1일 때 컨테이너 fit)', () => {
+    const style = getImageStyle(1)
+    expect(style.maxWidth).toBe('100%')
+    expect(style.maxHeight).toBe('100%')
+  })
+
+  it('IST-06: scale > 1 일 때 zoom-out 커서', () => {
+    expect(getImageStyle(2).cursor).toBe('zoom-out')
+  })
+
+  it('IST-07: scale <= 1 일 때 zoom-in 커서', () => {
+    expect(getImageStyle(1).cursor).toBe('zoom-in')
+    expect(getImageStyle(0.5).cursor).toBe('zoom-in')
+  })
+
+  it('IST-08: 기본 scale(1.0)일 때 zoom 값이 1', () => {
+    expect(getImageStyle(DEFAULT_IMAGE_SCALE).zoom).toBe(1)
   })
 })
 

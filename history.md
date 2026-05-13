@@ -1,5 +1,29 @@
 # 변경 이력
 
+## 2026-05-13 (Todo #65 — F3 이미지 확대 시 좌측 짤림 수정)
+
+### 배경
+Todo #63/#64로 확대·스크롤이 가능해진 뒤, 사용자가 이미지를 확대한 상태에서
+좌측 끝까지 스크롤해도 이미지의 좌측이 잘려 보이는 문제 보고. 원인은 `<img>`에
+`transform: scale(N)` + `transformOrigin: center center` 조합으로 *시각만*
+확대되고 부모 컨테이너의 레이아웃 박스/스크롤 영역은 원본 크기 그대로였기
+때문. 확대된 이미지가 박스 바깥으로 사방 overflow 되어 `scrollLeft=0`이
+시각적 좌측 끝이 아닌 위치를 가리켰음.
+
+### 변경
+- `FileViewer.jsx`:
+  - 순수 함수 `getImageStyle(imageScale)` export — `transform: scale()`
+    대신 CSS `zoom: imageScale` 사용. `zoom`은 시각과 레이아웃(스크롤 영역)
+    모두를 함께 확대하므로 부모 `overflow: auto` 컨테이너의 스크롤이 정확히
+    확대된 이미지 전체를 커버함. Wails WebView2(Chromium/WebKit) 환경에서
+    안정적으로 지원됨.
+  - `transformOrigin` / `transition: transform ...` 도 제거 (zoom 전환은
+    별도 트랜지션 없이 즉시 반영)
+  - `<img>` 인라인 스타일을 `getImageStyle(imageScale)` 호출로 단순화
+- `FileViewer.test.js`: IST-01~08 8개 케이스 추가 — zoom 사용, transform/
+  transformOrigin 미사용, objectFit/maxWidth 유지, cursor 분기 검증
+- 프론트엔드 309/309 통과 (이전 301 → +8)
+
 ## 2026-05-13 (Todo #64 — F3 이미지 뷰어 h/j/k/l 스크롤)
 
 ### 배경

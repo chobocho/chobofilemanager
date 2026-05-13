@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut } from './FileViewer.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -329,6 +329,97 @@ describe('FileViewer 모달 크기 (Todo #58)', () => {
 
   it('VS-04: .viewer max-height는 95vh 이내로 제한된다', () => {
     expect(viewerBlock).toMatch(/max-height:\s*95vh/)
+  })
+})
+
+// ─── Todo #63: F3 이미지 뷰어 Ctrl +/- / Ctrl+휠 줌 ───────────────────────────
+
+describe('multiplyImageScale (Todo #63)', () => {
+  it('IZ-01: 1.0 × STEP → 확대 (1.0보다 큼)', () => {
+    expect(multiplyImageScale(DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP)).toBeGreaterThan(DEFAULT_IMAGE_SCALE)
+  })
+
+  it('IZ-02: 1.0 ÷ STEP → 축소 (1.0보다 작음)', () => {
+    expect(multiplyImageScale(DEFAULT_IMAGE_SCALE, 1 / IMAGE_SCALE_STEP)).toBeLessThan(DEFAULT_IMAGE_SCALE)
+  })
+
+  it('IZ-03: 최대값(MAX_IMAGE_SCALE)을 초과하지 않는다', () => {
+    expect(multiplyImageScale(MAX_IMAGE_SCALE, 2)).toBe(MAX_IMAGE_SCALE)
+  })
+
+  it('IZ-04: 최소값(MIN_IMAGE_SCALE) 미만으로 내려가지 않는다', () => {
+    expect(multiplyImageScale(MIN_IMAGE_SCALE, 0.5)).toBe(MIN_IMAGE_SCALE)
+  })
+
+  it('IZ-05: factor=1이면 scale이 변하지 않는다', () => {
+    expect(multiplyImageScale(1.5, 1)).toBe(1.5)
+  })
+
+  it('IZ-06: 기본 scale은 1.0', () => {
+    expect(DEFAULT_IMAGE_SCALE).toBe(1)
+  })
+
+  it('IZ-07: MIN < DEFAULT < MAX (범위 정합성)', () => {
+    expect(MIN_IMAGE_SCALE).toBeLessThan(DEFAULT_IMAGE_SCALE)
+    expect(DEFAULT_IMAGE_SCALE).toBeLessThan(MAX_IMAGE_SCALE)
+  })
+
+  it('IZ-08: IMAGE_SCALE_STEP은 1보다 큰 곱셈 인자', () => {
+    expect(IMAGE_SCALE_STEP).toBeGreaterThan(1)
+  })
+})
+
+describe('isImageZoomInShortcut (Todo #63)', () => {
+  it('IZI-01: Ctrl + "+" 는 확대 단축키', () => {
+    expect(isImageZoomInShortcut({ key: '+', ctrlKey: true })).toBe(true)
+  })
+
+  it('IZI-02: Ctrl + "=" 도 확대 단축키 (Shift 없이 + 입력)', () => {
+    expect(isImageZoomInShortcut({ key: '=', ctrlKey: true })).toBe(true)
+  })
+
+  it('IZI-03: Cmd + "+" (macOS) 도 확대 단축키', () => {
+    expect(isImageZoomInShortcut({ key: '+', metaKey: true })).toBe(true)
+  })
+
+  it('IZI-04: 모디파이어 없는 "+" 는 확대 아님', () => {
+    expect(isImageZoomInShortcut({ key: '+' })).toBe(false)
+  })
+
+  it('IZI-05: Ctrl + "-" 는 확대 아님', () => {
+    expect(isImageZoomInShortcut({ key: '-', ctrlKey: true })).toBe(false)
+  })
+})
+
+describe('isImageZoomOutShortcut (Todo #63)', () => {
+  it('IZO-01: Ctrl + "-" 는 축소 단축키', () => {
+    expect(isImageZoomOutShortcut({ key: '-', ctrlKey: true })).toBe(true)
+  })
+
+  it('IZO-02: Cmd + "-" (macOS) 도 축소 단축키', () => {
+    expect(isImageZoomOutShortcut({ key: '-', metaKey: true })).toBe(true)
+  })
+
+  it('IZO-03: 모디파이어 없는 "-" 는 축소 아님', () => {
+    expect(isImageZoomOutShortcut({ key: '-' })).toBe(false)
+  })
+
+  it('IZO-04: Ctrl + "+" 는 축소 아님', () => {
+    expect(isImageZoomOutShortcut({ key: '+', ctrlKey: true })).toBe(false)
+  })
+})
+
+describe('isImageZoomResetShortcut (Todo #63)', () => {
+  it('IZR-01: Ctrl + "0" 는 리셋 단축키', () => {
+    expect(isImageZoomResetShortcut({ key: '0', ctrlKey: true })).toBe(true)
+  })
+
+  it('IZR-02: Cmd + "0" (macOS) 도 리셋 단축키', () => {
+    expect(isImageZoomResetShortcut({ key: '0', metaKey: true })).toBe(true)
+  })
+
+  it('IZR-03: 모디파이어 없는 "0" 는 리셋 아님', () => {
+    expect(isImageZoomResetShortcut({ key: '0' })).toBe(false)
   })
 })
 

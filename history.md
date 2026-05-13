@@ -1,5 +1,32 @@
 # 변경 이력
 
+## 2026-05-13 (Todo #63 — F3 이미지 뷰어 Ctrl +/- · Ctrl+휠 줌)
+
+### 배경
+F3 이미지 뷰어에서 작은 아이콘이나 큰 스크린샷을 자세히 보려면 OS 그림판이나
+브라우저로 별도로 여는 불편함이 있었음. 키보드 단축키와 마우스 휠로 즉시
+확대/축소가 가능해야 함.
+
+### 변경
+- `FileViewer.jsx`:
+  - 줌 상수 추가: `MIN_IMAGE_SCALE=0.1`, `MAX_IMAGE_SCALE=8`,
+    `DEFAULT_IMAGE_SCALE=1`, `IMAGE_SCALE_STEP=1.25` (모두 export)
+  - 순수 함수 export: `multiplyImageScale(current, factor)` —
+    `current * factor` 결과를 [MIN, MAX]로 클램프
+  - 단축키 판별 함수 export: `isImageZoomInShortcut` (Ctrl/Cmd + `+`/`=`),
+    `isImageZoomOutShortcut` (Ctrl/Cmd + `-`), `isImageZoomResetShortcut`
+    (Ctrl/Cmd + `0`)
+  - `imageScale` state 추가, 키보드 핸들러에서 위 단축키 처리
+  - Ctrl + 휠 핸들러를 `{ passive: false }` 리스너로 등록 — 페이지
+    스크롤 대신 줌이 동작하도록 `preventDefault` 가능
+  - 이미지 경로(`path`)가 바뀌면 scale을 기본값 1.0으로 자동 리셋
+  - `<img>`에 `transform: scale(s)` 적용, `transform-origin: center`,
+    부드러운 전환(80ms)
+  - 상태바에 현재 줌 % 표시 및 단축키 힌트 추가
+- `FileViewer.test.js`: IZ-01~08 (multiplyImageScale 8건),
+  IZI-01~05 / IZO-01~04 / IZR-01~03 (단축키 판별 12건) 총 20개 추가
+- 프론트엔드 293개 테스트 전체 통과 (이전 273 → +20)
+
 ## 2026-05-08 (Todo #62 — GW-BASIC 인터프리터 1단계, Starlark)
 
 ### 배경

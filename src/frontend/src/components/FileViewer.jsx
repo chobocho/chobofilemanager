@@ -81,6 +81,28 @@ export function isSwitchToEditorShortcut(e) {
   return e.key === 'F4' && !e.ctrlKey && !e.metaKey && !e.altKey
 }
 
+// 이미지 줌 (Todo #63): Ctrl + +/-, Ctrl + 휠로 F3 이미지 뷰어 확대/축소
+export const MIN_IMAGE_SCALE = 0.1
+export const MAX_IMAGE_SCALE = 8
+export const DEFAULT_IMAGE_SCALE = 1
+export const IMAGE_SCALE_STEP = 1.25
+
+export function multiplyImageScale(current, factor) {
+  return Math.min(MAX_IMAGE_SCALE, Math.max(MIN_IMAGE_SCALE, current * factor))
+}
+
+export function isImageZoomInShortcut(e) {
+  return Boolean((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '='))
+}
+
+export function isImageZoomOutShortcut(e) {
+  return Boolean((e.ctrlKey || e.metaKey) && e.key === '-')
+}
+
+export function isImageZoomResetShortcut(e) {
+  return Boolean((e.ctrlKey || e.metaKey) && e.key === '0')
+}
+
 export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
@@ -92,6 +114,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const [searchQuery, setSearchQuery] = useState('')
   const [noMatch, setNoMatch]         = useState(false)
   const [encoding, setEncoding]       = useState('auto')
+  const [imageScale, setImageScale]   = useState(DEFAULT_IMAGE_SCALE)
 
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isMarkdown = isMarkdownFile(ext)
@@ -167,6 +190,24 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         onSwitchToEditor()
         return
       }
+      // 이미지 모드에서 Ctrl + +/- 줌, Ctrl + 0 리셋 (Todo #63)
+      if (isImage) {
+        if (isImageZoomInShortcut(e)) {
+          e.preventDefault(); e.stopPropagation()
+          setImageScale(prev => multiplyImageScale(prev, IMAGE_SCALE_STEP))
+          return
+        }
+        if (isImageZoomOutShortcut(e)) {
+          e.preventDefault(); e.stopPropagation()
+          setImageScale(prev => multiplyImageScale(prev, 1 / IMAGE_SCALE_STEP))
+          return
+        }
+        if (isImageZoomResetShortcut(e)) {
+          e.preventDefault(); e.stopPropagation()
+          setImageScale(DEFAULT_IMAGE_SCALE)
+          return
+        }
+      }
       // 이미지 모드에서 ←/→ 로 폴더 안 이전/다음 이미지로 이동
       if (isImage && onChangePath && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         const dir = e.key === 'ArrowRight' ? 'next' : 'prev'
@@ -188,6 +229,27 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     if (textareaRef.current) textareaRef.current.scrollTop = 0
     if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = 0
   }, [fontSize])
+
+  // 이미지가 바뀌면 줌 리셋 (Todo #63)
+  useEffect(() => {
+    if (isImage) setImageScale(DEFAULT_IMAGE_SCALE)
+  }, [path, isImage])
+
+  // Ctrl + 휠로 이미지 확대/축소 (Todo #63). 비-passive 리스너로 등록해야 preventDefault가 동작.
+  const imageContainerRef = useRef(null)
+  useEffect(() => {
+    if (!isImage) return
+    const el = imageContainerRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault()
+      const factor = e.deltaY < 0 ? IMAGE_SCALE_STEP : 1 / IMAGE_SCALE_STEP
+      setImageScale(prev => multiplyImageScale(prev, factor))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [isImage, loading])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {
@@ -394,6 +456,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
             <div className={styles.error}>⚠ {error}</div>
           ) : isImage ? (
             <div
+              ref={imageContainerRef}
               tabIndex={0}
               style={{
                 width: '100%', height: '100%',
@@ -404,7 +467,16 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
               <img
                 src={content}
                 alt={fileName}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                draggable={false}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  transform: `scale(${imageScale})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 80ms ease-out',
+                  cursor: imageScale > 1 ? 'zoom-out' : 'zoom-in',
+                }}
               />
             </div>
           ) : isMarkdown && mdRendered ? (
@@ -455,6 +527,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
           {isImage ? (
             <span className={styles.viewMode}>
               이미지 — {ext.replace('.', '').toUpperCase()}
+              {' — '}{Math.round(imageScale * 100)}% (Ctrl +/- · Ctrl+휠 · Ctrl+0 리셋)
               {Array.isArray(siblingImages) && siblingImages.length > 1 && siblingImages.indexOf(path) >= 0 &&
                 ` — ${siblingImages.indexOf(path) + 1} / ${siblingImages.length} (←/→로 이동)`}
               {' — F3 / Esc to close'}

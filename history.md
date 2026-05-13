@@ -1,5 +1,33 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — GW-BASIC 6단계: trace 모드 + 예제)
+
+### 배경
+Starlark에는 stdin 접근이 없어 진짜 REPL은 구현 불가능. 대안으로
+실행 trace 모드(디버거 역할)와 1~5단계 기능을 종합 활용하는 예제 3종을 추가.
+
+### 변경
+- `examples/gwbasic.star`:
+  - `execute(trace=False)` 옵션 추가 — `trace=True`면 라인 진입 시
+    `[TRACE ln=N]` 로그를 출력 라인에 삽입(스텝 디버깅 대안)
+  - 예제 프로그램 3종:
+    - `EXAMPLE_FIB`: 피보나치 10항 (FOR + LET)
+    - `EXAMPLE_PRIMES`: 1..20 소수 (이중 FOR + IF, MOD 대신 `N - INT(N/D)*D`)
+    - `EXAMPLE_STAR`: SCREEN 1 + CIRCLE + LINE 별 그리기
+  - `run_demo`: 1~5단계 + 3예제 + 별도 trace 데모를 모두 출력
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_GWBasicInterpreterStage6` — Fibonacci 수열, 1..20
+    소수 8개, `[TRACE ln=N]` 4건 검증
+- `Todo.md`: 6단계 완료 마킹 — GW-BASIC 6단계 모두 완료
+- Go 회귀 테스트 6/6 통과 (Stage1~6)
+
+### 한계와 메모
+- Starlark 식별자는 알파넘만(`_` 미허용) → GW-BASIC 변수도 동일 규칙으로 작성
+- MOD 연산자는 키워드만 추가됐고 연산자 미구현 → 예제는 INT(N/D)*D 패턴 우회
+- 다차원 배열, GET/PUT, PAINT, OPEN/CLOSE 파일 I/O는 향후 과제
+
+---
+
 ## 2026-05-14 (Todo.md #66 — GW-BASIC 5단계: 그래픽/사운드 ASCII 시뮬)
 
 ### 배경

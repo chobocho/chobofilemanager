@@ -131,7 +131,7 @@
 
 ## ~~66. Ctrl+F로 파일 검색 후 파일을 선택하면, 해당 파일 위치로 스크롤 하여, 해당 파일에 포커스가 위치 할 것~~ ✓ 완료 (2026-05-14)
 
-## 66. ts_gwbasic_book 폴더 보고 GWBASIC 인터프리터 및 VM Typescript작성, 최대한 그대로 포팅 (Starlark로 작성해서 F4에서 실행 가능하게 하기
+## ~~66. ts_gwbasic_book 폴더 보고 GWBASIC 인터프리터 및 VM Typescript작성, 최대한 그대로 포팅 (Starlark로 작성해서 F4에서 실행 가능하게 하기~~ ✓ 완료 (2026-05-14)
 
 ### 진행 상황
 - ✓ 1단계 완료 (2026-05-08): `examples/gwbasic.star` — 렉서 + 최소 평가기
@@ -145,4 +145,6 @@
   DEF FN(1인자 사용자 함수, FNNAME / FN NAME 두 토큰 형태 모두 인식). Go 회귀 +1.
 - ✓ 5단계 완료 (2026-05-14): SCREEN/COLOR/CLS, PSET/PRESET/LINE(Bresenham)/CIRCLE(midpoint)
   → 40x20 ASCII 픽셀 버퍼로 시뮬레이션, SOUND/PLAY는 텍스트 로그. Go 회귀 +1.
-- 🔲 6단계 (예정): REPL, 디버거, 더 많은 예제 프로그램
+- ✓ 6단계 완료 (2026-05-14): trace 모드(`execute(trace=True)` → `[TRACE ln=N]` 로그) +
+  예제 프로그램 3종(Fibonacci, Primes, Star). Starlark는 stdin이 없어 진짜 REPL은
+  불가능 → trace 모드가 디버거 역할. Go 회귀 +1.

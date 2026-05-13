@@ -829,8 +829,9 @@ def _parse_coord_env(body, i, env):
 
 # ─── 인터프리터 (라인 단위 실행 + GOTO/IF/FOR/GOSUB/WHILE) ────────────────────
 
-def execute(tokens, max_steps = 10000, input_queue = None):
-    """tokens 실행. input_queue: INPUT 문장이 소비할 값(list of str/num). 비어 있으면 ""."""
+def execute(tokens, max_steps = 10000, input_queue = None, trace = False):
+    """tokens 실행. input_queue: INPUT 문장이 소비할 값(list of str/num).
+    trace=True 면 라인 진입 시 [TRACE ln=N] 로그 추가 (디버거 대안)."""
     env = {}
     output_lines = []
     # 2단계 상태:
@@ -1207,6 +1208,8 @@ def execute(tokens, max_steps = 10000, input_queue = None):
         if len(body) == 0:
             pc += 1
             continue
+        if trace:
+            output_lines.append("[TRACE ln=%d]" % ln)
         next_pc, err = exec_stmt(body, 0, ln, pc)
         if err: return None, err
         if next_pc == None:
@@ -1327,26 +1330,81 @@ DEMO_STAGE5 = '''10 REM stage 5 graphics + sound
 '''
 
 
+# Stage 6 예제 프로그램: 1·2·3·4·5단계 기능을 종합 활용
+# - 피보나치 수열
+EXAMPLE_FIB = '''10 REM Fibonacci first 10 terms
+20 LET A = 0
+30 LET B = 1
+40 FOR I = 1 TO 10
+50 PRINT A
+60 LET C = A + B
+70 LET A = B
+80 LET B = C
+90 NEXT I
+100 END
+'''
+
+# - 소수 판별 (2..20). MOD 연산자가 미구현이라 INT(N/D)*D 패턴으로 우회.
+# (GW-BASIC 클래식 식별자는 알파넘만 — `_` 미지원이므로 ISP 사용)
+EXAMPLE_PRIMES = '''10 REM Primes up to 20
+20 FOR N = 2 TO 20
+30 LET ISP = 1
+40 FOR D = 2 TO N - 1
+50 LET Q = INT(N / D)
+60 IF N - Q * D = 0 THEN LET ISP = 0
+70 NEXT D
+80 IF ISP = 1 THEN PRINT N
+90 NEXT N
+100 PRINT "DONE"
+110 END
+'''
+
+# - 별 그리기 (CIRCLE + LINE)
+EXAMPLE_STAR = '''10 REM Star drawing
+20 SCREEN 1
+30 CIRCLE (20, 10), 8
+40 LINE (12, 6)-(28, 14)
+50 LINE (28, 6)-(12, 14)
+60 LINE (20, 2)-(20, 18)
+70 PSET (20, 10)
+80 END
+'''
+
+
 def run_demo():
-    print("=== GW-BASIC 1~5단계 데모 ===")
+    print("=== GW-BASIC 1~6단계 데모 ===")
     stages = [
-        ("Stage 1", DEMO_STAGE1, None),
-        ("Stage 2", DEMO_STAGE2, None),
-        ("Stage 3", DEMO_STAGE3, None),
-        ("Stage 4", DEMO_STAGE4, ["WORLD"]),  # INPUT 큐
-        ("Stage 5", DEMO_STAGE5, None),
+        ("Stage 1",     DEMO_STAGE1,    None, False),
+        ("Stage 2",     DEMO_STAGE2,    None, False),
+        ("Stage 3",     DEMO_STAGE3,    None, False),
+        ("Stage 4",     DEMO_STAGE4,    ["WORLD"], False),
+        ("Stage 5",     DEMO_STAGE5,    None, False),
+        ("Fibonacci",   EXAMPLE_FIB,    None, False),
+        ("Primes 1-20", EXAMPLE_PRIMES, None, False),
+        ("Star",        EXAMPLE_STAR,   None, False),
     ]
-    for label, src, iq in stages:
+    for label, src, iq, tr in stages:
         print("--- %s ---" % label)
         tokens, err = tokenize(src)
         if err:
             print("LEX ERROR:", err)
             continue
-        output, err = execute(tokens, input_queue = iq)
+        output, err = execute(tokens, input_queue = iq, trace = tr)
         if err:
             print("RUN ERROR:", err)
             continue
         print(output)
+    # trace=True 데모 (작은 프로그램으로)
+    print("--- TRACE demo ---")
+    src = '''10 LET A = 1
+20 LET B = 2
+30 PRINT A + B
+40 END
+'''
+    tokens, err = tokenize(src)
+    if err == None:
+        out, err = execute(tokens, trace = True)
+        if err == None: print(out)
     print("=== 끝 ===")
 
 

@@ -1920,6 +1920,46 @@ func TestRunStarlarkFile_GWBasicInterpreterStage5(t *testing.T) {
 	}
 }
 
+// 6단계 — trace 모드 + 추가 예제(피보나치, 소수, 별)
+func TestRunStarlarkFile_GWBasicInterpreterStage6(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	// Fibonacci: 0,1,1,2,3,5,8,13,21,34
+	fibSeq := []string{"\n0\n", "\n1\n", "\n2\n", "\n3\n", "\n5\n", "\n8\n", "\n13\n", "\n21\n", "\n34\n"}
+	for _, s := range fibSeq {
+		if !strings.Contains(out, s) {
+			t.Errorf("Fibonacci: %q 가 출력에 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+
+	// Primes 2..20 — 모두 출력에 있어야 함
+	primes := []string{"2", "3", "5", "7", "11", "13", "17", "19"}
+	for _, p := range primes {
+		if !strings.Contains(out, "\n"+p+"\n") {
+			t.Errorf("Primes: %q 가 출력에 없음.", p)
+		}
+	}
+
+	// trace 모드
+	for _, ln := range []string{"[TRACE ln=10]", "[TRACE ln=20]", "[TRACE ln=30]", "[TRACE ln=40]"} {
+		if !strings.Contains(out, ln) {
+			t.Errorf("trace 모드: %q 가 출력에 없음. 실제 출력:\n%s", ln, out)
+		}
+	}
+}
+
 func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
 	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
 	base := t.TempDir()

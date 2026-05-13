@@ -526,6 +526,37 @@ describe('getImageStyle (Todo #65)', () => {
   })
 })
 
+// ─── Todo #67: 확대 후 좌측 끝 스크롤 시 좌측 짤림 재발 수정 ─────────────────
+// flex의 `justify-content: center`는 자식이 부모보다 클 때도 중앙 정렬을
+// 강제해, 자식의 시작 부분이 부모 영역 바깥(스크롤로 닿을 수 없는 음수
+// 위치)에 놓임. `safe center`로 fallback해서 자식이 더 크면 start 정렬.
+
+describe('FileViewer.module.css imageContainer (Todo #67)', () => {
+  const cssPath = resolve(__dirname, '../styles/FileViewer.module.css')
+  const css = readFileSync(cssPath, 'utf-8')
+
+  it('ICST-01: .imageContainer 클래스 정의됨', () => {
+    expect(css).toMatch(/\.imageContainer\s*\{/)
+  })
+
+  it('ICST-02: align-items: safe center 선언 (좌측 짤림 방지)', () => {
+    expect(css).toMatch(/align-items:\s*safe\s+center/)
+  })
+
+  it('ICST-03: justify-content: safe center 선언 (좌측 짤림 방지)', () => {
+    expect(css).toMatch(/justify-content:\s*safe\s+center/)
+  })
+
+  it('ICST-04: 일반 center fallback 선언 (safe 미지원 브라우저용)', () => {
+    expect(css).toMatch(/align-items:\s*center\s*;[\s\S]*?align-items:\s*safe\s+center/)
+    expect(css).toMatch(/justify-content:\s*center\s*;[\s\S]*?justify-content:\s*safe\s+center/)
+  })
+
+  it('ICST-05: overflow: auto (확대 후 스크롤 가능)', () => {
+    expect(css).toMatch(/\.imageContainer[\s\S]*?overflow:\s*auto/)
+  })
+})
+
 // ─── Todo #59: F4 = 뷰어 → 에디터 전환 ────────────────────────────────────────
 
 describe('isSwitchToEditorShortcut (Todo #59)', () => {

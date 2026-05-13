@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-05-13 (Todo #67 — F3 확대 후 좌측 끝 스크롤 시 좌측 짤림 재발 수정)
+
+### 배경
+직전 수정(Todo #65 후속)으로 zoom이 실제 배율대로 작동하면서 확대된
+이미지가 컨테이너보다 커지게 됨. 그러자 컨테이너의 `display: flex` +
+`justify-content: center` + `align-items: center` 가 다시 문제를 일으킴.
+Flexbox는 자식이 부모보다 커도 중앙 정렬을 강제하므로 자식의 시작 부분이
+부모 영역 바깥(음수 좌표)에 놓이고, `overflow: auto` 스크롤은 0까지밖에
+못 가서 좌(상)단이 잘려 보였음. Todo #65에서 `maxWidth: 100%`가 이미지를
+컨테이너보다 작게 묶어두면서 우연히 가려졌던 동일 이슈가 재노출된 것.
+
+### 변경
+- `FileViewer.module.css`: `.imageContainer` 클래스 신규
+  - `align-items: safe center` / `justify-content: safe center` — 자식이
+    부모보다 클 때 alignment를 무시하고 start로 fallback(CSS Box Alignment
+    Level 3 표준, Chromium 93+ 지원, Wails WebView2 환경에서 안전)
+  - 미지원 브라우저용 일반 `center` fallback 선언을 앞에 둠
+  - `width/height 100%`, `overflow: auto`, `padding: 12px` 동일 유지
+- `FileViewer.jsx`: 이미지 컨테이너 `<div>`의 인라인 style을
+  `className={styles.imageContainer}` 로 교체
+- `FileViewer.test.js`: ICST-01~05 5개 케이스 — CSS 모듈에 클래스/`safe
+  center`/fallback/`overflow:auto` 선언 존재 검증
+- 프론트엔드 317/317 통과 (이전 312 → +5)
+
+---
+
 ## 2026-05-13 (Todo #65 후속 — F3 이미지 확대가 거의 안 되는 문제 수정)
 
 ### 배경

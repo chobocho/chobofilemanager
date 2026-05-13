@@ -503,11 +503,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
             <div
               ref={imageContainerRef}
               tabIndex={0}
-              style={{
-                width: '100%', height: '100%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                overflow: 'auto', padding: '12px',
-              }}
+              className={styles.imageContainer}
             >
               <img
                 src={content}

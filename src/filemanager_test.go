@@ -1805,6 +1805,46 @@ func TestRunStarlarkFile_GWBasicInterpreterStage2(t *testing.T) {
 	}
 }
 
+// 3단계 — 부동소수점, 16/8진수, 문자열 함수, 배열 DIM
+func TestRunStarlarkFile_GWBasicInterpreterStage3(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	mustContain := []string{
+		"PI:3.14",              // 부동소수점 리터럴
+		"HEX:31",               // &H1F = 31
+		"OCT:15",               // &O17 = 15
+		"LEN:11",               // LEN("HELLO WORLD") = 11
+		"LEFT:HELLO",           // LEFT$
+		"RIGHT:WORLD",          // RIGHT$
+		"MID:WORLD",            // MID$(s, 7, 5)
+		"INSTR:7",              // INSTR — 1-based
+		"INT:3",                // INT(3.7) = 3
+		"INTNEG:-4",            // INT(-3.2) = -4 (floor)
+		"ABS:5",                // ABS(-5)
+		"SQUARES:0149",         // PRINT A(0); A(1); A(2); A(3); A(4) → "0149" with " 16" 미포함 검사 필요
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(out, s) {
+			t.Errorf("Stage3 출력에 %q가 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+	if !strings.Contains(out, "16") {
+		t.Errorf("Stage3: 4*4=16 (A(4))이 출력에 없음:\n%s", out)
+	}
+}
+
 func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
 	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
 	base := t.TempDir()

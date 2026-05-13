@@ -1,5 +1,28 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — GW-BASIC 3단계: 숫자·문자열·배열·빌트인)
+
+### 변경
+- `examples/gwbasic.star`:
+  - Lexer: 부동소수점 NUMBER(`1.5`, `.5`, `5.`, `1.5E2`), 16진수 `&H...`,
+    8진수 `&O...`, IDENT 끝의 `$`/`%` 타입 sigil 토큰화
+  - 빌트인 함수 디스패치(`BUILTINS`): `LEN`, `LEFT$`, `RIGHT$`, `MID$`, `INSTR`,
+    `INT`(음수 floor), `ABS`, `SIN`/`COS`/`TAN`(Taylor 5항 근사), `SQR`(뉴턴법),
+    `RND`(LCG, 시드 12345)
+  - `_parse_call_args` — 빌트인/배열 공용 인자 파서
+  - `parse_primary`: IDENT 다음이 `(` 면 빌트인 → 배열 참조 순서로 디스패치
+  - `DIM name(size)` — 1차원 배열 선언. 인덱스 `0..size` (GW-BASIC 호환).
+    여러 배열 콤마 구분, `$` 변수면 문자열 배열(빈 문자열 초기화)
+  - `exec_let` 확장: `A(I) = expr` 배열 대입 처리
+  - `DEMO_STAGE3` 추가, `run_demo`가 Stage 1/2/3 모두 출력
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_GWBasicInterpreterStage3` — 부동소수점, &H/&O,
+    문자열 함수, INT 음수 floor, 1차원 배열 SQUARES 출력 검증
+- `Todo.md`: 3단계 완료 마킹
+- Go 회귀 테스트 3/3 통과 (Stage1 + Stage2 + Stage3)
+
+---
+
 ## 2026-05-14 (Todo.md #66 — GW-BASIC 인터프리터 2단계: 제어 흐름)
 
 ### 배경

@@ -1,19 +1,17 @@
-# GW-BASIC 인터프리터 - 1·2단계 (Todo #62 → Todo.md #66)
+# GW-BASIC 인터프리터 - 1·2·3단계 (Todo #62 → Todo.md #66)
 #
-# 1단계 범위:
-#   - Lexer: NUMBER / STRING / IDENT / KEYWORD / OP / 구두점 / EOL / EOF
-#   - Evaluator: 라인번호 + PRINT / LET / REM / GOTO + 산술/비교 표현식
-#
-# 2단계 추가:
-#   - IF/THEN/ELSE        — `IF expr THEN <line>` 또는 `... THEN <stmt> [ELSE <stmt>]`
-#   - FOR/NEXT            — STEP 양수/음수 모두, NEXT의 변수명은 선택적
-#   - GOSUB/RETURN        — 단순 라인 점프 + 콜 스택
-#   - WHILE/WEND          — 매칭 페어는 split_lines 후 사전 계산
+# 1단계: 렉서 + PRINT/LET/REM/GOTO + 산술·비교
+# 2단계: IF/THEN/ELSE, FOR/NEXT, GOSUB/RETURN, WHILE/WEND
+# 3단계:
+#   - 부동소수점 NUMBER 토큰 (`1.5`, `.5`, `1.5E2`)
+#   - 16진수(`&H1F`) / 8진수(`&O17`) 리터럴
+#   - `$` 접미사를 가진 IDENT (`A$`, `LEFT$`)
+#   - 빌트인 함수: LEN / LEFT$ / RIGHT$ / MID$ / INSTR /
+#                  INT / ABS / SIN / COS / TAN / SQR / RND
+#   - 배열: 1차원 DIM A(N), 참조/대입 `A(I)` (정수 인덱스)
 #
 # 미구현(향후 단계):
-#   - 부동소수점, 문자열 함수, 배열 DIM
-#   - DEF FN, DATA/READ, INPUT, 그래픽/사운드
-#   - 16/8진수 리터럴 (&H, &O), E-지수 표기 정규화
+#   - 다차원 배열, DEF FN, DATA/READ, INPUT, 그래픽/사운드
 #
 # Starlark 제약: 클래스 없음 → 모든 상태는 dict로, 전역 mutable 금지 → list/dict 변형 사용.
 
@@ -37,6 +35,7 @@ KEYWORDS = {
     "FOR": True, "TO": True, "STEP": True, "NEXT": True,
     "GOSUB": True, "RETURN": True,
     "WHILE": True, "WEND": True,
+    "DIM": True,
     "END": True, "STOP": True,
     "AND": True, "OR": True, "NOT": True, "MOD": True,
 }
@@ -98,15 +97,61 @@ def tokenize(src):
                 col += 1
             continue
 
-        # 숫자
-        if is_digit(ch):
+        # 16진수 / 8진수 리터럴: &H... / &O...
+        if ch == "&" and pos + 1 < n and (src[pos + 1] == "H" or src[pos + 1] == "h" or
+                                          src[pos + 1] == "O" or src[pos + 1] == "o"):
+            start_col = col
+            base_ch = src[pos + 1]
+            pos += 2; col += 2
+            s = ""
+            if base_ch == "H" or base_ch == "h":
+                # 16진수
+                while pos < n and ((src[pos] >= "0" and src[pos] <= "9") or
+                                   (src[pos] >= "A" and src[pos] <= "F") or
+                                   (src[pos] >= "a" and src[pos] <= "f")):
+                    s += src[pos]; pos += 1; col += 1
+                if s == "":
+                    return None, "Empty &H literal at line %d" % line
+                num = int(s, 16)
+                tokens.append(make_tok(T_NUMBER, "&H" + s, line, start_col, num = num))
+            else:
+                # 8진수
+                while pos < n and src[pos] >= "0" and src[pos] <= "7":
+                    s += src[pos]; pos += 1; col += 1
+                if s == "":
+                    return None, "Empty &O literal at line %d" % line
+                num = int(s, 8)
+                tokens.append(make_tok(T_NUMBER, "&O" + s, line, start_col, num = num))
+            continue
+
+        # 숫자 (정수 / 부동소수점). `.5` 도 받기 위해 `.` 으로 시작하는 케이스도 처리.
+        if is_digit(ch) or (ch == "." and pos + 1 < n and is_digit(src[pos + 1])):
             start_col = col
             s = ""
+            is_float = False
+            # 정수 부분
             while pos < n and is_digit(src[pos]):
-                s += src[pos]
-                pos += 1
-                col += 1
-            tokens.append(make_tok(T_NUMBER, s, line, start_col, num = int(s)))
+                s += src[pos]; pos += 1; col += 1
+            # 소수점
+            if pos < n and src[pos] == "." and pos + 1 < n and is_digit(src[pos + 1]):
+                is_float = True
+                s += "."; pos += 1; col += 1
+                while pos < n and is_digit(src[pos]):
+                    s += src[pos]; pos += 1; col += 1
+            elif pos < n and src[pos] == "." and (pos + 1 >= n or not is_digit(src[pos + 1])):
+                # `5.` 형태도 부동소수점으로 허용
+                is_float = True
+                s += "."; pos += 1; col += 1
+            # 지수부 E[+/-]digits
+            if pos < n and (src[pos] == "E" or src[pos] == "e"):
+                is_float = True
+                s += src[pos]; pos += 1; col += 1
+                if pos < n and (src[pos] == "+" or src[pos] == "-"):
+                    s += src[pos]; pos += 1; col += 1
+                while pos < n and is_digit(src[pos]):
+                    s += src[pos]; pos += 1; col += 1
+            num = float(s) if is_float else int(s)
+            tokens.append(make_tok(T_NUMBER, s, line, start_col, num = num))
             continue
 
         # 문자열
@@ -126,7 +171,8 @@ def tokenize(src):
             tokens.append(make_tok(T_STRING, s, line, start_col))
             continue
 
-        # 식별자 / 키워드
+        # 식별자 / 키워드. 끝에 `$` (문자열) 또는 `%` (정수) 한 글자 타입 sigil 허용.
+        # GW-BASIC: A$ = 문자열 변수, LEFT$ = 문자열 반환 함수.
         if is_alpha(ch):
             start_col = col
             s = ""
@@ -134,8 +180,12 @@ def tokenize(src):
                 s += src[pos]
                 pos += 1
                 col += 1
-            # GW-BASIC은 대소문자 구분 없음 → 대문자 정규화
+            # 타입 sigil
+            if pos < n and (src[pos] == "$" or src[pos] == "%"):
+                s += src[pos]; pos += 1; col += 1
             up = s.upper()
+            # `$`를 포함한 이름은 KEYWORDS에 없으므로 IDENT로 분기. 단 LEFT$/RIGHT$/MID$/CHR$
+            # 등은 빌트인 함수명으로 parse_primary에서 인식.
             if up in KEYWORDS:
                 tokens.append(make_tok(T_KEYWORD, up, line, start_col))
             else:
@@ -187,6 +237,150 @@ def tokenize(src):
     return tokens, None
 
 
+# ─── 빌트인 함수 ──────────────────────────────────────────────────────────────
+#
+# 이름 → (인자 갯수 검증 함수, 실행 함수). 인자는 모두 평가된 값(list).
+
+def _b_len(args):
+    if len(args) != 1: return None, "LEN expects 1 arg"
+    return len(str(args[0])), None
+
+def _b_left(args):
+    if len(args) != 2: return None, "LEFT$ expects (s, n)"
+    s = str(args[0]); n = int(args[1])
+    return s[:max(0, n)], None
+
+def _b_right(args):
+    if len(args) != 2: return None, "RIGHT$ expects (s, n)"
+    s = str(args[0]); n = int(args[1])
+    if n <= 0: return "", None
+    return s[-n:], None
+
+def _b_mid(args):
+    # MID$(s, start [, len]). GW-BASIC은 1-based start.
+    if len(args) < 2 or len(args) > 3:
+        return None, "MID$ expects (s, start [, len])"
+    s = str(args[0])
+    start = int(args[1]) - 1
+    if start < 0: start = 0
+    if len(args) == 2:
+        return s[start:], None
+    n = int(args[2])
+    return s[start:start + max(0, n)], None
+
+def _b_instr(args):
+    # INSTR([start,] haystack, needle) → 1-based pos, 못 찾으면 0
+    if len(args) == 2:
+        h = str(args[0]); needle = str(args[1]); start = 0
+    elif len(args) == 3:
+        start = int(args[0]) - 1
+        h = str(args[1]); needle = str(args[2])
+        if start < 0: start = 0
+    else:
+        return None, "INSTR expects (h,n) or (start,h,n)"
+    pos = h.find(needle, start)
+    return pos + 1 if pos >= 0 else 0, None
+
+def _b_int(args):
+    if len(args) != 1: return None, "INT expects 1 arg"
+    v = args[0]
+    if type(v) == "float":
+        # GW-BASIC INT은 음의 무한대로의 floor
+        iv = int(v)
+        if v < 0 and float(iv) != v: iv -= 1
+        return iv, None
+    return int(v), None
+
+def _b_abs(args):
+    if len(args) != 1: return None, "ABS expects 1 arg"
+    v = args[0]
+    if v < 0: return -v, None
+    return v, None
+
+# math.sin 등은 starlark에 기본 제공 안되므로 Taylor 급수 근사로 충분히 작은 범위에서 구현.
+# (학습용 데모 — 정밀도는 5~6자리)
+def _approx_sin(x):
+    # x 를 [-pi, pi] 로 wrap
+    PI = 3.141592653589793
+    while x >  PI: x -= 2 * PI
+    while x < -PI: x += 2 * PI
+    # Taylor: x - x^3/3! + x^5/5! - x^7/7! + x^9/9!
+    x2 = x * x
+    return x * (1 - x2 / 6.0 * (1 - x2 / 20.0 * (1 - x2 / 42.0 * (1 - x2 / 72.0))))
+
+def _approx_cos(x):
+    PI = 3.141592653589793
+    return _approx_sin(x + PI / 2)
+
+def _b_sin(args):
+    if len(args) != 1: return None, "SIN expects 1 arg"
+    return _approx_sin(float(args[0])), None
+
+def _b_cos(args):
+    if len(args) != 1: return None, "COS expects 1 arg"
+    return _approx_cos(float(args[0])), None
+
+def _b_tan(args):
+    if len(args) != 1: return None, "TAN expects 1 arg"
+    x = float(args[0])
+    c = _approx_cos(x)
+    if c == 0: return None, "TAN domain error"
+    return _approx_sin(x) / c, None
+
+def _b_sqr(args):
+    if len(args) != 1: return None, "SQR expects 1 arg"
+    x = float(args[0])
+    if x < 0: return None, "SQR negative"
+    # 뉴턴법
+    if x == 0: return 0.0, None
+    g = x
+    for _ in range(40):
+        g = (g + x / g) / 2.0
+    return g, None
+
+# RND: 인자 없으면 0~1 사이 random. 시드 고정으로 재현 가능 (LCG)
+_RND_STATE = [12345]
+def _b_rnd(args):
+    _RND_STATE[0] = (_RND_STATE[0] * 1103515245 + 12345) % 2147483648
+    return _RND_STATE[0] / 2147483648.0, None
+
+BUILTINS = {
+    "LEN":    _b_len,
+    "LEFT$":  _b_left,
+    "RIGHT$": _b_right,
+    "MID$":   _b_mid,
+    "INSTR":  _b_instr,
+    "INT":    _b_int,
+    "ABS":    _b_abs,
+    "SIN":    _b_sin,
+    "COS":    _b_cos,
+    "TAN":    _b_tan,
+    "SQR":    _b_sqr,
+    "RND":    _b_rnd,
+}
+
+
+def _parse_call_args(tokens, idx, env):
+    """tokens[idx] 가 '(' 인 경우 인자 리스트 파싱. 반환: (args_list, next_idx, err)."""
+    if idx >= len(tokens) or tokens[idx]["type"] != T_LPAREN:
+        return None, idx, "expected ("
+    idx += 1
+    args = []
+    if idx < len(tokens) and tokens[idx]["type"] == T_RPAREN:
+        return args, idx + 1, None
+    for _ in range(64):  # 인자 64개 제한
+        v, idx, err = parse_expr(tokens, idx, env)
+        if err: return None, idx, err
+        args.append(v)
+        if idx < len(tokens) and tokens[idx]["type"] == T_COMMA:
+            idx += 1
+            continue
+        if idx < len(tokens) and tokens[idx]["type"] == T_RPAREN:
+            return args, idx + 1, None
+        return None, idx, "expected , or )"
+    return None, idx, "too many args"
+
+
 # ─── 표현식 평가 (재귀 하강) ──────────────────────────────────────────────────
 #
 # 우선순위 (낮음 → 높음):
@@ -194,7 +388,7 @@ def tokenize(src):
 #   더하기빼기: + -
 #   곱셈나눗셈: * /
 #   단항: -
-#   원시: NUMBER / STRING / IDENT / "(" expr ")"
+#   원시: NUMBER / STRING / IDENT [ '(' args ')' ] / "(" expr ")"
 
 def parse_primary(tokens, idx, env):
     if idx >= len(tokens):
@@ -206,6 +400,24 @@ def parse_primary(tokens, idx, env):
         return tok["value"], idx + 1, None
     if tok["type"] == T_IDENT:
         name = tok["value"]
+        # 다음 토큰이 '(' 이면 함수 호출 또는 배열 참조
+        if idx + 1 < len(tokens) and tokens[idx + 1]["type"] == T_LPAREN:
+            args, next_idx, err = _parse_call_args(tokens, idx + 1, env)
+            if err: return None, next_idx, err
+            # 빌트인 우선
+            if name in BUILTINS:
+                v, err = BUILTINS[name](args)
+                if err: return None, next_idx, err
+                return v, next_idx, None
+            # 배열 참조 — env[name] 이 list 이고 인덱스 1개라고 가정 (1차원)
+            arr = env.get(name)
+            if type(arr) == "list":
+                if len(args) != 1: return None, next_idx, "array %s expects 1 index" % name
+                i = int(args[0])
+                if i < 0 or i >= len(arr):
+                    return None, next_idx, "array %s index %d out of bounds" % (name, i)
+                return arr[i], next_idx, None
+            return None, next_idx, "undefined function or array %s" % name
         return env.get(name, 0), idx + 1, None
     if tok["type"] == T_LPAREN:
         v, idx2, err = parse_expr(tokens, idx + 1, env)
@@ -352,15 +564,33 @@ def exec_print(body, start, env, output_lines):
 
 
 def exec_let(body, start, env, ln):
-    """body[start:] 가 [IDENT '=' expr ...] 형태일 때 대입. 반환: (next idx, err).
-    표현식은 ELSE 또는 body 끝까지 (parse_expr가 자연스럽게 멈춤)."""
+    """body[start:] 가 [IDENT [( idx )] '=' expr ...] 형태일 때 대입.
+    배열 대입 `A(I) = expr` 도 지원. 반환: (next idx, err)."""
     if start + 2 >= len(body):
         return start, "LET form needs IDENT = expr at line %d" % ln
     if body[start]["type"] != T_IDENT:
         return start, "LET form needs IDENT at line %d" % ln
+    name = body[start]["value"]
+    # 배열 대입?
+    if start + 1 < len(body) and body[start + 1]["type"] == T_LPAREN:
+        idx_args, i, err = _parse_call_args(body, start + 1, env)
+        if err: return i, "LET array index err at line %d: %s" % (ln, err)
+        if i >= len(body) or body[i]["type"] != T_OP or body[i]["value"] != "=":
+            return i, "LET array expected '=' at line %d" % ln
+        v, j, err = parse_expr(body, i + 1, env)
+        if err: return j, "LET array rhs err at line %d: %s" % (ln, err)
+        arr = env.get(name)
+        if type(arr) != "list":
+            return j, "array %s not DIMmed at line %d" % (name, ln)
+        if len(idx_args) != 1:
+            return j, "array %s expects 1 index at line %d" % (name, ln)
+        ai = int(idx_args[0])
+        if ai < 0 or ai >= len(arr):
+            return j, "array %s index %d out of bounds at line %d" % (name, ai, ln)
+        arr[ai] = v
+        return j, None
     if body[start + 1]["type"] != T_OP or body[start + 1]["value"] != "=":
         return start, "LET expected '=' at line %d" % ln
-    name = body[start]["value"]
     v, i, err = parse_expr(body, start + 2, env)
     if err: return i, "LET err at line %d: %s" % (ln, err)
     env[name] = v
@@ -532,7 +762,32 @@ def execute(tokens, max_steps = 10000):
             sub_body = body[:sub_end] if cond else body
             return exec_stmt(sub_body, branch_start, ln, pc)
 
-        # LET (명시) 또는 암묵 LET (IDENT = expr)
+        # DIM name(size) [, name2(size) ...] — 1차원 배열만 (0..size 인덱스, GW-BASIC 호환)
+        if head["type"] == T_KEYWORD and head["value"] == "DIM":
+            i = start + 1
+            for _ in range(64):
+                if i >= len(body): break
+                if body[i]["type"] != T_IDENT:
+                    return -1, "DIM expects IDENT at line %d" % ln
+                name = body[i]["value"]
+                if i + 1 >= len(body) or body[i + 1]["type"] != T_LPAREN:
+                    return -1, "DIM expects '(' after %s at line %d" % (name, ln)
+                size_args, j, err = _parse_call_args(body, i + 1, env)
+                if err: return -1, "DIM size err at line %d: %s" % (ln, err)
+                if len(size_args) != 1:
+                    return -1, "DIM %s expects 1 dimension at line %d" % (name, ln)
+                size = int(size_args[0]) + 1  # GW-BASIC: DIM A(10) → 인덱스 0..10
+                # 문자열 배열($)이면 빈 문자열, 아니면 0
+                default = "" if name.endswith("$") else 0
+                env[name] = [default for _ in range(size)]
+                if j < len(body) and body[j]["type"] == T_COMMA:
+                    i = j + 1
+                    continue
+                i = j
+                break
+            return pc + 1, None
+
+        # LET (명시) 또는 암묵 LET (IDENT = expr)  /  배열 대입 A(I) = expr
         if head["type"] == T_KEYWORD and head["value"] == "LET":
             _, err = exec_let(body, start + 1, env, ln)
             if err: return -1, err
@@ -613,9 +868,32 @@ DEMO_STAGE2 = '''10 REM stage 2 control flow
 '''
 
 
+# Stage 3 데모: 부동소수점, 16/8진수, 문자열·수학 함수, DIM/배열
+DEMO_STAGE3 = '''10 REM stage 3 numbers strings arrays
+20 PRINT "PI:"; 3.14
+30 PRINT "HEX:"; &H1F
+40 PRINT "OCT:"; &O17
+50 LET S$ = "HELLO WORLD"
+60 PRINT "LEN:"; LEN(S$)
+70 PRINT "LEFT:"; LEFT$(S$, 5)
+80 PRINT "RIGHT:"; RIGHT$(S$, 5)
+90 PRINT "MID:"; MID$(S$, 7, 5)
+100 PRINT "INSTR:"; INSTR(S$, "WORLD")
+110 PRINT "INT:"; INT(3.7)
+120 PRINT "INTNEG:"; INT(-3.2)
+130 PRINT "ABS:"; ABS(-5)
+140 DIM A(4)
+150 FOR I = 0 TO 4
+160 LET A(I) = I * I
+170 NEXT I
+180 PRINT "SQUARES:"; A(0); A(1); A(2); A(3); A(4)
+190 END
+'''
+
+
 def run_demo():
-    print("=== GW-BASIC 1·2단계 데모 ===")
-    for label, src in [("Stage 1", DEMO_STAGE1), ("Stage 2", DEMO_STAGE2)]:
+    print("=== GW-BASIC 1·2·3단계 데모 ===")
+    for label, src in [("Stage 1", DEMO_STAGE1), ("Stage 2", DEMO_STAGE2), ("Stage 3", DEMO_STAGE3)]:
         print("--- %s ---" % label)
         tokens, err = tokenize(src)
         if err:

@@ -155,6 +155,20 @@ export const useFileStore = create((set, get) => ({
     }
   },
 
+  // Todo.md #66: 검색 결과에서 파일 선택 시 부모 폴더로 이동한 뒤 해당 파일에
+  // 커서를 둔다. FilePanel이 panel.cursor 변경에 반응해 scrollIntoView 처리.
+  // navigateBack의 cursor 복원 로직과 동일 패턴(showHidden 필터링 후 인덱스 검색).
+  navigateAndFocus: async (panel, dirPath, fileName) => {
+    await get().navigate(panel, dirPath)
+    if (!fileName) return
+    const st = get()[panel]
+    const visible = st.showHidden ? st.files : st.files.filter(f => !f.isHidden)
+    const idx = visible.findIndex(f => f.name === fileName)
+    if (idx >= 0) {
+      set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
+    }
+  },
+
   navigateBack: async (panel) => {
     const state = get()[panel]
     if (state.historyIndex > 0) {

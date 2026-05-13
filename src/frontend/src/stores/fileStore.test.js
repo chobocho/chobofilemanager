@@ -987,3 +987,87 @@ describe('Todo #65 — searchState (Ctrl+F 검색 상태 메모리 유지)', () 
     })
   })
 })
+
+// ─── Todo.md #66 — 검색 결과 파일 선택 시 해당 파일로 포커스 ──────────────────
+// SearchDialog에서 파일을 클릭하면 부모 폴더로 navigate한 뒤 visibleFiles에서
+// 해당 파일을 찾아 cursor 설정. FilePanel이 cursor 변경에 반응해 scrollIntoView.
+
+describe('Todo.md #66 — navigateAndFocus', () => {
+  let useFileStore
+  let api
+
+  const file = (name) => ({
+    name,
+    path: `/dir/${name}`,
+    isDir: false,
+    isHidden: name.startsWith('.'),
+    size: 100,
+    modified: '2026-01-01T00:00:00Z',
+    extension: name.includes('.') ? '.' + name.split('.').pop() : '',
+  })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    api.ChangeWorkingDirectory.mockResolvedValue(undefined)
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: { ...s.left, path: '/old', files: [], showHidden: false, cursor: 0 },
+    }))
+  })
+
+  it('NAF-01: 파일명에 해당하는 visible 인덱스로 cursor 설정', async () => {
+    api.ListDirectory.mockResolvedValue({
+      path: '/dir',
+      files: [file('alpha.txt'), file('beta.js'), file('gamma.go')],
+    })
+    await useFileStore.getState().navigateAndFocus('left', '/dir', 'beta.js')
+    expect(useFileStore.getState().left.path).toBe('/dir')
+    expect(useFileStore.getState().left.cursor).toBe(1)
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('NAF-02: 파일명 못 찾으면 cursor는 0(navigate 기본값) 유지', async () => {
+    api.ListDirectory.mockResolvedValue({
+      path: '/dir',
+      files: [file('alpha.txt'), file('beta.js')],
+    })
+    await useFileStore.getState().navigateAndFocus('left', '/dir', 'missing.txt')
+    expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+
+  it('NAF-03: showHidden=false 일 때 숨김 파일을 건너뛴 visible 인덱스 사용', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: false } }))
+    api.ListDirectory.mockResolvedValue({
+      path: '/dir',
+      files: [file('.hidden'), file('alpha.txt'), file('beta.js')],
+    })
+    // visible: [alpha.txt, beta.js] — beta.js 의 visible 인덱스는 1
+    await useFileStore.getState().navigateAndFocus('left', '/dir', 'beta.js')
+    expect(useFileStore.getState().left.cursor).toBe(1)
+  })
+
+  it('NAF-04: showHidden=true 일 때 전체 인덱스 사용', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: true } }))
+    api.ListDirectory.mockResolvedValue({
+      path: '/dir',
+      files: [file('.hidden'), file('alpha.txt'), file('beta.js')],
+    })
+    // visible: [.hidden, alpha.txt, beta.js] — beta.js 의 인덱스는 2
+    await useFileStore.getState().navigateAndFocus('left', '/dir', 'beta.js')
+    expect(useFileStore.getState().left.cursor).toBe(2)
+  })
+
+  it('NAF-05: fileName 없으면 navigate만 수행 (cursor 0)', async () => {
+    api.ListDirectory.mockResolvedValue({
+      path: '/dir',
+      files: [file('alpha.txt')],
+    })
+    await useFileStore.getState().navigateAndFocus('left', '/dir', '')
+    expect(useFileStore.getState().left.path).toBe('/dir')
+    expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+})

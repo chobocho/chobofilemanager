@@ -1,5 +1,30 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — 검색 결과 파일 선택 시 해당 파일로 스크롤·포커스)
+
+### 배경
+Ctrl+F 검색 결과에서 파일을 클릭하면 부모 폴더로 이동만 하고 cursor가
+0(첫 항목)으로 리셋되어, 사용자가 찾은 파일을 화면에서 다시 눈으로 훑어
+찾아야 했음. navigateBack은 이미 직전 자식 폴더로 cursor를 복원하는 패턴을
+쓰고 있어, 동일 패턴을 검색 결과에도 적용.
+
+### 변경
+- `fileStore.js`: `navigateAndFocus(panel, dirPath, fileName)` 액션 신규
+  - `navigate(panel, dirPath)` 호출 → visibleFiles(showHidden 필터 적용)에서
+    fileName 인덱스 검색 → `cursor` 설정 + `cursorOnParent: false`
+  - fileName이 비었거나 못 찾으면 navigate 기본 cursor(0) 유지
+- `ConfirmDialog.jsx` `SearchDialog.handleOpenResult`:
+  - 파일(`!isDir`) 케이스에서 `store.navigate` → `store.navigateAndFocus`로 교체
+  - 경로 구분자(`/` 또는 `\`)에서 부모 폴더와 파일명 분리해 전달
+  - 폴더는 기존 동작(폴더 자체로 진입) 유지
+- FilePanel은 이미 `panel.cursor` 변경 시 `scrollIntoView({block:'nearest'})`를
+  하는 useEffect가 있어 추가 작업 불필요 (Todo #56에서 도입된 패턴)
+- `fileStore.test.js`: NAF-01~05 5개 케이스 — 정상 인덱스, 못 찾은 경우,
+  showHidden=false/true 분기, fileName 빈 문자열
+- 프론트엔드 326/326 통과 (이전 321 → +5)
+
+---
+
 ## 2026-05-13 (Todo.md #65 — Ctrl+F 파일 검색 상태를 메모리에 유지)
 
 ### 배경

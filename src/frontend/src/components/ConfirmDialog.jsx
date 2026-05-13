@@ -363,10 +363,12 @@ export function SearchDialog({ onClose, onView, onEdit }) {
     if (file.isDir) {
       store.navigate(store.activePanel, file.path)
     } else {
-      // Windows(\) / Unix(/) 구분자 모두 처리
+      // Todo.md #66: 파일 선택 시 부모 폴더로 이동한 뒤 해당 파일에 커서를 둔다.
+      // Windows(\) / Unix(/) 구분자 모두 처리.
       const lastSep = Math.max(file.path.lastIndexOf('/'), file.path.lastIndexOf('\\'))
       const dir = lastSep > 0 ? file.path.substring(0, lastSep) : file.path
-      store.navigate(store.activePanel, dir)
+      const fileName = lastSep >= 0 ? file.path.substring(lastSep + 1) : file.path
+      store.navigateAndFocus(store.activePanel, dir, fileName)
     }
     onClose()
   }

@@ -1,5 +1,38 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — GW-BASIC 5단계: 그래픽/사운드 ASCII 시뮬)
+
+### 배경
+Starlark에는 그래픽/사운드 출력 API가 없으므로 SCREEN/COLOR/PSET/LINE/CIRCLE은
+40x20 ASCII 픽셀 버퍼로 시뮬레이션하고, SOUND/PLAY는 텍스트 로그로 기록.
+실행 종료(END 또는 자연 종료) 시 버퍼를 출력에 flush.
+
+### 변경
+- `examples/gwbasic.star`:
+  - 키워드 추가: `SCREEN`, `COLOR`, `CLS`, `PSET`, `PRESET`, `LINE`, `CIRCLE`,
+    `SOUND`, `PLAY`
+  - 그래픽 헬퍼: `_gfx_new` / `_gfx_plot` / `_gfx_line`(Bresenham) /
+    `_gfx_circle`(midpoint) / `_gfx_flush`
+  - `_parse_coord_env` — `(x, y)` 페어 파싱
+  - exec_stmt 분기 추가:
+    - `SCREEN n` — n==0이면 텍스트, 그 외 그래픽 활성
+    - `COLOR fg [, bg]` — 전경/배경 색 기록 (시뮬은 로그만)
+    - `CLS` — 그래픽 활성이면 flush 후 클리어
+    - `PSET (x, y)` → `*`, `PRESET (x, y)` → `.`
+    - `LINE (x1,y1)-(x2,y2)` → Bresenham `#`
+    - `CIRCLE (x, y), r` → midpoint `o`
+    - `SOUND f, d` → `[SOUND f d]` 로그
+    - `PLAY "string"` → `[PLAY ...]` 로그
+  - execute 종료 시 활성 그래픽 버퍼 자동 flush
+  - `DEMO_STAGE5` 추가 + run_demo 1~5단계 모두 출력
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_GWBasicInterpreterStage5` — 모드/색/사운드/PLAY 로그와
+    PSET(`*`)·LINE(`#`)·CIRCLE(`o`) 픽셀 검증
+- `Todo.md`: 5단계 완료 마킹
+- Go 회귀 테스트 5/5 통과 (Stage1~5)
+
+---
+
 ## 2026-05-14 (Todo.md #66 — GW-BASIC 4단계: DATA/READ/RESTORE, INPUT, DEF FN)
 
 ### 변경

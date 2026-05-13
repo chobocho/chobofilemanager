@@ -39,6 +39,9 @@ KEYWORDS = {
     "DATA": True, "READ": True, "RESTORE": True,
     "INPUT": True,
     "DEF": True, "FN": True,
+    "SCREEN": True, "COLOR": True, "CLS": True,
+    "PSET": True, "PRESET": True, "LINE": True, "CIRCLE": True,
+    "SOUND": True, "PLAY": True,
     "END": True, "STOP": True,
     "AND": True, "OR": True, "NOT": True, "MOD": True,
 }
@@ -713,6 +716,117 @@ def exec_let(body, start, env, ln):
     return i, None
 
 
+# ─── 그래픽 ASCII 시뮬레이션 (5단계) ──────────────────────────────────────────
+#
+# Starlark에는 그래픽 출력이 없으므로 작은 픽셀 버퍼를 dict에 보관하고
+# SCREEN 활성 모드에서 PSET/LINE/CIRCLE을 호출한 후 END 또는 CLS 직전에
+# output_lines로 flush 한다. 모드/색은 텍스트 로그로 기록.
+
+GFX_W = 40
+GFX_H = 20
+
+def _gfx_new():
+    rows = []
+    for _ in range(GFX_H):
+        rows.append(["." for _ in range(GFX_W)])
+    return {"w": GFX_W, "h": GFX_H, "buf": rows, "mode": 0, "active": False}
+
+def _gfx_plot(g, x, y, ch):
+    x = int(x); y = int(y)
+    if x < 0 or x >= g["w"] or y < 0 or y >= g["h"]:
+        return
+    g["buf"][y][x] = ch
+
+def _gfx_line(g, x0, y0, x1, y1, ch):
+    # Bresenham
+    x0 = int(x0); y0 = int(y0); x1 = int(x1); y1 = int(y1)
+    dx = x1 - x0 if x1 >= x0 else x0 - x1
+    dy = -(y1 - y0) if y1 >= y0 else -(y0 - y1)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+    for _ in range(GFX_W * GFX_H):
+        _gfx_plot(g, x0, y0, ch)
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
+
+def _gfx_circle(g, cx, cy, r, ch):
+    # midpoint algorithm
+    cx = int(cx); cy = int(cy); r = int(r)
+    if r <= 0:
+        _gfx_plot(g, cx, cy, ch)
+        return
+    x = r
+    y = 0
+    err = 1 - r
+    for _ in range(r * 8 + 8):
+        _gfx_plot(g, cx + x, cy + y, ch)
+        _gfx_plot(g, cx + y, cy + x, ch)
+        _gfx_plot(g, cx - y, cy + x, ch)
+        _gfx_plot(g, cx - x, cy + y, ch)
+        _gfx_plot(g, cx - x, cy - y, ch)
+        _gfx_plot(g, cx - y, cy - x, ch)
+        _gfx_plot(g, cx + y, cy - x, ch)
+        _gfx_plot(g, cx + x, cy - y, ch)
+        y += 1
+        if err < 0:
+            err += 2 * y + 1
+        else:
+            x -= 1
+            err += 2 * (y - x) + 1
+        if x < y:
+            break
+
+def _gfx_flush(g, output_lines):
+    """그래픽 버퍼를 텍스트로 출력. 호출 후 clear."""
+    if not g["active"]:
+        return
+    output_lines.append("[SCREEN buffer %dx%d]" % (g["w"], g["h"]))
+    for row in g["buf"]:
+        output_lines.append("".join(row))
+    output_lines.append("[/SCREEN]")
+    # clear
+    for y in range(g["h"]):
+        for x in range(g["w"]):
+            g["buf"][y][x] = "."
+
+
+def _parse_coord(body, i):
+    """`(x, y)` 형태에서 (x, y, next_idx, err) 반환."""
+    if i >= len(body) or body[i]["type"] != T_LPAREN:
+        return None, None, i, "expected ("
+    x, j, err = parse_expr(body, i + 1, {})
+    if err: return None, None, j, err
+    if j >= len(body) or body[j]["type"] != T_COMMA:
+        return None, None, j, "expected ,"
+    y, k, err = parse_expr(body, j + 1, {})
+    if err: return None, None, k, err
+    if k >= len(body) or body[k]["type"] != T_RPAREN:
+        return None, None, k, "expected )"
+    return x, y, k + 1, None
+
+# 좌표 파싱은 env가 필요할 수 있어 다음 헬퍼 사용(_parse_coord는 단순 리터럴 케이스용).
+def _parse_coord_env(body, i, env):
+    if i >= len(body) or body[i]["type"] != T_LPAREN:
+        return None, None, i, "expected ("
+    x, j, err = parse_expr(body, i + 1, env)
+    if err: return None, None, j, err
+    if j >= len(body) or body[j]["type"] != T_COMMA:
+        return None, None, j, "expected ,"
+    y, k, err = parse_expr(body, j + 1, env)
+    if err: return None, None, k, err
+    if k >= len(body) or body[k]["type"] != T_RPAREN:
+        return None, None, k, "expected )"
+    return x, y, k + 1, None
+
+
 # ─── 인터프리터 (라인 단위 실행 + GOTO/IF/FOR/GOSUB/WHILE) ────────────────────
 
 def execute(tokens, max_steps = 10000, input_queue = None):
@@ -726,6 +840,10 @@ def execute(tokens, max_steps = 10000, input_queue = None):
     data_ptr     = [0]  # READ가 소비하는 풀 포인터
     input_ptr    = [0]  # INPUT이 소비하는 큐 포인터
     iq = input_queue if input_queue != None else []
+    # 5단계 상태: 그래픽 버퍼 + 색
+    gfx          = _gfx_new()
+    color_fg     = [7]  # 기본 흰색
+    color_bg     = [0]
 
     lines, line_order, err = split_lines(tokens)
     if err:
@@ -965,6 +1083,82 @@ def execute(tokens, max_steps = 10000, input_queue = None):
             sub_body = body[:sub_end] if cond else body
             return exec_stmt(sub_body, branch_start, ln, pc)
 
+        # SCREEN <mode> — mode 0=텍스트, 그 외=그래픽 활성
+        if head["type"] == T_KEYWORD and head["value"] == "SCREEN":
+            v, _, err = parse_expr(body, start + 1, env)
+            if err: return -1, "SCREEN err at line %d: %s" % (ln, err)
+            gfx["mode"] = int(v)
+            gfx["active"] = (int(v) != 0)
+            output_lines.append("[SCREEN %d]" % int(v))
+            return pc + 1, None
+
+        # COLOR fg [, bg]
+        if head["type"] == T_KEYWORD and head["value"] == "COLOR":
+            fg, i, err = parse_expr(body, start + 1, env)
+            if err: return -1, "COLOR fg err at line %d: %s" % (ln, err)
+            color_fg[0] = int(fg)
+            if i < len(body) and body[i]["type"] == T_COMMA:
+                bg, _, err = parse_expr(body, i + 1, env)
+                if err: return -1, "COLOR bg err at line %d: %s" % (ln, err)
+                color_bg[0] = int(bg)
+            output_lines.append("[COLOR fg=%d bg=%d]" % (color_fg[0], color_bg[0]))
+            return pc + 1, None
+
+        # CLS — 그래픽이면 flush, 텍스트면 로그
+        if head["type"] == T_KEYWORD and head["value"] == "CLS":
+            if gfx["active"]:
+                _gfx_flush(gfx, output_lines)
+            output_lines.append("[CLS]")
+            return pc + 1, None
+
+        # PSET (x, y) [, color]
+        if head["type"] == T_KEYWORD and (head["value"] == "PSET" or head["value"] == "PRESET"):
+            x, y, i, err = _parse_coord_env(body, start + 1, env)
+            if err: return -1, "PSET err at line %d: %s" % (ln, err)
+            ch = "*" if head["value"] == "PSET" else "."
+            _gfx_plot(gfx, x, y, ch)
+            return pc + 1, None
+
+        # LINE (x1,y1)-(x2,y2)
+        if head["type"] == T_KEYWORD and head["value"] == "LINE":
+            x1, y1, i, err = _parse_coord_env(body, start + 1, env)
+            if err: return -1, "LINE coord1 err at line %d: %s" % (ln, err)
+            if i >= len(body) or body[i]["type"] != T_OP or body[i]["value"] != "-":
+                return -1, "LINE expected '-' between coords at line %d" % ln
+            x2, y2, _, err = _parse_coord_env(body, i + 1, env)
+            if err: return -1, "LINE coord2 err at line %d: %s" % (ln, err)
+            _gfx_line(gfx, x1, y1, x2, y2, "#")
+            return pc + 1, None
+
+        # CIRCLE (x, y), r
+        if head["type"] == T_KEYWORD and head["value"] == "CIRCLE":
+            cx, cy, i, err = _parse_coord_env(body, start + 1, env)
+            if err: return -1, "CIRCLE coord err at line %d: %s" % (ln, err)
+            if i >= len(body) or body[i]["type"] != T_COMMA:
+                return -1, "CIRCLE expected , before radius at line %d" % ln
+            r, _, err = parse_expr(body, i + 1, env)
+            if err: return -1, "CIRCLE radius err at line %d: %s" % (ln, err)
+            _gfx_circle(gfx, cx, cy, r, "o")
+            return pc + 1, None
+
+        # SOUND freq, duration — 텍스트 로그
+        if head["type"] == T_KEYWORD and head["value"] == "SOUND":
+            f, i, err = parse_expr(body, start + 1, env)
+            if err: return -1, "SOUND freq err at line %d: %s" % (ln, err)
+            if i >= len(body) or body[i]["type"] != T_COMMA:
+                return -1, "SOUND expected , at line %d" % ln
+            d, _, err = parse_expr(body, i + 1, env)
+            if err: return -1, "SOUND dur err at line %d: %s" % (ln, err)
+            output_lines.append("[SOUND %dHz %s]" % (int(f), str(d)))
+            return pc + 1, None
+
+        # PLAY "string"
+        if head["type"] == T_KEYWORD and head["value"] == "PLAY":
+            v, _, err = parse_expr(body, start + 1, env)
+            if err: return -1, "PLAY err at line %d: %s" % (ln, err)
+            output_lines.append("[PLAY %s]" % str(v))
+            return pc + 1, None
+
         # DIM name(size) [, name2(size) ...] — 1차원 배열만 (0..size 인덱스, GW-BASIC 호환)
         if head["type"] == T_KEYWORD and head["value"] == "DIM":
             i = start + 1
@@ -1020,6 +1214,10 @@ def execute(tokens, max_steps = 10000, input_queue = None):
         if next_pc < 0:
             return None, "internal: bad next_pc at line %d" % ln
         pc = next_pc
+
+    # 5단계: 종료 시 그래픽 버퍼가 활성이면 flush
+    if gfx["active"]:
+        _gfx_flush(gfx, output_lines)
 
     return "\n".join(output_lines), None
 
@@ -1114,13 +1312,29 @@ DEMO_STAGE4 = '''10 REM stage 4 data input deffn
 '''
 
 
+# Stage 5 데모: SCREEN/COLOR/CLS/PSET/LINE/CIRCLE/SOUND/PLAY
+# (Starlark에는 그래픽/사운드가 없어 ASCII 버퍼와 텍스트 로그로 시뮬레이션)
+DEMO_STAGE5 = '''10 REM stage 5 graphics + sound
+20 SCREEN 1
+30 COLOR 4, 0
+40 PSET (5, 5)
+50 PSET (10, 10)
+60 LINE (0, 0)-(20, 12)
+70 CIRCLE (20, 10), 6
+80 SOUND 440, 1
+90 PLAY "C D E F G"
+100 END
+'''
+
+
 def run_demo():
-    print("=== GW-BASIC 1·2·3·4단계 데모 ===")
+    print("=== GW-BASIC 1~5단계 데모 ===")
     stages = [
         ("Stage 1", DEMO_STAGE1, None),
         ("Stage 2", DEMO_STAGE2, None),
         ("Stage 3", DEMO_STAGE3, None),
         ("Stage 4", DEMO_STAGE4, ["WORLD"]),  # INPUT 큐
+        ("Stage 5", DEMO_STAGE5, None),
     ]
     for label, src, iq in stages:
         print("--- %s ---" % label)

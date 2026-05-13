@@ -143,5 +143,6 @@
   빌트인 LEN/LEFT$/RIGHT$/MID$/INSTR/INT/ABS/SIN/COS/TAN/SQR/RND. Go 회귀 테스트 +1.
 - ✓ 4단계 완료 (2026-05-14): DATA/READ/RESTORE(풀+포인터), INPUT(`input_queue` 스텁),
   DEF FN(1인자 사용자 함수, FNNAME / FN NAME 두 토큰 형태 모두 인식). Go 회귀 +1.
-- 🔲 5단계 (예정): SCREEN/COLOR/LINE/CIRCLE/PSET 그래픽, SOUND/PLAY
+- ✓ 5단계 완료 (2026-05-14): SCREEN/COLOR/CLS, PSET/PRESET/LINE(Bresenham)/CIRCLE(midpoint)
+  → 40x20 ASCII 픽셀 버퍼로 시뮬레이션, SOUND/PLAY는 텍스트 로그. Go 회귀 +1.
 - 🔲 6단계 (예정): REPL, 디버거, 더 많은 예제 프로그램

@@ -1878,6 +1878,48 @@ func TestRunStarlarkFile_GWBasicInterpreterStage4(t *testing.T) {
 	}
 }
 
+// 5단계 — SCREEN/COLOR/CLS/PSET/LINE/CIRCLE/SOUND/PLAY (ASCII 시뮬레이션)
+func TestRunStarlarkFile_GWBasicInterpreterStage5(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	mustContain := []string{
+		"[SCREEN 1]",         // SCREEN 모드 로그
+		"[COLOR fg=4 bg=0]",  // COLOR 로그
+		"[SOUND 440Hz 1]",    // SOUND 로그
+		"[PLAY C D E F G]",   // PLAY 로그
+		"[SCREEN buffer 40x20]", // flush 헤더
+		"[/SCREEN]",          // flush 푸터
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(out, s) {
+			t.Errorf("Stage5 출력에 %q가 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+	// PSET / LINE / CIRCLE 결과로 ASCII 버퍼에 점/선/원이 표시됨 — `*` (PSET) 또는
+	// `#` (LINE) 또는 `o` (CIRCLE) 가 최소 1글자 이상은 있어야 함.
+	if !strings.Contains(out, "*") {
+		t.Errorf("Stage5: PSET 점이 없음. 출력:\n%s", out)
+	}
+	if !strings.Contains(out, "#") {
+		t.Errorf("Stage5: LINE 픽셀이 없음. 출력:\n%s", out)
+	}
+	if !strings.Contains(out, "o") {
+		t.Errorf("Stage5: CIRCLE 픽셀이 없음. 출력:\n%s", out)
+	}
+}
+
 func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
 	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
 	base := t.TempDir()

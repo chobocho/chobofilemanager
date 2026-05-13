@@ -1,5 +1,28 @@
 # 변경 이력
 
+## 2026-05-13 (Todo.md #65 — Ctrl+F 파일 검색 상태를 메모리에 유지)
+
+### 배경
+Ctrl+F로 SearchDialog를 열어 검색하고 닫으면 모달 unmount로 컴포넌트
+state(query/recursive/results)가 사라져, 다시 Ctrl+F를 누르면 빈 화면으로
+시작해 검색을 처음부터 다시 입력·실행해야 했음. 동일 검색을 반복하거나
+이어서 다른 결과를 확인할 때 비효율적.
+
+### 변경
+- `fileStore.js`:
+  - `searchState: { query: '', recursive: true, results: [] }` 필드 추가
+  - `setSearchState(partial)` 액션 — partial merge로 일부 필드만 업데이트
+- `ConfirmDialog.jsx` `SearchDialog`:
+  - 초기 state를 `store.searchState`에서 복원
+  - `setQuery` / `setRecursive`를 wrapper로 만들어 변경 시 즉시 store 반영
+  - 검색 실행 완료 시 `setSearchState({ query, recursive, results })`로 결과 보존
+  - 보존된 query가 있으면 input focus 후 전체 선택 (이어 검색 / 재입력 모두 편함)
+- `fileStore.test.js`: SS-01~04 4개 케이스 — 초기값, partial merge, 즉시 조회,
+  다중 필드 동시 설정 검증
+- 프론트엔드 321/321 통과 (이전 317 → +4)
+
+---
+
 ## 2026-05-13 (Todo #67 — F3 확대 후 좌측 끝 스크롤 시 좌측 짤림 재발 수정)
 
 ### 배경

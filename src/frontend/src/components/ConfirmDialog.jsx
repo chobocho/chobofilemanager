@@ -317,13 +317,31 @@ const TEXT_EXTS = new Set(['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.
 export function SearchDialog({ onClose, onView, onEdit }) {
   const store = useFileStore()
   const panel = store[store.activePanel]
-  const [query, setQuery]           = useState('')
-  const [recursive, setRecursive]   = useState(true)
-  const [results, setResults]       = useState([])
-  const [searching, setSearching]   = useState(false)
+  // Todo #65 (Todo.md): 검색 상태(query/recursive/results)는 store에 보관해
+  // 모달을 닫고 다시 Ctrl+F로 열어도 복원됨. 로컬 state로 입력을 처리하고
+  // 변경 시 store에 즉시 반영.
+  const savedSearch = store.searchState
+  const setSearchState = store.setSearchState
+  const [query, setQueryLocal]         = useState(savedSearch.query)
+  const [recursive, setRecursiveLocal] = useState(savedSearch.recursive)
+  const [results, setResults]          = useState(savedSearch.results)
+  const [searching, setSearching]      = useState(false)
   const inputRef = useRef(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  const setQuery = (v) => {
+    setQueryLocal(v)
+    setSearchState({ query: v })
+  }
+  const setRecursive = (v) => {
+    setRecursiveLocal(v)
+    setSearchState({ recursive: v })
+  }
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    // 보존된 query가 있으면 전체 선택 — 이어서 검색하거나 새로 입력 모두 편함
+    if (savedSearch.query) inputRef.current?.select()
+  }, [])
 
   const handleSearch = async (e) => {
     e?.preventDefault()
@@ -333,6 +351,7 @@ export function SearchDialog({ onClose, onView, onEdit }) {
     try {
       const found = await api.SearchFiles(panel.path, query.trim(), recursive)
       setResults(found || [])
+      setSearchState({ query: query.trim(), recursive, results: found || [] })
     } catch(e) {
       console.error(e)
     } finally {

@@ -80,6 +80,13 @@ export const useFileStore = create((set, get) => ({
   clipboard: { items: [], operation: null },
   status: '',
 
+  // Todo #65 (Todo.md): Ctrl+F 검색 모달이 닫혀도 query/recursive/results를
+  // 보관해 다시 열 때 동일 상태로 복원. SearchDialog가 setSearchState로 갱신.
+  searchState: { query: '', recursive: true, results: [] },
+  setSearchState: (partial) => set(s => ({
+    searchState: { ...s.searchState, ...partial }
+  })),
+
   init: async () => {
     const [home, drives, saved] = await Promise.all([
       api.GetHomeDirectory(),

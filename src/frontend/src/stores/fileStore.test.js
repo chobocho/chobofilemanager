@@ -934,3 +934,56 @@ describe('Todo #57 — confirmTrash / trash', () => {
     expect(useFileStore.getState().status).toMatch(/Trash failed/)
   })
 })
+
+// ─── Todo #65 (Todo.md) — Ctrl+F 파일 검색 상태를 메모리에 유지 ──────────────
+// SearchDialog가 모달 unmount로 사라지면서 다시 열 때 빈 상태로 시작했음.
+// store에 query/recursive/results를 보관해 모달 재오픈 시 복원.
+
+describe('Todo #65 — searchState (Ctrl+F 검색 상태 메모리 유지)', () => {
+  let useFileStore
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    useFileStore = mod.useFileStore
+  })
+
+  it('SS-01: searchState 초기값은 빈 query / recursive=true / 빈 results', () => {
+    const s = useFileStore.getState().searchState
+    expect(s.query).toBe('')
+    expect(s.recursive).toBe(true)
+    expect(s.results).toEqual([])
+  })
+
+  it('SS-02: setSearchState 는 partial merge — 다른 필드 보존', () => {
+    const store = useFileStore.getState()
+    store.setSearchState({ query: '우리,나라' })
+    expect(useFileStore.getState().searchState).toEqual({
+      query: '우리,나라', recursive: true, results: [],
+    })
+    store.setSearchState({ recursive: false })
+    expect(useFileStore.getState().searchState).toEqual({
+      query: '우리,나라', recursive: false, results: [],
+    })
+    const results = [{ name: 'a.txt', path: '/x/a.txt', isDir: false }]
+    store.setSearchState({ results })
+    expect(useFileStore.getState().searchState).toEqual({
+      query: '우리,나라', recursive: false, results,
+    })
+  })
+
+  it('SS-03: setSearchState 호출 후 getState로 동일 객체 즉시 조회 가능', () => {
+    useFileStore.getState().setSearchState({ query: 'foo' })
+    expect(useFileStore.getState().searchState.query).toBe('foo')
+  })
+
+  it('SS-04: 여러 필드 한 번에 설정 가능', () => {
+    const results = [{ name: 'x', path: '/x', isDir: false }]
+    useFileStore.getState().setSearchState({
+      query: 'x', recursive: false, results,
+    })
+    expect(useFileStore.getState().searchState).toEqual({
+      query: 'x', recursive: false, results,
+    })
+  })
+})

@@ -137,7 +137,8 @@
 - ✓ 1단계 완료 (2026-05-08): `examples/gwbasic.star` — 렉서 + 최소 평가기
   (PRINT/LET/REM/GOTO/END, 산술·비교 표현식, 라인번호). Starlark 런타임에
   `While`/`Recursion` 옵션 활성화. Go 회귀 테스트 2건 추가.
-- 🔲 2단계 (예정): IF/THEN/ELSE, FOR/NEXT, GOSUB/RETURN, WHILE/WEND
+- ✓ 2단계 완료 (2026-05-14): IF/THEN/ELSE (인라인 stmt 포함), FOR/NEXT (STEP 양/음),
+  GOSUB/RETURN (콜 스택), WHILE/WEND (페어 사전 계산). Go 회귀 테스트 +1.
 - 🔲 3단계 (예정): 배열 DIM, 문자열 함수(LEFT$/MID$/RIGHT$/LEN/INSTR),
   수학 함수(SIN/COS/RND/INT), 부동소수점, 16/8진수
 - 🔲 4단계 (예정): DATA/READ/RESTORE, INPUT, DEF FN, 사용자 함수

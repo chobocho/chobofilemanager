@@ -1,5 +1,35 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — GW-BASIC 인터프리터 2단계: 제어 흐름)
+
+### 배경
+1단계는 직선 흐름(PRINT/LET/REM/GOTO/END) + 산술·비교 표현식만 지원했음.
+2단계로 GW-BASIC의 핵심 제어 흐름 4종을 추가.
+
+### 변경
+- `examples/gwbasic.star`:
+  - 키워드 추가: `FOR`, `TO`, `STEP`, `NEXT`, `GOSUB`, `RETURN`, `WHILE`, `WEND`
+  - `build_while_pairs()` — `WHILE`/`WEND` 인덱스 페어를 사전 계산해 거짓 조건시
+    바로 점프할 수 있도록 (중첩은 스택 처리)
+  - `exec_print()` / `exec_let()` — PRINT/LET 실행 로직을 statement 단위 함수로
+    분리해 IF의 인라인 분기에서도 재사용
+  - `exec_stmt()` — 내부 statement 디스패처. IF/FOR/NEXT/GOSUB/RETURN/WHILE/WEND를
+    모두 처리하고 `(next_pc, err)`를 반환
+  - IF/THEN/ELSE: `THEN` 뒤가 NUMBER면 GOTO 약식, 아니면 인라인 statement
+    (PRINT/LET/GOTO/GOSUB...) 재귀 실행. `ELSE`는 같은 라인에서 매칭
+  - FOR/NEXT: `for_stack`에 `{var, end, step, return_pc}` 푸시.
+    STEP 양수면 `var > end` 일 때 종료, 음수면 `var < end`. NEXT의 변수명은 선택
+  - GOSUB/RETURN: `gosub_stack`에 `pc+1` 푸시 / pop. 매칭 없으면 에러
+  - WHILE/WEND: WHILE에서 cond 거짓이면 페어 dict로 WEND 다음으로 점프, WEND는 WHILE로 점프
+  - 새 데모(`DEMO_STAGE2`) + `run_demo` 가 Stage 1/2 둘 다 출력
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_GWBasicInterpreterStage2` 추가 — 인라인 THEN/ELSE,
+    STEP 2 FOR (1+3+5=9), GOSUB/RETURN, WHILE/WEND 출력 검증
+- `Todo.md`: 2단계 완료 마킹
+- Go 회귀 테스트 2/2 통과 (Stage1 + Stage2)
+
+---
+
 ## 2026-05-14 (Todo.md #66 — 검색 결과 파일 선택 시 해당 파일로 스크롤·포커스)
 
 ### 배경

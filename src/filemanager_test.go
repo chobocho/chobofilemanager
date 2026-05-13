@@ -1761,6 +1761,50 @@ func TestRunStarlarkFile_GWBasicInterpreterStage1(t *testing.T) {
 	}
 }
 
+// 2단계 — IF/THEN/ELSE, FOR/NEXT, GOSUB/RETURN, WHILE/WEND
+func TestRunStarlarkFile_GWBasicInterpreterStage2(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	mustContain := []string{
+		"A > 3 OK",       // IF expr THEN <line> 분기
+		"INLINE THEN",    // IF expr THEN <stmt> 인라인
+		"INLINE ELSE",    // IF false THEN ... ELSE <stmt> 인라인
+		"SUM ODD9",       // FOR J=1 TO 5 STEP 2: 1+3+5=9
+		"IN SUB",         // GOSUB 진입
+		"BACK",           // RETURN 후 복귀
+		"WEND DONE",      // WHILE 정상 종료
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(out, s) {
+			t.Errorf("Stage2 출력에 %q가 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+
+	// FOR/NEXT의 본문이 정확한 횟수(3회) 실행됐는지 — 단순 카운트로 검증
+	forCount := strings.Count(out, "\n1\n2\n3\n")
+	if forCount < 1 {
+		t.Errorf("FOR 1 TO 3 본문(1,2,3)이 연속 출력되지 않음. 실제 출력:\n%s", out)
+	}
+
+	// WHILE 본문 (K < 4, 1,2,3)
+	whileCount := strings.Count(out, "\n1\n2\n3\nWEND DONE")
+	if whileCount < 1 {
+		t.Errorf("WHILE 본문이 1,2,3 → WEND DONE 순으로 출력되지 않음. 실제 출력:\n%s", out)
+	}
+}
+
 func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
 	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
 	base := t.TempDir()

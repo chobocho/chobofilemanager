@@ -118,10 +118,21 @@ export function imageScrollDelta(key) {
 // transformOrigin: center 와 결합되면 확대된 이미지가 컨테이너 바깥으로 사방 overflow,
 // scrollLeft=0이 시각적 좌측 끝이 아니라 좌측이 잘려 보였음.
 // CSS `zoom`은 시각과 레이아웃(스크롤 영역) 모두 확대하므로 정확히 스크롤됨.
+//
+// Todo #65 후속: scale != 1일 때 maxWidth/maxHeight 100%가 부모 컨테이너 크기로
+// zoom된 이미지를 다시 제한해 확대가 거의 안 보이는 문제. scale=1 (fit-to-window)일
+// 때만 100% 제한을 두고, 사용자가 명시적으로 zoom을 조정하면 제한을 푼다.
 export function getImageStyle(imageScale) {
+  if (imageScale === DEFAULT_IMAGE_SCALE) {
+    return {
+      maxWidth: '100%',
+      maxHeight: '100%',
+      objectFit: 'contain',
+      zoom: imageScale,
+      cursor: 'zoom-in',
+    }
+  }
   return {
-    maxWidth: '100%',
-    maxHeight: '100%',
     objectFit: 'contain',
     zoom: imageScale,
     cursor: imageScale > 1 ? 'zoom-out' : 'zoom-in',

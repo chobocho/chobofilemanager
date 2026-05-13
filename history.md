@@ -1,5 +1,31 @@
 # 변경 이력
 
+## 2026-05-13 (Todo #65 후속 — F3 이미지 확대가 거의 안 되는 문제 수정)
+
+### 배경
+Todo #65로 `transform: scale()` → CSS `zoom`으로 전환한 뒤 사용자가
+"F3에서 이미지 확대가 안 된다(아주 조금만 됨)"고 보고. 원인은
+`getImageStyle`이 `zoom: imageScale`과 함께 `maxWidth: 100%` / `maxHeight: 100%`
+를 항상 같이 적용했기 때문. zoom으로 이미지 박스가 확대되어도 `maxWidth: 100%`
+가 부모 컨테이너(zoom 미적용) 크기로 다시 제한해 버려 시각적으로 거의 변화가
+없었음.
+
+### 변경
+- `FileViewer.jsx` `getImageStyle`:
+  - `imageScale === DEFAULT_IMAGE_SCALE` (1.0)일 때만 `maxWidth: 100%` /
+    `maxHeight: 100%`를 적용해 컨테이너 fit-to-window 유지
+  - `imageScale !== 1`이면 `maxWidth`/`maxHeight` 제거 → zoom이 부모
+    컨테이너에 막히지 않고 실제 배율대로 확대/축소됨. 컨테이너에 이미
+    `overflow: auto`가 있어 스크롤로 탐색 가능.
+- `FileViewer.test.js`:
+  - IST-05 설명 보정 (scale=1 한정)
+  - IST-09 추가: scale > 1일 때 `maxWidth`/`maxHeight` 제거 검증
+  - IST-10 추가: scale < 1일 때도 동일하게 제거
+  - IST-11 추가: scale != 1일 때도 zoom 값이 imageScale과 일치
+- 프론트엔드 312/312 통과 (이전 309 → +3)
+
+---
+
 ## 2026-05-13 (Todo #65 — F3 이미지 확대 시 좌측 짤림 수정)
 
 ### 배경

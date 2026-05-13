@@ -487,7 +487,7 @@ describe('getImageStyle (Todo #65)', () => {
     expect(getImageStyle(1).objectFit).toBe('contain')
   })
 
-  it('IST-05: maxWidth/maxHeight는 100% (zoom=1일 때 컨테이너 fit)', () => {
+  it('IST-05: scale=1일 때 maxWidth/maxHeight는 100% (컨테이너 fit)', () => {
     const style = getImageStyle(1)
     expect(style.maxWidth).toBe('100%')
     expect(style.maxHeight).toBe('100%')
@@ -504,6 +504,25 @@ describe('getImageStyle (Todo #65)', () => {
 
   it('IST-08: 기본 scale(1.0)일 때 zoom 값이 1', () => {
     expect(getImageStyle(DEFAULT_IMAGE_SCALE).zoom).toBe(1)
+  })
+
+  // Todo #65 후속 버그: zoom과 maxWidth/maxHeight 100%를 함께 적용하면
+  // 부모 컨테이너가 다시 zoom된 이미지를 제한해 확대가 거의 안 됨.
+  it('IST-09: scale > 1 일 때 maxWidth/maxHeight 제거 (부모 제한 해제)', () => {
+    const style = getImageStyle(2)
+    expect(style.maxWidth).toBeUndefined()
+    expect(style.maxHeight).toBeUndefined()
+  })
+
+  it('IST-10: scale < 1 일 때도 maxWidth/maxHeight 제거 (축소 정확성)', () => {
+    const style = getImageStyle(0.5)
+    expect(style.maxWidth).toBeUndefined()
+    expect(style.maxHeight).toBeUndefined()
+  })
+
+  it('IST-11: scale != 1 일 때도 zoom 값은 imageScale과 같다', () => {
+    expect(getImageStyle(3).zoom).toBe(3)
+    expect(getImageStyle(0.25).zoom).toBe(0.25)
   })
 })
 

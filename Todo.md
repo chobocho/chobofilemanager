@@ -141,6 +141,7 @@
   GOSUB/RETURN (콜 스택), WHILE/WEND (페어 사전 계산). Go 회귀 테스트 +1.
 - ✓ 3단계 완료 (2026-05-14): 부동소수점, 16/8진수(&H/&O), `$`접미사, 1차원 DIM/배열,
   빌트인 LEN/LEFT$/RIGHT$/MID$/INSTR/INT/ABS/SIN/COS/TAN/SQR/RND. Go 회귀 테스트 +1.
-- 🔲 4단계 (예정): DATA/READ/RESTORE, INPUT, DEF FN, 사용자 함수
+- ✓ 4단계 완료 (2026-05-14): DATA/READ/RESTORE(풀+포인터), INPUT(`input_queue` 스텁),
+  DEF FN(1인자 사용자 함수, FNNAME / FN NAME 두 토큰 형태 모두 인식). Go 회귀 +1.
 - 🔲 5단계 (예정): SCREEN/COLOR/LINE/CIRCLE/PSET 그래픽, SOUND/PLAY
 - 🔲 6단계 (예정): REPL, 디버거, 더 많은 예제 프로그램

@@ -1845,6 +1845,39 @@ func TestRunStarlarkFile_GWBasicInterpreterStage3(t *testing.T) {
 	}
 }
 
+// 4단계 — DATA/READ/RESTORE, INPUT(queue stub), DEF FN
+func TestRunStarlarkFile_GWBasicInterpreterStage4(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join("..", "examples", "gwbasic.star"))
+	if err != nil {
+		t.Fatalf("abs path: %v", err)
+	}
+	if _, statErr := os.Stat(script); statErr != nil {
+		t.Skipf("examples/gwbasic.star 없음: %v", statErr)
+	}
+
+	fm := newTestFM()
+	out, err := fm.RunStarlarkFile(script)
+	if err != nil {
+		t.Fatalf("RunStarlarkFile error: %v", err)
+	}
+
+	mustContain := []string{
+		"READ:102030",   // PRINT A; B; C — 세미콜론은 빈 결합
+		"NAME:ALICE",    // 문자열 DATA
+		"RESTORED:10",   // RESTORE 후 다시 처음부터
+		"ENTER:",        // INPUT prompt 출력
+		"GOT:WORLD",     // INPUT queue 첫 값
+		"SQ(7):49",      // DEF FNSQ
+		"DBL(11):22",    // DEF FNDBL
+		"NESTED:36",     // FNSQ(FNDBL(3)) = (3+3)^2 = 36
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(out, s) {
+			t.Errorf("Stage4 출력에 %q가 없음. 실제 출력:\n%s", s, out)
+		}
+	}
+}
+
 func TestRunStarlarkFile_StarlarkWhileEnabled(t *testing.T) {
 	// Todo #62를 위해 RunStarlarkFile에서 `while` 사용을 허용했는지 확인.
 	base := t.TempDir()

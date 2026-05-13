@@ -1,5 +1,30 @@
 # 변경 이력
 
+## 2026-05-14 (Todo.md #66 — GW-BASIC 4단계: DATA/READ/RESTORE, INPUT, DEF FN)
+
+### 변경
+- `examples/gwbasic.star`:
+  - 키워드 추가: `DATA`, `READ`, `RESTORE`, `INPUT`, `DEF`, `FN`
+  - `build_data_pool()` — 모든 DATA 라인의 항목을 평탄한 풀(`data_pool`)로
+    사전 수집. 음수 리터럴, 문자열, IDENT(따옴표 없는 이름) 모두 처리.
+    `data_line_to_idx` 로 `RESTORE <line>` 지원
+  - `build_defn_table()` — `DEF FN<NAME>(arg) = expr` 사전 수집.
+    `DEF FNNAME(...)` (IDENT 1토큰) / `DEF FN NAME(...)` (KEYWORD+IDENT 2토큰)
+    둘 다 인식 — GW-BASIC 클래식 토큰화 호환
+  - `parse_primary`: FN 호출 디스패치(`FNNAME` IDENT 또는 `FN`+`NAME` 양 형태).
+    `__DEFNS__` 환경에 등록된 경우만 함수 호출, 아니면 일반 IDENT로 fallthrough
+  - `execute(input_queue=...)` 파라미터 추가 — INPUT 문장이 큐에서 값 소비
+  - exec_stmt 분기 추가: DATA/DEF skip, READ(N 변수 일괄), RESTORE(전체/특정 라인),
+    INPUT(prompt 옵션, `$`/숫자 변수 자동 변환)
+  - `DEMO_STAGE4` 추가 + `run_demo`가 4단계 모두 출력. INPUT 큐는 `["WORLD"]`로 주입
+- `src/filemanager_test.go`:
+  - `TestRunStarlarkFile_GWBasicInterpreterStage4` — READ 세미콜론 연결,
+    문자열 DATA, RESTORE 후 재읽기, INPUT prompt+큐, DEF FN 단일/중첩 호출 검증
+- `Todo.md`: 4단계 완료 마킹
+- Go 회귀 테스트 4/4 통과 (Stage1·2·3·4)
+
+---
+
 ## 2026-05-14 (Todo.md #66 — GW-BASIC 3단계: 숫자·문자열·배열·빌트인)
 
 ### 변경

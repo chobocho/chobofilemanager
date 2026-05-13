@@ -36,6 +36,9 @@ KEYWORDS = {
     "GOSUB": True, "RETURN": True,
     "WHILE": True, "WEND": True,
     "DIM": True,
+    "DATA": True, "READ": True, "RESTORE": True,
+    "INPUT": True,
+    "DEF": True, "FN": True,
     "END": True, "STOP": True,
     "AND": True, "OR": True, "NOT": True, "MOD": True,
 }
@@ -398,6 +401,33 @@ def parse_primary(tokens, idx, env):
         return tok["num"], idx + 1, None
     if tok["type"] == T_STRING:
         return tok["value"], idx + 1, None
+    # `FN <name>(arg)` 또는 `FNNAME(arg)` — DEF FN 사용자 함수 호출
+    fname_call = None
+    next_after_name = idx
+    if tok["type"] == T_KEYWORD and tok["value"] == "FN":
+        if idx + 1 < len(tokens) and tokens[idx + 1]["type"] == T_IDENT:
+            fname_call = "FN" + tokens[idx + 1]["value"]
+            next_after_name = idx + 2
+    elif tok["type"] == T_IDENT and tok["value"].startswith("FN") and len(tok["value"]) > 2:
+        fname_call = tok["value"]
+        next_after_name = idx + 1
+    if fname_call != None and next_after_name < len(tokens) and tokens[next_after_name]["type"] == T_LPAREN:
+        # FN 호출인지 확인: __DEFNS__ 에 등록된 경우만. 아니면 일반 IDENT 처리로 fallthrough.
+        defns = env.get("__DEFNS__")
+        if defns != None and fname_call in defns:
+            args, next_idx, err = _parse_call_args(tokens, next_after_name, env)
+            if err: return None, next_idx, err
+            if len(args) != 1:
+                return None, next_idx, "%s expects 1 arg" % fname_call
+            defn = defns[fname_call]
+            saved = env.get(defn["arg"])
+            had_saved = defn["arg"] in env
+            env[defn["arg"]] = args[0]
+            v, _, err = parse_expr(defn["expr"], 0, env)
+            if had_saved: env[defn["arg"]] = saved
+            else: env.pop(defn["arg"])
+            if err: return None, next_idx, "%s eval err: %s" % (fname_call, err)
+            return v, next_idx, None
     if tok["type"] == T_IDENT:
         name = tok["value"]
         # 다음 토큰이 '(' 이면 함수 호출 또는 배열 참조
@@ -510,6 +540,92 @@ def split_lines(tokens):
     return lines, line_order, None
 
 
+# ─── DATA 풀 사전 수집 ────────────────────────────────────────────────────────
+#
+# DATA 라인은 실행 흐름에서 건너뛰고, 모든 DATA 항목을 평탄한 풀로 모은다.
+# READ는 풀 포인터를 진행시키며 값을 가져온다. RESTORE는 포인터 리셋.
+# data_line_to_idx: 라인번호 → 그 라인의 첫 DATA 항목 풀 인덱스 (RESTORE <line>용)
+
+def build_data_pool(lines, line_order):
+    pool = []
+    line_to_idx = {}
+    for ln in line_order:
+        body = lines[ln]
+        if len(body) == 0:
+            continue
+        h = body[0]
+        if not (h["type"] == T_KEYWORD and h["value"] == "DATA"):
+            continue
+        line_to_idx[ln] = len(pool)
+        i = 1
+        while i < len(body):
+            tok = body[i]
+            # 단순화: 부호 있는 숫자 / 문자열 / IDENT(문자열로 취급)
+            if tok["type"] == T_NUMBER:
+                pool.append(tok["num"]); i += 1
+            elif tok["type"] == T_STRING:
+                pool.append(tok["value"]); i += 1
+            elif tok["type"] == T_OP and tok["value"] == "-" and i + 1 < len(body) and body[i + 1]["type"] == T_NUMBER:
+                pool.append(-body[i + 1]["num"]); i += 2
+            elif tok["type"] == T_IDENT:
+                # 따옴표 없이 적은 단순 토큰을 문자열로 (GW-BASIC 호환)
+                pool.append(tok["value"]); i += 1
+            elif tok["type"] == T_COMMA:
+                i += 1
+            else:
+                return None, None, "DATA: unsupported token at line %d" % ln
+    return pool, line_to_idx, None
+
+
+# ─── DEF FN 사전 수집 ─────────────────────────────────────────────────────────
+#
+# DEF FN<NAME>(ARG) = <expr 토큰들>. 호출 시 인자를 평가해 env에 임시 바인딩 후
+# expr 토큰을 그 env로 평가. 1인자 함수만 지원(클래식 GW-BASIC).
+
+def build_defn_table(lines, line_order):
+    """DEF FN<NAME>(arg) = expr 수집.
+    `FN<NAME>` 은 `DEF FN NAME` 토큰 셋으로 들어올 수도 있고,
+    `DEF FNNAME` (IDENT 한 토큰)으로도 들어올 수 있음 — 둘 다 허용."""
+    table = {}
+    for ln in line_order:
+        body = lines[ln]
+        if len(body) < 4:
+            continue
+        if not (body[0]["type"] == T_KEYWORD and body[0]["value"] == "DEF"):
+            continue
+        # 함수명 추출
+        i = 1
+        fname = None
+        if body[i]["type"] == T_KEYWORD and body[i]["value"] == "FN":
+            if i + 1 >= len(body) or body[i + 1]["type"] != T_IDENT:
+                return None, "DEF FN requires name at line %d" % ln
+            fname = "FN" + body[i + 1]["value"]
+            i += 2
+        elif body[i]["type"] == T_IDENT and body[i]["value"].startswith("FN") and len(body[i]["value"]) > 2:
+            fname = body[i]["value"]  # 이미 "FNSQ" 형태
+            i += 1
+        else:
+            return None, "DEF requires FN at line %d" % ln
+
+        if i >= len(body) or body[i]["type"] != T_LPAREN:
+            return None, "%s requires ( at line %d" % (fname, ln)
+        i += 1
+        if i >= len(body) or body[i]["type"] != T_IDENT:
+            return None, "%s requires arg name at line %d" % (fname, ln)
+        arg_name = body[i]["value"]
+        i += 1
+        if i >= len(body) or body[i]["type"] != T_RPAREN:
+            return None, "%s requires ) at line %d" % (fname, ln)
+        i += 1
+        if i >= len(body) or body[i]["type"] != T_OP or body[i]["value"] != "=":
+            return None, "%s requires = at line %d" % (fname, ln)
+        expr_tokens = body[i + 1:]
+        if len(expr_tokens) == 0:
+            return None, "%s requires expression at line %d" % (fname, ln)
+        table[fname] = {"arg": arg_name, "expr": expr_tokens}
+    return table, None
+
+
 # ─── WHILE/WEND 페어 사전 계산 ────────────────────────────────────────────────
 #
 # WHILE은 조건이 거짓일 때 매칭 WEND 다음 라인으로 점프해야 한다. 매번 스캔하지
@@ -599,12 +715,17 @@ def exec_let(body, start, env, ln):
 
 # ─── 인터프리터 (라인 단위 실행 + GOTO/IF/FOR/GOSUB/WHILE) ────────────────────
 
-def execute(tokens, max_steps = 10000):
+def execute(tokens, max_steps = 10000, input_queue = None):
+    """tokens 실행. input_queue: INPUT 문장이 소비할 값(list of str/num). 비어 있으면 ""."""
     env = {}
     output_lines = []
     # 2단계 상태:
     for_stack    = []  # 각: {"var": str, "end": num, "step": num, "return_pc": int}
     gosub_stack  = []  # 각: int (RETURN 시 돌아갈 pc)
+    # 4단계 상태:
+    data_ptr     = [0]  # READ가 소비하는 풀 포인터
+    input_ptr    = [0]  # INPUT이 소비하는 큐 포인터
+    iq = input_queue if input_queue != None else []
 
     lines, line_order, err = split_lines(tokens)
     if err:
@@ -619,6 +740,15 @@ def execute(tokens, max_steps = 10000):
     while_to_wend, wend_to_while, err = build_while_pairs(lines, line_order)
     if err:
         return None, err
+
+    data_pool, data_line_to_idx, err = build_data_pool(lines, line_order)
+    if err:
+        return None, err
+
+    defns, err = build_defn_table(lines, line_order)
+    if err:
+        return None, err
+    env["__DEFNS__"] = defns
 
     # 라인 한 줄을 처리하는 내부 함수.
     # 반환: (next_pc, err). next_pc == None 이면 break(END/STOP).
@@ -636,6 +766,79 @@ def execute(tokens, max_steps = 10000):
             return None, None
         if head["type"] == T_KEYWORD and head["value"] == "STOP":
             return None, None
+        # DATA / DEF FN — 실행 흐름에서는 건너뛴다(사전 스캔 완료)
+        if head["type"] == T_KEYWORD and head["value"] == "DATA":
+            return pc + 1, None
+        if head["type"] == T_KEYWORD and head["value"] == "DEF":
+            return pc + 1, None
+
+        # READ var1, var2, ... — DATA 풀에서 순서대로 가져와 대입
+        if head["type"] == T_KEYWORD and head["value"] == "READ":
+            i = start + 1
+            for _ in range(64):
+                if i >= len(body): break
+                if body[i]["type"] != T_IDENT:
+                    return -1, "READ expects IDENT at line %d" % ln
+                vname = body[i]["value"]
+                if data_ptr[0] >= len(data_pool):
+                    return -1, "out of DATA at line %d" % ln
+                env[vname] = data_pool[data_ptr[0]]
+                data_ptr[0] += 1
+                i += 1
+                if i < len(body) and body[i]["type"] == T_COMMA:
+                    i += 1
+                    continue
+                break
+            return pc + 1, None
+
+        # RESTORE [<line>]
+        if head["type"] == T_KEYWORD and head["value"] == "RESTORE":
+            if start + 1 < len(body) and body[start + 1]["type"] == T_NUMBER:
+                target_ln = body[start + 1]["num"]
+                if target_ln not in data_line_to_idx:
+                    return -1, "RESTORE: no DATA at line %d" % target_ln
+                data_ptr[0] = data_line_to_idx[target_ln]
+            else:
+                data_ptr[0] = 0
+            return pc + 1, None
+
+        # INPUT [prompt;] var1, var2, ...
+        # Starlark 환경에는 stdin 접근이 없으므로 input_queue 에서 소비.
+        # prompt 가 있으면 PRINT 처럼 출력하고, 변수마다 큐에서 하나씩 가져옴.
+        if head["type"] == T_KEYWORD and head["value"] == "INPUT":
+            i = start + 1
+            # prompt? — STRING 토큰 + SEMI 또는 COMMA
+            if i < len(body) and body[i]["type"] == T_STRING and i + 1 < len(body) and (body[i + 1]["type"] == T_SEMI or body[i + 1]["type"] == T_COMMA):
+                output_lines.append(body[i]["value"])
+                i += 2
+            for _ in range(64):
+                if i >= len(body): break
+                if body[i]["type"] != T_IDENT:
+                    return -1, "INPUT expects IDENT at line %d" % ln
+                vname = body[i]["value"]
+                if input_ptr[0] >= len(iq):
+                    return -1, "INPUT queue exhausted at line %d" % ln
+                raw = iq[input_ptr[0]]
+                input_ptr[0] += 1
+                # 문자열 변수면 그대로, 숫자 변수면 변환
+                if vname.endswith("$"):
+                    env[vname] = str(raw)
+                else:
+                    if type(raw) == "string":
+                        # 가능하면 숫자로
+                        s = raw.strip()
+                        if "." in s or "e" in s or "E" in s:
+                            env[vname] = float(s)
+                        else:
+                            env[vname] = int(s)
+                    else:
+                        env[vname] = raw
+                i += 1
+                if i < len(body) and body[i]["type"] == T_COMMA:
+                    i += 1
+                    continue
+                break
+            return pc + 1, None
 
         # GOTO
         if head["type"] == T_KEYWORD and head["value"] == "GOTO":
@@ -891,15 +1094,41 @@ DEMO_STAGE3 = '''10 REM stage 3 numbers strings arrays
 '''
 
 
+# Stage 4 데모: DATA/READ/RESTORE, INPUT(queue), DEF FN
+DEMO_STAGE4 = '''10 REM stage 4 data input deffn
+20 DATA 10, 20, 30, "ALICE"
+30 READ A, B, C, N$
+40 PRINT "READ:"; A; B; C
+50 PRINT "NAME:"; N$
+60 RESTORE
+70 READ X
+80 PRINT "RESTORED:"; X
+90 INPUT "ENTER:"; Q$
+100 PRINT "GOT:"; Q$
+110 DEF FNSQ(X) = X * X
+120 DEF FNDBL(Y) = Y + Y
+130 PRINT "SQ(7):"; FNSQ(7)
+140 PRINT "DBL(11):"; FNDBL(11)
+150 PRINT "NESTED:"; FNSQ(FNDBL(3))
+160 END
+'''
+
+
 def run_demo():
-    print("=== GW-BASIC 1·2·3단계 데모 ===")
-    for label, src in [("Stage 1", DEMO_STAGE1), ("Stage 2", DEMO_STAGE2), ("Stage 3", DEMO_STAGE3)]:
+    print("=== GW-BASIC 1·2·3·4단계 데모 ===")
+    stages = [
+        ("Stage 1", DEMO_STAGE1, None),
+        ("Stage 2", DEMO_STAGE2, None),
+        ("Stage 3", DEMO_STAGE3, None),
+        ("Stage 4", DEMO_STAGE4, ["WORLD"]),  # INPUT 큐
+    ]
+    for label, src, iq in stages:
         print("--- %s ---" % label)
         tokens, err = tokenize(src)
         if err:
             print("LEX ERROR:", err)
             continue
-        output, err = execute(tokens)
+        output, err = execute(tokens, input_queue = iq)
         if err:
             print("RUN ERROR:", err)
             continue

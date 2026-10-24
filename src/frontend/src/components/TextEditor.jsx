@@ -36,6 +36,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [loading, setLoading]           = useState(true)
   const [saving, setSaving]             = useState(false)
   const [error, setError]               = useState(null)
+  const [saveError, setSaveError]       = useState(null)
   const [cursor, setCursor]             = useState({ line: 1, col: 1 })
   // 미저장 상태에서 나가려 할 때 보류 중인 동작: null | 'close' | 'viewer' (Todo #75)
   const [pendingLeave, setPendingLeave] = useState(null)
@@ -69,6 +70,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
+      setError(null)
       try {
         const text = await readFile(path, encoding)
         setContent(text)
@@ -96,17 +98,23 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     setEncoding(next)
   }, [encoding, content, original])
 
+  // 저장 성공 여부를 반환. 로딩 중/읽기 오류 상태에서는 빈 내용으로 덮어쓰지 않도록 거부 (Todo #76).
+  // 저장 실패는 편집 내용을 가리지 않도록 상태 표시줄에 표시.
   const handleSave = useCallback(async () => {
+    if (loading || error) return false
     setSaving(true)
     try {
       await writeFile(path, content, encoding)
       setOriginal(content)
+      setSaveError(null)
+      return true
     } catch(e) {
-      setError(String(e))
+      setSaveError(String(e?.message ?? e))
+      return false
     } finally {
       setSaving(false)
     }
-  }, [path, content, encoding, writeFile])
+  }, [path, content, encoding, writeFile, loading, error])
 
   const leave = useCallback((action) => {
     setPendingLeave(null)
@@ -122,8 +130,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
 
   const handleSaveAndLeave = useCallback(async () => {
     const action = pendingLeave
-    await handleSave()
-    leave(action)
+    if (await handleSave()) leave(action)
+    else setPendingLeave(null)
   }, [handleSave, leave, pendingLeave])
 
   const handleRun = useCallback(async () => {
@@ -474,6 +482,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
           <span>{content.length} chars</span>
           <span>{ENCODING_LABELS[encoding]}</span>
           {isDirty && <span className={styles.unsaved}>Unsaved changes</span>}
+          {saveError && <span className={styles.unsaved}>저장 실패: {saveError}</span>}
           {isStarlark && <span className={styles.starlarkBadge}>Starlark</span>}
         </div>
       </div>

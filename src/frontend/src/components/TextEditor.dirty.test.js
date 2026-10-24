@@ -89,3 +89,45 @@ describe('TextEditor 미저장 확인 (Todo #75)', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 })
+
+// ─── Todo #76: 로딩/오류 상태 저장 방지, 저장 실패 시 닫지 않음 ────────────────
+
+describe('TextEditor 저장 가드 (Todo #76)', () => {
+  let onClose, writeFile
+
+  beforeEach(() => {
+    onClose = vi.fn()
+    writeFile = vi.fn().mockResolvedValue(undefined)
+  })
+  afterEach(() => cleanup())
+
+  it('TES-01: 로딩 중 Ctrl+S → 빈 내용으로 덮어쓰지 않음', async () => {
+    useFileStore.setState({ readFile: () => new Promise(() => {}), writeFile })
+    render(h(TextEditor, { path: '/x/a.txt', onClose }))
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
+    await new Promise(r => setTimeout(r, 10))
+    expect(writeFile).not.toHaveBeenCalled()
+  })
+
+  it('TES-02: 읽기 실패 후 Ctrl+S → 저장하지 않음', async () => {
+    useFileStore.setState({ readFile: vi.fn().mockRejectedValue(new Error('denied')), writeFile })
+    render(h(TextEditor, { path: '/x/a.txt', onClose }))
+    await screen.findByText(/denied/)
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
+    await new Promise(r => setTimeout(r, 10))
+    expect(writeFile).not.toHaveBeenCalled()
+  })
+
+  it('TES-03: 확인창 "저장"이 실패하면 닫지 않고 편집 내용 유지 + 오류 표시', async () => {
+    writeFile = vi.fn().mockRejectedValue(new Error('read-only'))
+    useFileStore.setState({ readFile: vi.fn().mockResolvedValue('abc'), writeFile })
+    render(h(TextEditor, { path: '/x/a.txt', onClose }))
+    const ta = await screen.findByDisplayValue('abc')
+    fireEvent.change(ta, { target: { value: 'abcd' } })
+    fireEvent.click(screen.getByTitle('Close (Esc)'))
+    fireEvent.click(screen.getByText('저장'))
+    await screen.findByText(/저장 실패.*read-only/)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByDisplayValue('abcd')).toBeTruthy()
+  })
+})

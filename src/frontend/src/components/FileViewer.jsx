@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useFileStore } from '../stores/fileStore'
 import { isImageFile } from '../utils/fileTypes.js'
+import CodeSurface from './CodeSurface.jsx'
 import styles from '../styles/FileViewer.module.css'
 
 // Todo #73: 마크다운의 원시 HTML이 Wails 웹뷰에서 실행되면 Go 바인딩(셸 실행·삭제)을 호출할 수 있으므로
@@ -71,7 +72,6 @@ export function nextEncoding(current) {
   return ENCODINGS[(idx + 1) % ENCODINGS.length]
 }
 
-const LINE_BUFFER = 10  // extra lines to render above/below viewport
 
 // F4: 뷰어 → 에디터 전환 단축키 (Todo #59)
 export function isSwitchToEditorShortcut(e) {
@@ -141,7 +141,6 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
   const [fontSize, setFontSize]   = useState(13)
-  const [scrollTop, setScrollTop] = useState(0)
   const [wordWrap, setWordWrap]       = useState(false)
   const [searchOpen, setSearchOpen]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -154,9 +153,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const isImage    = isImageFile(ext)
   const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
 
-  const lineNumbersRef    = useRef(null)
-  const textareaRef       = useRef(null)
-  const bodyRef           = useRef(null)
+  const surfaceRef        = useRef(null)  // Todo #111: 텍스트 모드는 CodeMirror(읽기 전용)
   const searchInputRef    = useRef(null)
   const mdBodyRef         = useRef(null)
   const imageContainerRef = useRef(null)
@@ -164,15 +161,12 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const { readFile, readImage } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
 
-  const lineHeight = fontSize + 7  // matches CSS lineHeight formula
 
   // Compute line count only when content changes
   const lineCount = useMemo(() => content.split('\n').length, [content])
 
-  // Virtual line number range — only render lines near the viewport
-  const viewHeight   = bodyRef.current?.clientHeight ?? 600
-  const firstVisible = Math.max(0, Math.floor(scrollTop / lineHeight) - LINE_BUFFER)
-  const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / lineHeight) + LINE_BUFFER)
+  // 검색용 소문자 텍스트 — 파일을 읽을 때 한 번만 계산
+  const lowerContent = useMemo(() => (isImage ? '' : content.toLowerCase()), [content, isImage])
 
   // Todo #97: 새 파일을 읽을 때 이전 오류를 지우고, 더 늦게 끝난 이전 로드 결과는 버림
   useEffect(() => {
@@ -189,7 +183,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
       } finally {
         if (!cancelled) {
           setLoading(false)
-          setTimeout(() => (isMarkdown && mdRendered ? mdBodyRef.current : textareaRef.current)?.focus(), 0)
+          setTimeout(() => (isMarkdown && mdRendered ? mdBodyRef.current : surfaceRef.current)?.focus(), 0)
         }
       }
     }
@@ -215,7 +209,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         if (searchOpen) {
           setSearchOpen(false)
           setNoMatch(false)
-          textareaRef.current?.focus()
+          surfaceRef.current?.focus()
           return
         }
         onClose()
@@ -270,13 +264,6 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     return () => window.removeEventListener('keydown', handler, true)
   }, [onClose, onSwitchToEditor, searchOpen, isMarkdown, mdRendered, isImage, onChangePath, siblingImages, path])
 
-  // Reset scroll when font size changes so line numbers re-sync
-  useEffect(() => {
-    setScrollTop(0)
-    if (textareaRef.current) textareaRef.current.scrollTop = 0
-    if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = 0
-  }, [fontSize])
-
   // 이미지가 바뀌면 줌 리셋 (Todo #63)
   useEffect(() => {
     if (isImage) setImageScale(DEFAULT_IMAGE_SCALE)
@@ -297,31 +284,9 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     return () => el.removeEventListener('wheel', onWheel)
   }, [isImage, loading])
 
-  // Sync line numbers scroll position with textarea (ssMemo pattern)
-  const handleScroll = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta) return
-    setScrollTop(ta.scrollTop)
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = ta.scrollTop
-    }
-  }, [])
-
   const changeFontSize = useCallback((delta) => {
     setFontSize(prev => clampFontSize(prev, delta))
   }, [])
-
-  // Scroll to match: positions match 1/3 from top (ssMemo scrollToIndex pattern)
-  const scrollToMatch = useCallback((el, index) => {
-    const textBefore = el.value.slice(0, index)
-    const lineIndex = textBefore.split('\n').length - 1
-    const style = window.getComputedStyle(el)
-    const lh = parseFloat(style.lineHeight) || lineHeight
-    const paddingTop = parseFloat(style.paddingTop) || 12
-    const targetTop = lineIndex * lh + paddingTop
-    const offset = el.clientHeight / 3
-    el.scrollTop = Math.max(0, targetTop - offset)
-  }, [lineHeight])
 
   const showNoMatch = useCallback(() => {
     setNoMatch(true)
@@ -329,37 +294,31 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   }, [])
 
   const findNext = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta || !searchQuery) return
-    const lowerContent = ta.value.toLowerCase()
+    const surface = surfaceRef.current
+    if (!surface || !searchQuery) return
     const lowerQuery = searchQuery.toLowerCase()
-    const startIndex = ta.selectionEnd ?? 0
+    const startIndex = surface.getSelection()[1]
     let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
     if (matchIndex === -1 && startIndex > 0) {
       matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
     }
     if (matchIndex === -1) { showNoMatch(); return }
-    ta.focus()
-    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
-    scrollToMatch(ta, matchIndex)
-  }, [searchQuery, scrollToMatch, showNoMatch])
+    surface.select(matchIndex, matchIndex + searchQuery.length)
+  }, [searchQuery, showNoMatch, lowerContent])
 
   const findPrev = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta || !searchQuery) return
-    const lowerContent = ta.value.toLowerCase()
+    const surface = surfaceRef.current
+    if (!surface || !searchQuery) return
     const lowerQuery = searchQuery.toLowerCase()
     // 선택이 맨 앞(0)이면 lastIndexOf(q, 0)이 같은 위치를 다시 찾으므로 바로 끝에서부터 순환 (Todo #107)
-    const sel = ta.selectionStart ?? 0
+    const sel = surface.getSelection()[0]
     let matchIndex = sel > 0 ? lowerContent.lastIndexOf(lowerQuery, sel - 1) : -1
     if (matchIndex === -1) {
       matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
     }
     if (matchIndex === -1) { showNoMatch(); return }
-    ta.focus()
-    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
-    scrollToMatch(ta, matchIndex)
-  }, [searchQuery, scrollToMatch, showNoMatch])
+    surface.select(matchIndex, matchIndex + searchQuery.length)
+  }, [searchQuery, showNoMatch, lowerContent])
 
   const handleSearchKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
@@ -367,7 +326,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
       e.stopPropagation()
       setSearchOpen(false)
       setNoMatch(false)
-      textareaRef.current?.focus()
+      surfaceRef.current?.focus()
     } else if (e.key === 'Enter') {
       e.preventDefault()
       e.stopPropagation()
@@ -379,7 +338,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const closeSearch = useCallback(() => {
     setSearchOpen(false)
     setNoMatch(false)
-    textareaRef.current?.focus()
+    surfaceRef.current?.focus()
   }, [])
 
   const mdHtml = useMemo(() => {
@@ -505,7 +464,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         )}
 
         {/* Body */}
-        <div className={styles.body} ref={bodyRef}>
+        <div className={styles.body}>
           {loading ? (
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
@@ -532,39 +491,14 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
               dangerouslySetInnerHTML={{ __html: mdHtml }}
             />
           ) : (
-            <>
-              {/* Virtual line numbers — hidden when word wrap is on (wrapped lines break alignment) */}
-              {!wordWrap && (
-                <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
-                  <div style={{ height: firstVisible * lineHeight }} />
-                  {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
-                    const lineNum = firstVisible + i + 1
-                    return (
-                      <div
-                        key={lineNum}
-                        className={styles.lineNum}
-                        style={{ lineHeight: `${lineHeight}px`, height: `${lineHeight}px` }}
-                      >
-                        {lineNum}
-                      </div>
-                    )
-                  })}
-                  <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * lineHeight }} />
-                </div>
-              )}
-
-              {/* Readonly textarea — supports setSelectionRange for search highlighting */}
-              <textarea
-                data-text-surface
-                ref={textareaRef}
-                className={styles.pre}
-                value={content}
-                readOnly
-                style={{ fontSize: `${fontSize}px`, lineHeight: `${lineHeight}px`, ...getWordWrapStyle(wordWrap) }}
-                onScroll={handleScroll}
-                spellCheck={false}
-              />
-            </>
+            <CodeSurface
+              ref={surfaceRef}
+              text={content}
+              readOnly
+              fontSize={fontSize}
+              wordWrap={wordWrap}
+              className={styles.surface}
+            />
           )}
         </div>
 

@@ -5,8 +5,8 @@
 //
 // CodeMirror 조작은 React 상태 갱신을 일으키므로 act()로 감쌈
 // 지원 구현 ([data-text-surface] 표식으로 찾음):
-//   - <textarea>                      (뷰어, CodeMirror 전환 전)
-//   - CodeMirror 6 EditorView 루트(.cm-editor)  (에디터)
+//   - <textarea>                      (이전 구현 — 다른 텍스트 영역 추가 시 호환용)
+//   - CodeMirror 6 EditorView 루트(.cm-editor)  (에디터, 뷰어 텍스트 모드)
 import { fireEvent, waitFor, act } from '@testing-library/react'
 import { EditorView } from '@codemirror/view'
 

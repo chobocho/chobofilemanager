@@ -52,13 +52,12 @@ describe('FileViewer 커버리지 (FVC)', () => {
     expect(screen.getAllByText('10px').length).toBe(2)
   })
 
-  it('FVC-04: Word Wrap 토글 → WRAP 표시, 줄번호 숨김', async () => {
-    const { ta, container } = await open()
-    expect(container.querySelector('[aria-hidden]')).toBeTruthy()
+  it('FVC-04: Word Wrap 토글 → WRAP 표시, 줄 바꿈 적용 (CodeMirror lineWrapping, Todo #111)', async () => {
+    const { container } = await open()
+    expect(container.querySelector('.cm-lineWrapping')).toBeNull()
     fireEvent.click(screen.getByTitle('자동 줄 바꿈 (Word Wrap)'))
     expect(screen.getByText('WRAP')).toBeTruthy()
-    expect(ta.style.whiteSpace).toBe('pre-wrap')
-    expect(container.querySelector('[aria-hidden]')).toBeNull()
+    expect(container.querySelector('.cm-lineWrapping')).toBeTruthy()
   })
 
   it('FVC-05: 인코딩 버튼 클릭 → 다음 인코딩으로 재로딩', async () => {
@@ -237,11 +236,11 @@ describe('FileViewer 커버리지 (FVC)', () => {
     expect(onChangePath).not.toHaveBeenCalled()
   })
 
-  it('FVC-19: [textarea 구현 전용 — 텍스트 영역 교체 시 삭제] 스크롤 시 줄번호 동기화', async () => {
-    const { ta, container } = await open()
-    ta.scrollTop = 50
-    fireEvent.scroll(ta)
-    expect(container.querySelector('[aria-hidden]').scrollTop).toBe(50)
+  it('FVC-19: 줄 번호 표시 (CodeMirror gutter, Todo #111)', async () => {
+    const { container } = await open()
+    const gutter = container.querySelector('.cm-lineNumbers')
+    expect(gutter).toBeTruthy()
+    expect(gutter.textContent).toContain('1')
   })
 
   it('FVC-20: 텍스트 모드에서 Ctrl+= 줌 단축키는 무시 (이미지 전용)', async () => {

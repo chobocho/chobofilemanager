@@ -49,8 +49,8 @@ const CodeSurface = forwardRef(function CodeSurface(
       drawSelection(),
       history(),
       keymap.of([{ key: 'Tab', run: insertTwoSpaces }, ...historyKeymap, ...defaultKeymap]),
+      // 읽기 전용이어도 편집 가능(포커스·커서·키보드 탐색·선택 복사) 상태는 유지, 내용 변경만 막음
       EditorState.readOnly.of(readOnly),
-      EditorView.editable.of(!readOnly),
       themeComp.current.of(baseTheme(fontSize)),
       wrapComp.current.of(wordWrap ? EditorView.lineWrapping : []),
       EditorView.updateListener.of(update => {

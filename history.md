@@ -2,6 +2,22 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #111 — 뷰어(F3) 텍스트 모드 CodeMirror 6 전환)
+
+### 변경
+- `FileViewer.jsx`: textarea·가상 줄 번호·스크롤 동기화 제거 → `CodeSurface`(읽기 전용, 글자 크기/줄 바꿈 연동).
+  검색은 파일을 읽을 때 한 번 만든 소문자 텍스트 사용. 마크다운 렌더링/이미지 모드는 그대로
+- `CodeSurface.jsx`: 읽기 전용이어도 포커스·커서·키보드 탐색·선택 복사는 가능 (내용 변경만 차단)
+- textarea 전용 CSS(`.pre`, `.lineNumbers`, `.lineNum`, `.textarea`) 제거
+- 구현 전용 테스트 2건(FVC-04 줄번호 숨김, FVC-19 스크롤 동기화)을 CodeMirror 기준(줄 바꿈 적용, 줄 번호 표시)으로 교체 — 총 742건 통과
+
+### 측정 (npm run bench) — 뷰어 열기 (전 → 후)
+| 크기 | 열기 | 스크롤 |
+|---|---|---|
+| 1MB | 157~326ms → 72ms | 15ms → 15ms |
+| 5MB | 1.0~1.1s → 35ms | 40ms → 13ms |
+| 10MB | 2.1s → 54ms | 70ms → 12ms |
+
 ## 2026-10-25 (Todo.md #110 — 에디터(F4) CodeMirror 6 전환)
 
 ### 변경

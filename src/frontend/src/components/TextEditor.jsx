@@ -47,6 +47,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [running, setRunning]           = useState(false)
   const [runOutput, setRunOutput]       = useState(null) // null = 패널 미표시
   const [encoding, setEncoding]         = useState('auto')
+  // 원본 줄바꿈. 편집 영역은 항상 LF로 다루고 저장할 때 원래 줄바꿈으로 되돌림 (Todo #112)
+  const eolRef = useRef('\n')
 
   const textareaRef    = useRef(null)
   const lineNumbersRef = useRef(null)
@@ -74,8 +76,10 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       setLoading(true)
       setError(null)
       try {
-        const text = await readFile(path, encoding)
+        const raw = await readFile(path, encoding)
         if (cancelled) return
+        eolRef.current = raw.includes('\r\n') ? '\r\n' : '\n'
+        const text = raw.replace(/\r\n/g, '\n')
         setContent(text)
         setOriginal(text)
       } catch(e) {
@@ -110,7 +114,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     if (loading || error) return false
     setSaving(true)
     try {
-      await writeFile(path, content, encoding)
+      const data = eolRef.current === '\r\n' ? content.replace(/\n/g, '\r\n') : content
+      await writeFile(path, data, encoding)
       setOriginal(content)
       setSaveError(null)
       return true

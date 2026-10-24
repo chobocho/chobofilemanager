@@ -182,7 +182,8 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
       setError(null)
       try {
         const data = isImage ? await readImage(path) : await readFile(path, encoding)
-        if (!cancelled) setContent(data)
+        // 텍스트는 LF로 통일해 표시 (줄 수 계산이 편집기와 같도록, Todo #112)
+        if (!cancelled) setContent(isImage ? data : data.replace(/\r\n/g, '\n'))
       } catch (e) {
         if (!cancelled) setError(String(e))
       } finally {

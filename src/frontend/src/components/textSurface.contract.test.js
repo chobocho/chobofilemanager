@@ -21,13 +21,14 @@ Element.prototype.scrollIntoView = vi.fn()
 // ─── Todo #108: 텍스트 영역 구현(textarea → CodeMirror 등)과 무관한 뷰어/에디터 동작 계약 ───
 // 모든 조작은 ../test/textSurface.js 드라이버로만 수행 — 구현 교체 시 드라이버만 바꿈
 
-async function openEditor(text, extra = {}) {
+// shown: 텍스트 영역에 보여야 하는 내용 (기본은 text, CRLF 파일은 LF로 표시)
+async function openEditor(text, extra = {}, shown = text) {
   const writeFile = vi.fn().mockResolvedValue(undefined)
   const readFile = vi.fn().mockResolvedValue(text)
   useFileStore.setState({ readFile, writeFile })
   const props = { path: '/x/a.txt', onClose: vi.fn(), onSwitchToViewer: vi.fn(), ...extra }
   render(h(TextEditor, props))
-  const el = await findSurfaceWithText(text)
+  const el = await findSurfaceWithText(shown)
   return { el, writeFile, readFile, props }
 }
 
@@ -136,6 +137,43 @@ describe('텍스트 영역 계약 — 에디터 (CT)', () => {
     expect(screen.getByText('Ln 2, Col 3')).toBeTruthy()
     select(el, 8, 8)
     expect(screen.getByText('Ln 3, Col 1')).toBeTruthy()
+  })
+})
+
+describe('텍스트 영역 계약 — 줄바꿈 (CT, Todo #112)', () => {
+  afterEach(() => cleanup())
+
+  // 브라우저 textarea/CodeMirror 모두 편집 결과를 LF로 돌려주므로, 원래 CRLF였던 파일은 저장 시 CRLF로 되돌려야 함
+  it('CT-10: CRLF 파일을 편집해 저장해도 CRLF 유지', async () => {
+    const { el, writeFile } = await openEditor('a\r\nb', {}, 'a\nb')
+    typeText(el, 'a\nb2')
+    await act(async () => { ctrlS() })
+    expect(writeFile).toHaveBeenCalledWith('/x/a.txt', 'a\r\nb2', 'auto')
+  })
+
+  it('CT-11: LF 파일은 LF 그대로 저장', async () => {
+    const { el, writeFile } = await openEditor('a\nb')
+    typeText(el, 'a\nb2')
+    await act(async () => { ctrlS() })
+    expect(writeFile).toHaveBeenCalledWith('/x/a.txt', 'a\nb2', 'auto')
+  })
+
+  it('CT-12: CRLF 파일을 열기만 하면 미저장 상태가 아님 (X로 바로 닫힘)', async () => {
+    const { props } = await openEditor('a\r\nb', {}, 'a\nb')
+    fireEvent.click(screen.getByTitle('Close (Esc)'))
+    expect(props.onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('CT-13: CRLF 파일 줄 수/문자 수는 줄바꿈을 1문자로 계산', async () => {
+    await openEditor('ab\r\ncd\r\n', {}, 'ab\ncd\n')
+    expect(screen.getByText('3 lines')).toBeTruthy()
+    expect(screen.getByText('6 chars')).toBeTruthy()
+  })
+
+  it('CT-14: 뷰어도 CRLF를 LF로 표시', async () => {
+    useFileStore.setState({ readFile: vi.fn().mockResolvedValue('x\r\ny'), readImage: vi.fn() })
+    render(h(FileViewer, { path: '/x/a.txt', onClose: vi.fn() }))
+    await findSurfaceWithText('x\ny')
   })
 })
 

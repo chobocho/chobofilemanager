@@ -1,0 +1,205 @@
+// Package config is the user's settings (settings.json).
+package config
+
+import (
+	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sync"
+
+	"time"
+)
+
+// Settings are the user preferences kept in %AppData%\choboterm\settings.json.
+type Settings struct {
+	// FontSize is the terminal font size in pixels.
+	FontSize int `json:"fontSize"`
+	// FontUTF8 and FontEUCKR are the terminal font families for each encoding.
+	FontUTF8  string `json:"fontUtf8"`
+	FontEUCKR string `json:"fontEucKr"`
+	// Theme is the terminal color scheme (names in frontend/src/themes.ts).
+	Theme string `json:"theme"`
+	// CursorStyle is "block", "underline" or "bar"; CursorBlink makes it blink.
+	CursorStyle string `json:"cursorStyle"`
+	CursorBlink bool   `json:"cursorBlink"`
+	// Scrollback is how many lines each terminal keeps above the screen.
+	Scrollback int `json:"scrollback"`
+	// Translucency is "off", "window" (tabs and terminals, text too; dialogs
+	// stay opaque) or "background" (only the terminal background). Opacity is
+	// in percent.
+	Translucency string `json:"translucency"`
+	Opacity      int    `json:"opacity"`
+	// GlassGPU keeps the GPU renderer with "background" translucency, which
+	// otherwise draws with the browser for smoother text.
+	GlassGPU bool `json:"glassGpu"`
+	// PasteNoConfirm skips the confirmation before pasting several lines.
+	PasteNoConfirm bool `json:"pasteNoConfirm"`
+	// KeepAlive is the keepalive interval in seconds for SSH and Telnet (0 = off).
+	KeepAlive int `json:"keepAlive"`
+	// AutoReconnect reconnects a tab whose connection broke.
+	AutoReconnect bool `json:"autoReconnect"`
+	// LogAuto starts a session log whenever a terminal connection opens.
+	LogAuto bool `json:"logAuto"`
+	// LogDir is the folder for session logs ("" = Documents\choboterm\logs).
+	LogDir string `json:"logDir"`
+	// LogRaw keeps escape codes in session logs instead of plain text.
+	LogRaw bool `json:"logRaw"`
+	// LogTime starts each line of a session log with the time it arrived.
+	LogTime bool `json:"logTime"`
+	// Language is the screen language: "ko", "en", or "" to follow Windows.
+	Language string `json:"language"`
+	// Highlight colours keywords in the output.
+	Highlight Highlight `json:"highlight"`
+	// ConsoleHeight is the Lua console's height in pixels, set by dragging
+	// its top edge (0 = the default).
+	ConsoleHeight int `json:"consoleHeight"`
+	// Macros are texts sent to the terminal, optionally bound to a key.
+	Macros []Macro `json:"macros"`
+	// UpdateCheck asks GitHub for a newer release at start, once a day.
+	// Off unless the user turns it on: nothing is sent otherwise.
+	UpdateCheck bool `json:"updateCheck"`
+	// Cat shows the cat walking about the window (on at first, so settings
+	// files from before it see it too); CatIntro is set once its guide (what
+	// clicking and dragging do, how to hide it) has been shown.
+	Cat      bool `json:"cat"`
+	CatIntro bool `json:"catIntro"`
+	// DockerEngines is the container engine chosen in the container window
+	// per place: "host:port" of an SSH server, or "local" for this PC; the
+	// value is "docker" or "podman" (none: docker, else podman).
+	DockerEngines map[string]string `json:"dockerEngines,omitempty"`
+	// Window is the main window's last position, kept by the Go side only.
+	Window *WindowState `json:"window,omitempty"`
+	// Update is when the last check ran and what it found, kept by the Go side only.
+	Update *UpdateState `json:"update,omitempty"`
+	// Web is the web server's settings (Settings > Web), kept by the Go side
+	// only: the page changes them with the Web* methods.
+	Web *WebSettings `json:"web,omitempty"`
+}
+
+// WebSettings are the web server's settings.
+type WebSettings struct {
+	Enabled bool   `json:"enabled"` // start it with the window
+	Addr    string `json:"addr"`    // "" = 127.0.0.1:7681 (this PC only)
+}
+
+// Highlight lists the words shown on a red, yellow or green background,
+// separated by commas. Plain words match whole words, ignoring case.
+type Highlight struct {
+	On     bool   `json:"on"`
+	Red    string `json:"red"`
+	Yellow string `json:"yellow"`
+	Green  string `json:"green"`
+}
+
+var defaultHighlight = Highlight{
+	On:     true,
+	Red:    "error, errors, fail, failed, failure, fatal, denied, refused, exception, panic, critical, 오류, 에러, 실패",
+	Yellow: "warn, warning, warnings, timeout, deprecated, 경고",
+	Green:  "success, successful, succeeded, passed, 성공, 완료",
+}
+
+// Macro is a named text sent to the terminal. Key is "" or a function key
+// such as "F5", "Shift+F5" or "Ctrl+F5". The frontend turns line breaks in
+// Text into Enter and understands a few backslash escapes.
+type Macro struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
+	Text string `json:"text"`
+	Kind string `json:"kind"` // "" = text sent as typed, "lua" = a Lua script run in the tab
+}
+
+// WindowState is the main window's restored bounds (screen pixels) and
+// whether it was maximized.
+type WindowState struct {
+	Left      int  `json:"left"`
+	Top       int  `json:"top"`
+	Right     int  `json:"right"`
+	Bottom    int  `json:"bottom"`
+	Maximized bool `json:"maximized"`
+}
+
+func (w WindowState) Valid() bool {
+	return w.Right-w.Left >= 200 && w.Bottom-w.Top >= 150
+}
+
+func Default() Settings {
+	return Settings{
+		FontSize: 15, FontUTF8: "D2Coding", FontEUCKR: "GulimChe",
+		Theme: "choboterm", CursorStyle: "block", CursorBlink: true, Scrollback: 5000,
+		Translucency: "off", Opacity: 85,
+		KeepAlive: 60, AutoReconnect: true, Macros: []Macro{},
+		Highlight: defaultHighlight, LogTime: true, Cat: true,
+	}
+}
+
+var settingsMu sync.Mutex
+
+// File is the settings file path; tests may replace it.
+var File = func() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "choboterm", "settings.json"), nil
+}
+
+// Load reads the settings file. Missing fields keep their defaults.
+func Load() Settings {
+	settingsMu.Lock()
+	defer settingsMu.Unlock()
+	return readSettings()
+}
+
+// FirstRun, when set, adjusts the defaults while there is no settings file
+// yet: the Linux window starts with the desktop's terminal font size.
+var FirstRun func(*Settings)
+
+func readSettings() Settings {
+	s := Default()
+	p, err := File()
+	if err != nil {
+		return s
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		if FirstRun != nil && errors.Is(err, fs.ErrNotExist) {
+			FirstRun(&s)
+		}
+		return s
+	}
+	if json.Unmarshal(data, &s) != nil {
+		return Default()
+	}
+	if s.Macros == nil {
+		s.Macros = []Macro{} // the page expects a list, not null
+	}
+	return s
+}
+
+// Update applies change to the stored settings and writes them back.
+func Update(change func(*Settings)) error {
+	settingsMu.Lock()
+	defer settingsMu.Unlock()
+	s := readSettings()
+	change(&s)
+	p, err := File()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, data, 0o600)
+}
+
+// UpdateState is what the Go side remembers between checks.
+type UpdateState struct {
+	Last     time.Time `json:"last"`     // when GitHub was last asked
+	Notified string    `json:"notified"` // the newest version already shown to the user
+}

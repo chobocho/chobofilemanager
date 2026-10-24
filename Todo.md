@@ -346,7 +346,7 @@
 
 # choboTerm 통합 (2026-10-25, 설계: docs/choboterm-integration.md)
 
-## 117. T1 — choboTerm Go 패키지 이식 (src/internal/*, 모듈 경로, go 1.26, 의존성), 이식 테스트 전부 통과
+## ~~117. T1 — choboTerm Go 패키지 이식 (src/internal/*, 모듈 경로, go 1.26, 의존성), 이식 테스트 전부 통과~~ ✓ 완료 (2026-10-25)
 
 ## 118. T2 — termapp 바인딩 + 창 생명주기(--lua-host, 종료 정리, 닫기 확인, 파일 드롭) + 설정 경로 이전/마이그레이션 + 웹 모드 자산 주입
 

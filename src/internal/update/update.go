@@ -1,0 +1,101 @@
+// Package update asks GitHub for the latest release.
+package update
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"totalcmd/internal/version"
+)
+
+// The update check asks GitHub for the latest release and tells the user
+// when it is newer than this build. It only runs when the user turned it on
+// in the settings (or pressed "지금 확인"); nothing is downloaded or installed.
+
+// UpdateInfo is the result of a check.
+type UpdateInfo struct {
+	Checked bool   `json:"checked"` // false: skipped (turned off, or already checked today)
+	Current string `json:"current"` // "0.2.13"
+	Latest  string `json:"latest"`  // "0.2.14"
+	Newer   bool   `json:"newer"`   // Latest is newer than Current
+	URL     string `json:"url"`     // the release page
+}
+
+// LatestReleaseURL is the GitHub API for the newest release; tests may replace it.
+var LatestReleaseURL = "https://api.github.com/repos/chobocho/choboterm/releases/latest"
+
+// Every is how often the check at start asks GitHub.
+const Every = 24 * time.Hour
+
+// LatestRelease returns the newest release's version ("0.2.14") and page.
+func LatestRelease() (latest, page string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LatestReleaseURL, nil)
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "totalcmd/"+version.Version)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("GitHub 응답 %s", resp.Status)
+	}
+	var r struct {
+		TagName string `json:"tag_name"`
+		HTMLURL string `json:"html_url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+		return "", "", err
+	}
+	v := strings.TrimLeft(r.TagName, "vV")
+	if parseVersion(v) == nil {
+		return "", "", errors.New("알 수 없는 버전: " + r.TagName)
+	}
+	return v, r.HTMLURL, nil
+}
+
+// parseVersion reads "0.2.13" as numbers, or nil if it isn't one.
+func parseVersion(v string) []int {
+	parts := strings.Split(v, ".")
+	nums := make([]int, len(parts))
+	for i, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 0 {
+			return nil
+		}
+		nums[i] = n
+	}
+	return nums
+}
+
+// Newer reports whether version a is newer than b ("0.2.10" > "0.2.9").
+func Newer(a, b string) bool {
+	x, y := parseVersion(a), parseVersion(b)
+	if x == nil || y == nil {
+		return false
+	}
+	for i := 0; i < len(x) || i < len(y); i++ {
+		var p, q int
+		if i < len(x) {
+			p = x[i]
+		}
+		if i < len(y) {
+			q = y[i]
+		}
+		if p != q {
+			return p > q
+		}
+	}
+	return false
+}

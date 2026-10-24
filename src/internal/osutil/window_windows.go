@@ -12,7 +12,7 @@ import (
 )
 
 // WindowClass names the main window's class so it can be found again.
-const WindowClass = "chobotermWindow"
+const WindowClass = "ChobochoCommanderWindow"
 
 var (
 	User32                 = windows.NewLazySystemDLL("user32.dll")

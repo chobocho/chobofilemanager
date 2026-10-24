@@ -2,6 +2,22 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #118 — T2: 터미널 바인딩 + 창 생명주기 + 설정 경로)
+
+### 변경
+- `internal/termapp/host.go` 신규 `Host`(바인딩되지 않는 별도 타입 — App의 공개 메서드는 모두 바인딩되므로 분리):
+  `RunSubprocess`(--lua-host면 Lua 호스트 실행 후 종료), `UseConfigDir`, `LegacyConfigDir`, `MigrateConfig`(최초 1회 기존 choboTerm 설정 복사),
+  `NewHost`/`Bindings`/`Startup`/`BeforeClose`(연결된 탭이 있으면 app:close로 확인 요청, 창 위치는 저장 안 함)/`Shutdown`(세션 정리)
+- `main.go`: `--lua-host` 분기 → 터미널 설정 폴더 `~/.chobocho-commander/term` 지정·이전 → `newAppOptions`(파일 관리자 App + 터미널 App 바인딩,
+  OnStartup/OnBeforeClose/OnShutdown, 파일 드롭, WindowClassName)
+- `internal/version.Version` = 앱 버전(0.2.12), `osutil.WindowClass` = `ChobochoCommanderWindow`
+- `wails generate module`로 `wailsjs/go/termapp` 생성 → 보류였던 생성 바인딩 비교 테스트 활성화(80개 메서드 일치)
+
+### 검증
+- termapp `host_test.go` 8건, `main_options_test.go` 5건 추가, wire.golden 변화 없음, 전체 Go 테스트 통과
+- `wails build` 성공(17MB), 빌드된 exe를 `--lua-host`로 실행하면 창 없이 즉시 종료 확인
+- 웹/헤드리스 CLI 옵션(--web, --headless)은 #124에서 연결
+
 ## 2026-10-25 (Todo.md #117 — T1: choboTerm Go 패키지 이식)
 
 ### 변경

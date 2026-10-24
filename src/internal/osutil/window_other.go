@@ -6,7 +6,7 @@ import (
 	"totalcmd/internal/config"
 )
 
-const WindowClass = "chobotermWindow"
+const WindowClass = "ChobochoCommanderWindow"
 
 func CurrentWindowState() (config.WindowState, bool) { return config.WindowState{}, false }
 

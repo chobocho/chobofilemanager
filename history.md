@@ -2,6 +2,25 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #119 — T3: 터미널 프론트 기반)
+
+### 변경
+- 의존성: `@xterm/xterm` 6.0.0 + fit/search/unicode11/web-links/webgl 애드온(choboTerm과 같은 버전), 개발 의존성 `typescript`
+- `src/terminal/core/` (TypeScript, React 무관):
+  - choboTerm에서 그대로 이식: `cjkwidth.ts`(모호 폭 문자 2칸), `themes.ts`, `highlight.ts`
+  - `termApi.ts`: `window.go.termapp.App` 바인딩·이벤트·클립보드 래퍼 (테스트용 교체 가능)
+  - `settings.ts`: Go 설정 읽기/300ms 지연 저장 (생성 모델 타입 대신 구조 타입)
+  - `session.ts`: `TermSession` — 입력 큐(순서 보장), term:data base64 디코드, term:open 화면 1회 초기화, 로컬=UTF-8/FTP 상태,
+    연결 중 탭 닫힘 처리, OSC 52(클립보드)/OSC 7(현재 폴더), 제목, 크기 변경, 이벤트 라우터(탭 id별 분배)
+- 키보드 소유권: `utils/keyboard.js` `isTerminalTarget` — 포커스가 터미널 안이면 Toolbar·App 전역 단축키(F키, Tab, Delete, Ctrl+문자, F9, Ctrl+O/M) 양보
+- `tsconfig.json` + `npm run typecheck`(strict), 지연 로딩 테스트에 `@xterm/*`·`src/terminal/` 추가
+- Go `TestEventsMatchThePage`: 이식된 페이지(`onTermEvent`)도 인식, 아직 이식 전 이벤트 15개를 Todo 번호와 함께 `pendingPageEvents`로 관리
+  (처리되면 목록에서 빼야 통과 — 줄어들기만 가능)
+
+### 테스트
+- `session.test.ts` 18건(가짜 xterm), `pure.test.ts` 9건(실제 xterm으로 CJK 폭 검증 포함), 키보드 소유권 5건(구현 제거 시 실패 확인)
+- 프론트 831건 통과, `vite build`, typecheck, Go 전체 통과
+
 ## 2026-10-25 (Todo.md #118 — T2: 터미널 바인딩 + 창 생명주기 + 설정 경로)
 
 ### 변경

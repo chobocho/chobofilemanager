@@ -236,13 +236,35 @@ func TestWireSurface(t *testing.T) {
 var (
 	emitCall  = regexp.MustCompile(`(?i)emit\w*\(|\.event\(`)
 	eventName = regexp.MustCompile(`["']([a-z]+:[A-Za-z]+)["']`)
-	listened  = regexp.MustCompile(`EventsOn\('([a-z]+:[A-Za-z]+)'`)
+	// choboTerm's page subscribes with EventsOn('x:y', ...); the ported page with onTermEvent('x:y', ...).
+	listened = regexp.MustCompile(`(?:EventsOn|onTermEvent)\('([a-z]+:[A-Za-z]+)'`)
 )
 
 // Every event the Go side emits has a listener in the page (or is handled by
 // the browser side of the web server, web_shim.js), and every event the page
 // listens for is emitted: a renamed or dropped event would otherwise fail
 // silently.
+// pendingPageEvents: events the Go side emits whose page handlers are still being
+// ported from choboTerm's TypeScript page into Chobocho Commander (React), with the
+// Todo item that ports them. The list may only shrink.
+var pendingPageEvents = map[string]string{
+	"auth:prompt":     "Todo #120",
+	"auth:promptDone": "Todo #120",
+	"app:close":       "Todo #120",
+	"log:changed":     "Todo #121",
+	"xfer:progress":   "Todo #123",
+	"xfer:end":        "Todo #123",
+	"fwd:changed":     "Todo #124",
+	"script:start":    "Todo #124",
+	"script:print":    "Todo #124",
+	"script:result":   "Todo #124",
+	"script:open":     "Todo #124",
+	"script:screen":   "Todo #124",
+	"script:end":      "Todo #124",
+	"app:closeWeb":    "Todo #124",
+	"web:status":      "Todo #124",
+}
+
 func TestEventsMatchThePage(t *testing.T) {
 	root := moduleRoot(t)
 	emitted := map[string]bool{}
@@ -293,12 +315,20 @@ func TestEventsMatchThePage(t *testing.T) {
 			page[m[1]] = true
 		}
 	}
-	if len(emitted) < 15 || len(page) < 15 {
+	if len(emitted) < 15 || len(page)+len(pendingPageEvents) < 15 {
 		t.Fatalf("found only %d emitted and %d listened events: the search is broken", len(emitted), len(page))
 	}
 	for name := range emitted {
-		if !page[name] && !strings.Contains(shim, "'"+name+"'") {
+		if !page[name] && !strings.Contains(shim, "'"+name+"'") && pendingPageEvents[name] == "" {
 			t.Errorf("%s is emitted, but the page has no listener for it", name)
+		}
+	}
+	for name, todo := range pendingPageEvents {
+		if page[name] {
+			t.Errorf("%s is handled by the page now: remove it from pendingPageEvents (%s)", name, todo)
+		}
+		if !emitted[name] {
+			t.Errorf("pendingPageEvents lists %s, which is never emitted", name)
 		}
 	}
 	for name := range page {

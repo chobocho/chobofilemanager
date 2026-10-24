@@ -501,3 +501,27 @@ describe('App 커버리지 — 패널/뷰/도움말/기타', () => {
     expect(api.CheckCopyConflicts).not.toHaveBeenCalled()
   })
 })
+
+// ─── Todo #119: 키보드 소유권 — 터미널 안에서 누른 앱 전역 단축키는 무시 ─────────
+describe('App 키보드 소유권 (KO)', () => {
+  afterEach(() => cleanup())
+
+  it('KO-10: 터미널 안에서 F9 / Ctrl+O / Ctrl+M은 앱이 처리하지 않음', async () => {
+    await renderApp()
+    const root = document.createElement('div')
+    root.className = 'xterm'
+    const ta = document.createElement('textarea')
+    root.appendChild(ta)
+    document.body.appendChild(root)
+    await act(async () => {
+      fireEvent.keyDown(ta, { key: 'F9' })
+      fireEvent.keyDown(ta, { key: 'o', ctrlKey: true })
+      fireEvent.keyDown(ta, { key: 'm', ctrlKey: true })
+    })
+    expect(api.OpenCmdWindow).not.toHaveBeenCalled()
+    expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
+    // 셸 대화상자 입력창이 열리지 않음 (가짜 터미널 textarea는 제외)
+    expect(screen.queryAllByRole('textbox').filter(el => el !== ta)).toEqual([])
+    root.remove()
+  })
+})

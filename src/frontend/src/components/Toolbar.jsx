@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import styles from '../styles/Toolbar.module.css'
 import { useThemeStore } from '../stores/themeStore'
+import { isTerminalTarget } from '../utils/keyboard.js'
 
 // Todo #54: 영구 삭제는 Shift+Delete만 허용 (단독 Delete는 트래시 — Todo #57)
 export function isPermanentDeleteShortcut(e) {
@@ -30,6 +31,8 @@ export default function Toolbar({
   // 키보드 단축키 (F키바와 동일하게 유지)
   useEffect(() => {
     const handler = (e) => {
+      // 터미널 안의 키는 셸로 (Todo #119) — INPUT/TEXTAREA 검사보다 먼저
+      if (isTerminalTarget(e.target)) return
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       // Todo #77: 모달/뷰어/에디터가 열려 있으면 뒤의 파일 패널에 작용하는 단축키를 모두 양보
       if (shortcutsDisabled) return

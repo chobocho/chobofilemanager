@@ -13,6 +13,7 @@ import HelpDialog from './components/HelpDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
+import { isTerminalTarget } from './utils/keyboard.js'
 
 // Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
 const loadTextEditor = () => import('./components/TextEditor')
@@ -100,6 +101,7 @@ export default function App() {
   useEffect(() => {
     const handler = (e) => {
       if (overlayOpen) return
+      if (isTerminalTarget(e.target)) return // 터미널 안의 키는 셸로 (Todo #119)
       if (e.ctrlKey && e.key === 'o') {
         e.preventDefault()
         setModal('shell')

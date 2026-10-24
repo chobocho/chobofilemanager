@@ -11,3 +11,14 @@ if (typeof Range !== 'undefined') {
 if (typeof document !== 'undefined' && !document.elementFromPoint) {
   document.elementFromPoint = () => null
 }
+
+// jsdom에는 FontFace / document.fonts가 없음 — 터미널 cjkwidth.ts가 모듈 로드 시 사용 (Todo #119)
+if (typeof globalThis.FontFace === 'undefined') {
+  globalThis.FontFace = class FontFace {
+    constructor(family, source, desc) { this.family = family; this.source = source; this.desc = desc }
+    load() { return Promise.reject(new Error('no fonts in jsdom')) }
+  }
+}
+if (typeof document !== 'undefined' && !document.fonts) {
+  Object.defineProperty(document, 'fonts', { value: new Set(), configurable: true })
+}

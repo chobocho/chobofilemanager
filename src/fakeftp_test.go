@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -16,6 +17,9 @@ type fakeFTPServer struct {
 	commands []string
 	// handler가 비어 있지 않은 응답을 돌려주면 기본 응답 대신 사용
 	handler func(cmd, arg string) string
+	// RETR 시 데이터 채널로 보낼 내용과 전송 후 최종 응답 (기본 "226 done")
+	files     map[string][]byte
+	retrFinal string
 }
 
 func startFakeFTP(t *testing.T) *fakeFTPServer {
@@ -60,6 +64,12 @@ func (s *fakeFTPServer) handle(c net.Conn) {
 	reply := func(line string) { w.WriteString(line + "\r\n"); w.Flush() }
 	reply("220 fake ready")
 	r := bufio.NewReader(c)
+	var dataLn net.Listener
+	defer func() {
+		if dataLn != nil {
+			dataLn.Close()
+		}
+	}()
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil {
@@ -82,6 +92,32 @@ func (s *fakeFTPServer) handle(c net.Conn) {
 			}
 		}
 		switch cmd {
+		case "EPSV":
+			if dataLn != nil {
+				dataLn.Close()
+			}
+			dataLn, _ = net.Listen("tcp", "127.0.0.1:0")
+			reply(fmt.Sprintf("229 Entering Extended Passive Mode (|||%d|)", dataLn.Addr().(*net.TCPAddr).Port))
+		case "RETR":
+			s.mu.Lock()
+			data, ok := s.files[arg]
+			final := s.retrFinal
+			s.mu.Unlock()
+			if !ok || dataLn == nil {
+				reply("550 not found")
+				continue
+			}
+			reply("150 opening")
+			dc, err := dataLn.Accept()
+			if err != nil {
+				return
+			}
+			dc.Write(data)
+			dc.Close()
+			if final == "" {
+				final = "226 done"
+			}
+			reply(final)
 		case "USER":
 			reply("331 need password")
 		case "PASS":

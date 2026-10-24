@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -221,29 +222,55 @@ func (fm *FTPManager) ListDirectory(id, path string) (*DirectoryListing, error) 
 	}, nil
 }
 
+// Download: 같은 폴더의 임시 파일(.part)로 받은 뒤 성공 시에만 대상 이름으로 교체합니다 (Todo #84).
+// r.Close()가 전송 최종 응답(226/426)을 읽으므로 그 에러도 확인합니다.
 func (fm *FTPManager) Download(id, remotePath, localPath string) error {
+	// If localPath is a directory, use remote filename
+	if localInfo, err := os.Stat(localPath); err == nil && localInfo.IsDir() {
+		name, err := localNameForRemote(remotePath)
+		if err != nil {
+			return err
+		}
+		localPath = filepath.Join(localPath, name)
+	}
+
 	return fm.withConn(id, func(c *ftp.ServerConn) error {
 		r, err := c.Retr(remotePath)
 		if err != nil {
 			return fmt.Errorf("retrieve failed: %w", err)
 		}
-		defer r.Close()
 
-		// If localPath is a directory, use remote filename
-		localInfo, err := os.Stat(localPath)
-		if err == nil && localInfo.IsDir() {
-			localPath = filepath.Join(localPath, filepath.Base(remotePath))
-		}
-
-		out, err := os.Create(localPath)
+		tmp, err := os.CreateTemp(filepath.Dir(localPath), filepath.Base(localPath)+".*.part")
 		if err != nil {
+			r.Close()
 			return fmt.Errorf("create local file failed: %w", err)
 		}
-		defer out.Close()
-
-		_, err = io.Copy(out, r)
-		return err
+		tmpName := tmp.Name()
+		_, copyErr := io.Copy(tmp, r)
+		closeRErr := r.Close()
+		closeTmpErr := tmp.Close()
+		for _, e := range []error{copyErr, closeRErr, closeTmpErr} {
+			if e != nil {
+				os.Remove(tmpName)
+				return fmt.Errorf("download failed: %w", e)
+			}
+		}
+		if err := os.Rename(tmpName, localPath); err != nil {
+			os.Remove(tmpName)
+			return err
+		}
+		return nil
 	})
+}
+
+// localNameForRemote: 원격 경로(항상 '/')의 마지막 이름을 로컬 파일명으로 사용할 수 있는지 검사합니다.
+// Windows에서 ''는 경로 구분자, ':'는 대체 데이터 스트림으로 해석되므로 거부합니다.
+func localNameForRemote(remotePath string) (string, error) {
+	name := path.Base(remotePath)
+	if name == "." || name == "/" || name == ".." || strings.ContainsAny(name, `\/:*?"<>|`) {
+		return "", fmt.Errorf("로컬에 저장할 수 없는 파일명입니다: %q", name)
+	}
+	return name, nil
 }
 
 func (fm *FTPManager) Upload(id, localPath, remotePath string) error {

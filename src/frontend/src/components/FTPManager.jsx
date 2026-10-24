@@ -9,6 +9,7 @@ import {
   Folder, File, FileText, FileImage, FileArchive, FileCode,
   Eye, EyeOff,
 } from 'lucide-react'
+import { formatSize, formatDate } from '../utils/fileTypes.js'
 import styles from '../styles/FTPManager.module.css'
 
 // ─── 아이콘 맵 (FilePanel 과 동일) ────────────────────────────
@@ -65,21 +66,7 @@ function getExt(file) {
   return ext.replace(/^\./, '')
 }
 
-function formatSize(bytes, isDir) {
-  if (isDir) return '<DIR>'
-  if (!bytes) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`
-}
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d)) return ''
-  const pad = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 // ─── 공유 파일 목록 패널 컴포넌트 ─────────────────────────────
 function FileListPanel({

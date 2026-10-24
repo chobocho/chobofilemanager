@@ -305,7 +305,7 @@
 - `SIN(1E30)` 무한 루프, RND(괄호 없음) 0 반환
 - ON GOTO/GOSUB, CHR$/STR$/VAL/ASC 등 미지원, DATA 파싱 문제
 
-## 102. 공통 리팩터링 / 품질
+## ~~102. 공통 리팩터링 / 품질~~ ✓ 완료 (2026-10-24)
 - 버전 단일화: `wails.json` `info.productVersion` + ldflags (현재 main.go 하드코딩, package.json 1.0.0)
 - 확장자 목록·아이콘·`formatSize` 중복 정리 (진입점마다 동작 상이)
 - 위 버그들에 대한 회귀 테스트 추가 (현재 테스트로 잡히는 항목 없음)

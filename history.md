@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #102 — 버전 단일화 / 중복 헬퍼 정리)
+
+### 변경
+- 버전: `src/version.go`(`Version`, `AppTitle()`) 신규 — `main.go` 창 제목이 사용, `wails.json`에 `info.productVersion`/`productName` 추가,
+  `frontend/package.json`(+lock) 버전을 0.2.12로 맞춤, 도움말 제목에 버전 표시. 빌드 시 `-ldflags "-X main.Version=..."`로 덮어쓰기 가능
+- `src/frontend/src/utils/fileTypes.js` 신규: `TEXT_EXTS`/`IMAGE_EXTS`/`isTextFile`/`isImageFile`/`isViewableFile`/`formatSize`/`formatDate`
+  → FilePanel(더블클릭), FileViewer(재export), SearchDialog, FTPManager의 중복 정의 제거.
+  진입점마다 달랐던 텍스트 확장자 목록 통일(.csv/.sql/.toml 등 더블클릭 시 에디터, .bat은 기존처럼 실행)
+- 테스트: Go `version_test.go`(wails.json/package.json/Version 일치), 프론트 `fileTypes.test.js` FT102-01~05, VER-01 (총 417건 통과)
+- 아이콘 맵은 FilePanel(점 포함 확장자)과 FTPManager(점 제외)의 키 형식이 달라 이번에는 유지
+
 ## 2026-10-24 (Todo.md #100 — 프론트엔드 잔여 버그 묶음)
 
 ### 변경

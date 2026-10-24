@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react'
 import { X, HelpCircle } from 'lucide-react'
 import styles from '../styles/HelpDialog.module.css'
+// 버전은 package.json 기준 (Go Version/wails.json과 일치 여부는 version_test.go가 검사, Todo #102)
+import pkg from '../../package.json'
 
 const SECTIONS = [
   {
@@ -75,7 +77,7 @@ export default function HelpDialog({ onClose }) {
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <HelpCircle size={14} className={styles.headerIcon} />
-          <span>도움말 — Chobocho Commander</span>
+          <span>도움말 — Chobocho Commander V{pkg.version}</span>
           <button className={styles.closeBtn} onClick={onClose} title="닫기">
             <X size={13} />
           </button>

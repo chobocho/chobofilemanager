@@ -3,6 +3,7 @@ import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown,
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useFileStore } from '../stores/fileStore'
+import { isImageFile } from '../utils/fileTypes.js'
 import styles from '../styles/FileViewer.module.css'
 
 // Todo #73: 마크다운의 원시 HTML이 Wails 웹뷰에서 실행되면 Go 바인딩(셸 실행·삭제)을 호출할 수 있으므로
@@ -21,23 +22,9 @@ export function externalLinkUrl(href) {
 export const MIN_FONT = 10
 export const MAX_FONT = 28
 
-export const VIEWABLE_EXTS = new Set([
-  '.txt', '.md', '.js', '.jsx', '.ts', '.tsx',
-  '.go', '.py', '.rs', '.c', '.cpp', '.h',
-  '.html', '.css', '.json', '.xml', '.yaml', '.yml',
-  '.sh', '.bat', '.log', '.ini', '.cfg', '.conf', '.env',
-  '.csv', '.sql', '.toml', '.gitignore', '.dockerfile',
-  '.star', '.bzl',
-])
+// 확장자 목록/판별 함수는 공통 모듈에서 관리 (Todo #102). 기존 import 호환을 위해 다시 export
+export { TEXT_EXTS as VIEWABLE_EXTS, IMAGE_EXTS, isImageFile, isViewableFile } from '../utils/fileTypes.js'
 
-// 이미지 확장자 (Todo #52). F3 뷰어에서 base64 data URL로 표시.
-export const IMAGE_EXTS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico',
-])
-
-export function isImageFile(ext) {
-  return IMAGE_EXTS.has(ext.toLowerCase())
-}
 
 // 이미지 뷰어에서 ←/→로 폴더 안 이전/다음 이미지로 이동.
 // dir: 'prev' | 'next'. 끝에 도달하면 순환(wrap-around).
@@ -51,10 +38,6 @@ export function siblingImagePath(siblings, currentPath, dir) {
   return siblings[newIdx]
 }
 
-export function isViewableFile(ext) {
-  const lower = ext.toLowerCase()
-  return VIEWABLE_EXTS.has(lower) || IMAGE_EXTS.has(lower)
-}
 
 export function isMarkdownFile(ext) {
   return ext.toLowerCase() === '.md'

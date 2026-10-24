@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState, forwardRef, useImperativeHandle, memo } from 'react'
 import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
-import { isViewableFile } from './FileViewer.jsx'
+import { isViewableFile, isTextFile, formatSize, formatDate } from '../utils/fileTypes.js'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
@@ -79,22 +79,6 @@ const FILE_ICONS_LIGHT = {
   '.7z':   { icon: FileArchive, color: '#b04000' },
   '.star': { icon: FileCode,    color: '#207060' },
   '.bzl':  { icon: FileCode,    color: '#207060' },
-}
-
-function formatSize(bytes, isDir) {
-  if (isDir) return '<DIR>'
-  if (bytes === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d)) return ''
-  const pad = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export function getQuickJumpTarget(files, ch, lastChar, lastMatchIdx) {
@@ -187,9 +171,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     if (file.isDir) {
       await store.navigate(side, file.path)
     } else {
-      const ext = file.extension
-      const textExts = ['.txt','.md','.js','.jsx','.ts','.tsx','.go','.py','.rs','.c','.cpp','.h','.html','.css','.json','.xml','.yaml','.yml','.sh','.log','.ini','.cfg','.conf','.env','.star','.bzl']
-      if (textExts.includes(ext)) {
+      // .bat은 더블클릭 시 기존처럼 실행 (Enter는 뷰어)
+      if (isTextFile(file.extension) && file.extension?.toLowerCase() !== '.bat') {
         onEdit(file)
       } else {
         await store.openFile(file.path)

@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #91 — 드라이브 루트에서 작업 후 목록 갱신 안 됨)
+
+### 원인
+`parentDir('C:\foo')`가 `'C:'`, `parentDir('/foo')`가 `'/foo'`를 반환 → 패널 경로(`C:\`, `/`)와 일치하지 않아
+삭제/이동/이름 변경/저장 후 `_refreshAffected`가 패널을 새로고침하지 않음.
+`navigateToBookmark`는 `ListDirectory('C:')`(드라이브 상대 경로 = 현재 작업 폴더)를 호출.
+
+### 변경
+- `fileStore.js`: `parentDir` export, 루트 처리(`C:\`, `D:/`, `/`), `navigateToBookmark`도 `parentDir` 사용
+- 테스트: PD91-01~05 (총 385건 통과)
+
 ## 2026-10-24 (Todo.md #90 — copyFile Close 에러 무시, 링크/정션 폴더 처리)
 
 ### 원인

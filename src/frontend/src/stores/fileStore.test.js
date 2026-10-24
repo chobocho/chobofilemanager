@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy, isRootPath, getCursorFile } from './fileStore.js'
+import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy, isRootPath, getCursorFile, parentDir } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -1318,5 +1318,48 @@ describe('Todo #89 — extract 실패', () => {
     useFileStore.setState(s => ({ left: { ...s.left, path: '/a' } }))
     await useFileStore.getState().extract('left', '/a/x.zip')
     expect(useFileStore.getState().status).toContain('Extract failed: checksum error')
+  })
+})
+
+// ─── Todo #91 — 드라이브 루트/'/' 의 부모 경로 ─────────────────────────────────
+describe('Todo #91 — parentDir', () => {
+  it('PD91-01: 일반 경로', () => {
+    expect(parentDir('C:\\a\\b.txt')).toBe('C:\\a')
+    expect(parentDir('/home/u/f')).toBe('/home/u')
+  })
+  it('PD91-02: 드라이브 루트 바로 아래 항목의 부모는 C:\\', () => {
+    expect(parentDir('C:\\foo.txt')).toBe('C:\\')
+    expect(parentDir('D:/foo')).toBe('D:/')
+  })
+  it("PD91-03: '/' 바로 아래 항목의 부모는 '/'", () => {
+    expect(parentDir('/foo')).toBe('/')
+  })
+
+  it('PD91-04: C:\\ 에서 삭제 후 C:\\ 패널이 새로고침됨', async () => {
+    vi.resetModules()
+    const useFileStore = (await import('./fileStore.js')).useFileStore
+    const api = (await import('../wailsjs/runtime')).default
+    const f = { name: 'x.txt', path: 'C:\\x.txt', isDir: false, isHidden: false }
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: { ...s.left, path: 'C:\\', files: [f], selected: new Set(), cursor: 0, cursorOnParent: false },
+      right: { ...s.right, path: 'D:\\' },
+    }))
+    api.TrashItems.mockResolvedValue(undefined)
+    api.ListDirectory.mockReset()
+    api.ListDirectory.mockResolvedValue({ path: 'C:\\', files: [] })
+    await useFileStore.getState().confirmTrash(['C:\\x.txt'])
+    expect(api.ListDirectory).toHaveBeenCalledWith('C:\\')
+    expect(useFileStore.getState().left.files).toEqual([])
+  })
+
+  it('PD91-05: 드라이브 루트의 파일 북마크는 C:\\ 로 이동', async () => {
+    vi.resetModules()
+    const useFileStore = (await import('./fileStore.js')).useFileStore
+    const api = (await import('../wailsjs/runtime')).default
+    api.ListDirectory.mockReset()
+    api.ListDirectory.mockResolvedValue({ path: 'C:\\', files: [] })
+    await useFileStore.getState().navigateToBookmark('left', { isFile: true, path: 'C:\\boot.ini' })
+    expect(api.ListDirectory).toHaveBeenCalledWith('C:\\')
   })
 })

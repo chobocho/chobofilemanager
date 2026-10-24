@@ -4,9 +4,14 @@ import api from '../wailsjs/runtime'
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
 // 경로에서 부모 디렉토리를 반환합니다.
-function parentDir(path) {
+// 드라이브 루트('C:\\foo' → 'C:\\')와 '/'('/foo' → '/')도 처리 (Todo #91)
+export function parentDir(path) {
   const last = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
-  return last > 0 ? path.substring(0, last) : path
+  if (last < 0) return path
+  if (last === 0) return path.substring(0, 1)
+  // 'C:\\foo' 처럼 드라이브 문자 바로 뒤 구분자면 구분자까지 포함
+  if (last === 2 && path[1] === ':') return path.substring(0, 3)
+  return path.substring(0, last)
 }
 
 export function joinPath(base, name) {
@@ -609,7 +614,7 @@ export const useFileStore = create((set, get) => ({
   navigateToBookmark: async (panel, bm) => {
     if (bm.isFile) {
       const lastSep = Math.max(bm.path.lastIndexOf('/'), bm.path.lastIndexOf('\\'))
-      const parentPath = lastSep > 0 ? bm.path.substring(0, lastSep) : bm.path
+      const parentPath = parentDir(bm.path)
       const fileName = bm.path.substring(lastSep + 1)
       await get().navigate(panel, parentPath)
       const files = get()[panel].files

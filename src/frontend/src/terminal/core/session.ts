@@ -6,6 +6,7 @@
 import type {ITerminalOptions, Terminal} from '@xterm/xterm';
 import {clipboardSetText, onTermEvent, termApi} from './termApi';
 import type {Reconnector} from './reconnect';
+import type {Highlighter} from './highlight';
 
 export type TermState = 'idle' | 'connecting' | 'on' | 'ftp';
 
@@ -34,6 +35,10 @@ const sessions = new Map<number, TermSession>();
 
 export function sessionById(id: number): TermSession | undefined {
     return sessions.get(id);
+}
+
+export function allSessions(): TermSession[] {
+    return [...sessions.values()];
 }
 
 /** term:data carries base64 in the Wails window and raw bytes for web clients. */
@@ -76,6 +81,8 @@ export class TermSession {
     req: ConnectRequest | undefined;
     /** Automatic reconnect of this tab (set by the view that owns the pane). */
     reconnector: Reconnector | undefined;
+    /** Keyword highlighting (real xterm only). */
+    highlighter: Highlighter | undefined;
 
     private outbox = '';
     private sending = false;
@@ -254,7 +261,7 @@ export class TermSession {
 
     /** term:data: output of the session. */
     receive(data: string | Uint8Array) {
-        this.term.write(decodeTermData(data));
+        this.term.write(decodeTermData(data), () => this.highlighter?.schedule());
         this.outputListeners.forEach(l => l());
     }
 

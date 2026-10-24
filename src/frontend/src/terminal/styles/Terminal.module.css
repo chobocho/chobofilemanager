@@ -91,3 +91,15 @@
 .smListBtns { display: flex; gap: 6px; }
 .smMoreBox { position: relative; }
 .smMenu { position: absolute; left: 0; bottom: 100%; }
+
+/* 설정 창 (Todo #121) */
+.prefs { width: 620px; max-width: calc(100vw - 32px); }
+.prefsBody { max-height: min(70vh, 640px); overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.prefsBody fieldset { margin: 0; padding: 6px 10px 8px; border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; gap: 6px; }
+.prefsBody legend { padding: 0 4px; color: var(--text-muted); font-size: 11px; }
+.num { width: 70px; }
+.themePreview { padding: 8px 10px; border-radius: 4px; font-family: 'D2Coding', Consolas, monospace; font-size: 12px; line-height: 1.5; white-space: pre; }
+.swatches { display: flex; gap: 2px; margin-top: 6px; }
+.swatches span { width: 16px; height: 10px; border-radius: 2px; }
+.hlRow { display: flex; align-items: center; gap: 6px; }
+.hlRow input { flex: 1; }

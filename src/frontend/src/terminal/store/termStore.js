@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { sessionById } from '../core/session'
+import { sessionById, allSessions } from '../core/session'
 import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
-import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession } from '../core/tabActions'
+import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
 const fieldsOf = (req) => ({ host: req.host, port: String(req.port), login: req.login || '', pass: req.pass || '',
@@ -27,7 +27,7 @@ const newTabState = (id, temp = false) => ({
 })
 
 // saveRequest: 열려 있는 "세션으로 저장" 창의 내용, sessionManager: 세션 관리자 열림
-const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false })
+const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false })
 
 let saveResolve = null // "세션으로 저장" 창의 결과를 기다리는 쪽
 
@@ -224,6 +224,14 @@ export const useTermStore = create((set, get) => ({
       get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
     }
   },
+
+  // 설정 창 (Ctrl+Shift+O)
+  openPrefs: () => set({ prefs: true }),
+  closePrefs: () => {
+    set({ prefs: false })
+    sessionById(get().activeId)?.focus()
+  },
+  applySettings: () => applySettingsAll(allSessions()),
 
   openSessionManager: () => set({ sessionManager: true }),
   closeSessionManager: () => {

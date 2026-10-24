@@ -3,7 +3,7 @@ import {FakeTerminal} from '../test/fakeTerminal';
 import {setTermBackend} from './termApi';
 import {TermSession} from './session';
 import {Reconnector} from './reconnect';
-import {applyEncoding, applyLook, toggleEncoding, chooseTheme, loadTabTheme, sendBreak, disconnectSession} from './tabActions';
+import {applyEncoding, applyLook, toggleEncoding, chooseTheme, loadTabTheme, sendBreak, disconnectSession, applySettingsAll} from './tabActions';
 import {tabMenuItems} from './tabMenu';
 import {resetSettingsForTest, settings} from './settings';
 import {themeByName} from './themes';
@@ -106,6 +106,24 @@ describe('tabActions (TA)', () => {
         applyLook(s);
         expect(fake.options.fontSize).toBe(19);
         expect(fake.options.scrollback).toBe(1234);
+    });
+
+    it('TA-09: 설정 확인 후 — 모든 탭에 모양 적용, 강조 다시 계산', () => {
+        const s = session();
+        const hl = {schedule: vi.fn(), reset: vi.fn()};
+        s.highlighter = hl;
+        settings.fontSize = 22;
+        applySettingsAll([s]);
+        expect(fake.options.fontSize).toBe(22);
+        expect(hl.reset).toHaveBeenCalled();
+    });
+
+    it('TA-10: 출력을 그린 뒤 강조 예약', () => {
+        const s = session();
+        const hl = {schedule: vi.fn(), reset: vi.fn()};
+        s.highlighter = hl;
+        s.receive(btoa('error here')); // term:data는 base64
+        expect(hl.schedule).toHaveBeenCalled();
     });
 });
 

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { Plus, X, TerminalSquare, Star } from 'lucide-react'
+import { Plus, X, TerminalSquare, Star, Settings } from 'lucide-react'
 import { startEventRouter } from '../core/session'
 import { loadSettings } from '../core/settings'
+import { loadRules } from '../core/highlight'
 import { isWorkspaceKey, isPaneMoveKey } from '../core/look'
 import { leaves, paneRects, gutters, splitKeyDir, ARROWS } from '../core/layout'
 import { useTermStore } from '../store/termStore'
@@ -15,6 +16,7 @@ import SearchBar from './SearchBar.jsx'
 import TabMenu from './TabMenu.jsx'
 import SessionManager from './SessionManager.jsx'
 import SaveSessionDialog from './SaveSessionDialog.jsx'
+import PrefsDialog from './PrefsDialog.jsx'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
@@ -28,6 +30,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const activeId = useTermStore(s => s.activeId)
   const saveRequest = useTermStore(s => s.saveRequest)
   const sessionManager = useTermStore(s => s.sessionManager)
+  const prefsOpen = useTermStore(s => s.prefs)
   const active = tabs.find(t => t.id === activeId)
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
   const [pasteRequest, setPasteRequest] = useState(null)
@@ -37,7 +40,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
 
   useEffect(() => {
     startEventRouter()
-    loadSettings()
+    loadSettings().then(loadRules)
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
   }, [])
 
@@ -57,6 +60,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'S') setSearchOpen(true)
     else if (k === 'T') st.newTab()
     else if (k === 'H') st.openSessionManager()
+    else if (k === 'O') st.openPrefs()
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
     else if (k === 'PageUp') st.cycle(-1)
@@ -115,6 +119,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
         })}
         <button type="button" className={styles.newTab} title="새 탭 (Ctrl+Shift+T)" onClick={() => useTermStore.getState().newTab()}><Plus size={13} /></button>
         <button type="button" className={styles.newTab} title="세션 관리 (Ctrl+Shift+H)" onClick={() => useTermStore.getState().openSessionManager()}><Star size={13} /></button>
+        <button type="button" className={styles.newTab} title="설정 (Ctrl+Shift+O)" onClick={() => useTermStore.getState().openPrefs()}><Settings size={13} /></button>
       </div>
       <div className={styles.panes}>
         <div className={styles.groupArea} ref={areaRef} data-group-area>
@@ -148,6 +153,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       {menu && <TabMenu {...menu} onClose={() => setMenu(null)} />}
       {sessionManager && <SessionManager />}
       {saveRequest && <SaveSessionDialog request={saveRequest} />}
+      {prefsOpen && <PrefsDialog />}
       <PasteConfirm request={pasteRequest} onAnswer={ok => { if (ok) pasteRequest?.paste(); setPasteRequest(null) }} />
     </div>
   )

@@ -4,6 +4,7 @@ import { Reconnector } from '../core/reconnect'
 import { lookOptions, isWorkspaceKey, isPaneMoveKey } from '../core/look'
 import { leaves } from '../core/layout'
 import { settings } from '../core/settings'
+import { attachHighlight } from '../core/highlight'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
 
@@ -24,6 +25,7 @@ export default function TerminalPane({ id, active, visible = active, rect, creat
     const s = new TermSession(id, { createTerminal, addons, options: lookOptions(settings) })
     sessionRef.current = s
     s.open(hostRef.current)
+    if (addons) s.highlighter = attachHighlight(s.term) // xterm 꾸밈(decoration) API가 필요 — 실제 xterm에서만
     // 탭·분할 단축키는 xterm 입력으로 보내지 않고 작업 공간이 처리 (Alt+방향키는 분할된 탭에서만)
     const inSplit = () => leaves(useTermStore.getState().groupOfPane(id)?.layout ?? { type: 'pane', id }).length > 1
     s.term.attachCustomKeyEventHandler(ev => !isWorkspaceKey(ev) && !(isPaneMoveKey(ev) && inSplit()))

@@ -7,6 +7,7 @@ import {settings} from './settings';
 import {lookOptions} from './look';
 import {themeByName} from './themes';
 import {NARROW, WIDE} from './cjkwidth';
+import {loadRules} from './highlight';
 import type {TermSession} from './session';
 import type {Reconnector} from './reconnect';
 
@@ -17,6 +18,15 @@ export function applyLook(s: TermSession) {
     const o = lookOptions(settings, s.encoding === 'EUC-KR');
     o.theme = themeByName(s.theme || settings.theme).theme;
     Object.assign(s.term.options, o);
+}
+
+/** After the Settings window's OK: every tab takes the new look and keyword rules. */
+export function applySettingsAll(list: TermSession[]) {
+    loadRules();
+    for (const s of list) {
+        applyLook(s);
+        s.highlighter?.reset();
+    }
 }
 
 /** EUC-KR screens draw ambiguous-width symbols in 2 columns, with the legacy Korean font. */

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import {
-  FilePlus, Search, Globe, Monitor, Sun, Moon,
+  FilePlus, Search, Globe, Monitor, Sun, Moon, TerminalSquare,
   Archive, PackageOpen
 } from 'lucide-react'
 import styles from '../styles/Toolbar.module.css'
@@ -103,6 +103,14 @@ export default function Toolbar({
         >
           <Globe size={13} />
           <span>FTP</span>
+        </button>
+        <button
+          className={`${styles.viewBtn} ${view === 'terminal' ? styles.viewBtnActive : ''}`}
+          onClick={() => onViewChange('terminal')}
+          title="Terminal"
+        >
+          <TerminalSquare size={13} />
+          <span>Terminal</span>
         </button>
       </div>
 

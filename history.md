@@ -2,6 +2,22 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #120 — T4 1차: Terminal 보기, 탭, 연결 대화상자)
+
+### 변경
+- 상단 보기 전환에 **Terminal** 추가: 처음 열 때 지연 로딩(별도 382KB 조각, 초기 번들 변화 없음), 다른 보기로 가도 세션 유지(숨김)
+- `terminal/core/connect.ts`: choboTerm 연결 규칙 이식 — 로컬 셸(cmd/powershell/pwsh/wsl)·시리얼(COMn, /dev/…) 판별,
+  포트별 프로토콜 표시, 호스트 목록(저장 세션 → 히스토리 → ssh_config → 로컬 셸 → 시리얼, 중복 제거)·필터, 요청 생성, 탭 이름/설명
+- `terminal/core/look.ts`: 설정 → xterm 옵션(글꼴·테마·커서·스크롤백), 작업 공간 단축키 판별
+- `terminal/store/termStore.js`: 탭 목록·활성 탭·활동 표시·대화상자·연결(중복 방지, 실패 시 오류 유지)
+- `TerminalWorkspace`/`TerminalPane`/`ConnectDialog` (React) + 테마 변수 기반 CSS
+  - 탭: Ctrl+Shift+T 새 탭, Ctrl+Shift+W 닫기, Ctrl+Tab/Ctrl+PageUp·Down 순환, 비활성 탭 출력 시 활동 표시, 연결 안 된 탭에서 Enter → 대화상자
+- 세션 코어: 출력/미연결 입력 알림 추가, jsdom에 matchMedia 대체 → **실제 xterm**을 화면에 붙이는 테스트 가능
+
+### 테스트
+- connect 11건, termStore 10건, TerminalWorkspace 10건, 실제 xterm 애드온 로드 1건, App Terminal 보기 3건 — 프론트 866건 통과, typecheck, build
+- 남은 #120 항목: 인증 프롬프트, 창 닫기 확인(app:close), 자동 재접속, 여러 줄 붙여넣기 확인, 검색
+
 ## 2026-10-25 (Todo.md #119 — T3: 터미널 프론트 기반)
 
 ### 변경

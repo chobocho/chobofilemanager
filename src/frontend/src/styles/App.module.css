@@ -32,3 +32,13 @@
 .divider:hover {
   background: var(--border-active);
 }
+
+/* Terminal 보기 (Todo #120) */
+.terminalView {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.terminalView[hidden] { display: none; }

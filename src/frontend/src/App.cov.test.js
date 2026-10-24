@@ -525,3 +525,35 @@ describe('App 키보드 소유권 (KO)', () => {
     root.remove()
   })
 })
+
+// ─── Todo #120: Terminal 보기 ─────────────────────────────────────────────────
+describe('App Terminal 보기 (TV)', () => {
+  afterEach(() => cleanup())
+
+  it('TV-01: Terminal 버튼 → 터미널 작업 공간(연결 대화상자)이 처음 열 때 로드됨', async () => {
+    await renderApp()
+    expect(document.querySelector('[data-terminal-root]')).toBeNull()
+    fireEvent.click(screen.getByTitle('Terminal'))
+    expect(await screen.findByLabelText('Host')).toBeTruthy()
+    expect(document.querySelector('[data-terminal-root]')).toBeTruthy()
+  })
+
+  it('TV-02: 다른 보기로 가도 터미널은 마운트 유지(숨김), 파일 패널 다시 표시', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('Terminal'))
+    await screen.findByLabelText('Host')
+    fireEvent.click(screen.getByTitle('File Manager'))
+    const root = document.querySelector('[data-terminal-root]')
+    expect(root).toBeTruthy()
+    expect(root.closest('[hidden]')).toBeTruthy()
+    expect(screen.getByText('y.txt')).toBeTruthy()
+  })
+
+  it('TV-03: Terminal 보기에서는 파일 관리자 F키 단축키가 동작하지 않음', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('Terminal'))
+    await screen.findByLabelText('Host')
+    await key({ key: 'F8' })
+    expect(screen.queryByText('휴지통으로 이동')).toBeNull()
+  })
+})

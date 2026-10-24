@@ -22,3 +22,11 @@ if (typeof globalThis.FontFace === 'undefined') {
 if (typeof document !== 'undefined' && !document.fonts) {
   Object.defineProperty(document, 'fonts', { value: new Set(), configurable: true })
 }
+
+// jsdom에는 matchMedia가 없음 — 실제 xterm을 화면에 붙일 때(devicePixelRatio 감시) 사용 (Todo #120)
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (query) => ({
+    matches: false, media: query, onchange: null,
+    addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false },
+  })
+}

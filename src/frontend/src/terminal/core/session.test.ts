@@ -220,3 +220,19 @@ describe('TermSession (TS)', () => {
         expect(states).toEqual(['connecting', 'on']);
     });
 });
+
+describe('TermSession + 실제 xterm (TS)', () => {
+    it('TS-30: 실제 Terminal에 애드온(fit/web-links/search/CJK 폭) 로드 — jsdom에서도 예외 없음', async () => {
+        const {Terminal} = await import('@xterm/xterm');
+        setTermBackend({} as any, {EventsOn: () => () => {}} as any);
+        const s = new TermSession(41, {createTerminal: o => new Terminal(o), addons: true});
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        s.open(el);
+        await vi.waitFor(() => expect(s.term.unicode.versions).toContain('11-cjk'));
+        expect(el.querySelector('.xterm')).toBeTruthy();
+        s.dispose();
+        el.remove();
+        setTermBackend(null);
+    });
+});

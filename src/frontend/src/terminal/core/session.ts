@@ -80,6 +80,8 @@ export class TermSession {
     private stateListeners = new Set<Listener<[TermState]>>();
     private titleListeners = new Set<Listener<[string]>>();
     private closedListeners = new Set<Listener<[string, boolean]>>();
+    private outputListeners = new Set<Listener<[]>>();
+    private idleInputListeners = new Set<Listener<[string]>>();
 
     constructor(id: number, private deps: SessionDeps) {
         this.id = id;
@@ -121,6 +123,7 @@ export class TermSession {
         });
         term.onData(data => {
             if (this.state === 'on') void this.sendInput(data);
+            else this.idleInputListeners.forEach(l => l(data)); // e.g. Enter reopens the Connect dialog
         });
         term.onResize(({cols, rows}) => {
             if (this.state === 'on') termApi.Resize(this.id, cols, rows).catch(() => undefined);
@@ -179,6 +182,16 @@ export class TermSession {
         this.closedListeners.add(l);
         return () => this.closedListeners.delete(l);
     }
+    /** Output arrived (the tab chip shows activity when it isn't the active tab). */
+    onOutput(l: Listener<[]>) {
+        this.outputListeners.add(l);
+        return () => this.outputListeners.delete(l);
+    }
+    /** Keys typed while no session is connected. */
+    onIdleInput(l: Listener<[string]>) {
+        this.idleInputListeners.add(l);
+        return () => this.idleInputListeners.delete(l);
+    }
 
     /**
      * Opens the session. Returns the protocol ("ssh", "telnet", "local", "serial", "ftp").
@@ -222,6 +235,7 @@ export class TermSession {
     /** term:data: output of the session. */
     receive(data: string | Uint8Array) {
         this.term.write(decodeTermData(data));
+        this.outputListeners.forEach(l => l());
     }
 
     /** term:closed: the session ended; lost means the connection broke. */

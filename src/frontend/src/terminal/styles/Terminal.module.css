@@ -1,0 +1,40 @@
+/* Terminal 보기 (Todo #120) — 색은 앱 테마 변수 사용 (choboTerm의 하드코딩 색 대신) */
+.workspace { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg-base); }
+
+.tabBar { display: flex; align-items: stretch; gap: 2px; padding: 4px 6px 0; background: var(--bg-toolbar); border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
+.tab { display: flex; align-items: center; gap: 6px; max-width: 220px; padding: 4px 6px 4px 10px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg-panel); color: var(--text-secondary); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.tab span[data-tab-label] { overflow: hidden; text-overflow: ellipsis; }
+.tabActive { background: var(--bg-editor); color: var(--text-primary); border-color: var(--border-active); }
+.tabActivity { color: var(--text-yellow); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.dotOn { background: var(--text-green); }
+.tabClose, .newTab, .iconBtn { display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 4px; padding: 2px; }
+.tabClose:hover, .newTab:hover, .iconBtn:hover { color: var(--text-primary); background: var(--bg-row-hover); }
+.newTab { padding: 4px 8px; }
+
+.panes { position: relative; flex: 1; min-height: 0; background: #000; }
+.pane { position: absolute; inset: 0; padding: 4px; }
+.pane[hidden] { display: none; }
+.empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); font-size: 13px; background: var(--bg-base); }
+
+.dialogOverlay { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 8vh; background: rgba(0, 0, 0, 0.45); z-index: 10; }
+.dialog { width: min(520px, 92%); background: var(--bg-modal); border: 1px solid var(--border-active); border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); padding: 12px 14px; color: var(--text-primary); font-size: 13px; }
+.dialogHeader { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; }
+.dialogHeader .iconBtn { margin-left: auto; }
+.proto { font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 10px; background: var(--accent-glow); color: var(--text-accent); }
+.hostRow { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hostBox { position: relative; display: flex; gap: 4px; }
+.hostBox input { flex: 1; }
+.hostList { position: absolute; top: 100%; left: 0; right: 0; max-height: 240px; overflow-y: auto; margin: 2px 0 0; padding: 4px 0; list-style: none; background: var(--bg-modal); border: 1px solid var(--border-active); border-radius: 6px; z-index: 2; }
+.hostList li { display: flex; gap: 8px; padding: 4px 10px; cursor: pointer; }
+.hostList li:hover { background: var(--bg-row-hover); }
+.dim { color: var(--text-muted); font-size: 12px; }
+.fieldGrid { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px 8px; }
+.dialog input, .dialog select { background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); padding: 5px 8px; font-size: 13px; font-family: var(--font-mono); }
+.dialog input:focus, .dialog select:focus { outline: none; border-color: var(--border-focus); }
+.dialog input:disabled, .dialog select:disabled { opacity: 0.45; }
+.error { margin-top: 10px; padding: 6px 8px; border-radius: 4px; background: rgba(255, 80, 80, 0.12); color: var(--text-red); white-space: pre-wrap; }
+.dialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.dialogActions button { padding: 5px 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-primary); cursor: pointer; }
+.dialogActions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dialogActions .primary:disabled { opacity: 0.6; cursor: default; }

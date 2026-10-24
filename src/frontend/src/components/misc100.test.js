@@ -97,7 +97,7 @@ describe('Todo #100', () => {
     const walk = (d) => readdirSync(d, { withFileTypes: true }).forEach(e => {
       const p = join(d, e.name)
       if (e.isDirectory()) { if (e.name !== 'wailsjs') walk(p) }
-      else if (/\.(js|jsx)$/.test(e.name) && !/\.test\.js$/.test(e.name)) files.push(p)
+      else if (/\.(js|jsx)$/.test(e.name) && !/\.test\.jsx?$/.test(e.name)) files.push(p)
     })
     walk(resolve(__dirname, '..'))
     const used = new Set()

@@ -19,6 +19,8 @@ import { isTerminalTarget } from './utils/keyboard.js'
 const loadTextEditor = () => import('./components/TextEditor')
 const loadFileViewer = () => import('./components/FileViewer')
 const TextEditor = lazy(loadTextEditor)
+// Todo #120: 터미널(choboTerm)은 Terminal 보기를 처음 열 때 불러옴 (xterm 포함)
+const TerminalWorkspace = lazy(() => import('./terminal/components/TerminalWorkspace.jsx'))
 const FileViewer = lazy(loadFileViewer)
 
 // 시작 후 여유 시간에 미리 받아 두어 첫 F3/F4도 바로 열리게 함
@@ -42,6 +44,9 @@ export default function App() {
   const theme       = useThemeStore(s => s.theme)
 
   const [view, setView]             = useState('files')
+  // 한 번 연 터미널은 다른 보기로 가도 세션이 유지되도록 마운트 유지
+  const [terminalMounted, setTerminalMounted] = useState(false)
+  useEffect(() => { if (view === 'terminal') setTerminalMounted(true) }, [view])
   const [modal, setModal]           = useState(null)
   const [editorFile, setEditorFile] = useState(null)
   const [viewerFile, setViewerFile] = useState(null)
@@ -271,8 +276,15 @@ export default function App() {
                 requestAnimationFrame(() => ref.current?.focus())
               }} />
           </div>
-        ) : (
+        ) : view === 'ftp' ? (
           <FTPManager />
+        ) : null}
+        {terminalMounted && (
+          <div className={styles.terminalView} hidden={view !== 'terminal'}>
+            <Suspense fallback={null}>
+              <TerminalWorkspace />
+            </Suspense>
+          </div>
         )}
       </div>
       <StatusBar />

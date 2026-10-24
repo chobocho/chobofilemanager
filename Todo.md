@@ -208,7 +208,7 @@
 ## ~~81. FTP "TLS 사용" 옵션 무시 → 비밀번호 평문 전송~~ ✓ 완료 (2026-10-24)
 - `UseTLS`, `Passive` 미사용. `DialWithExplicitTLS` 적용
 
-## 82. 휴지통 없는 드라이브에서 F8이 경고 없이 영구 삭제
+## ~~82. 휴지통 없는 드라이브에서 F8이 경고 없이 영구 삭제~~ ✓ 완료 (2026-10-24)
 - `trash_windows.go`에 `FOF_WANTNUKEWARNING` 없음 (네트워크/USB/용량 초과)
 
 ## 🟠 P1 — 중요

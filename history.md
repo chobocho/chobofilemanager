@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #82 — 휴지통 없는 드라이브에서 경고 없이 영구 삭제되는 문제)
+
+### 원인
+SHFileOperationW 플래그에 `FOF_WANTNUKEWARNING`이 없어, 휴지통을 쓸 수 없는 위치(네트워크 공유, 일부 USB,
+휴지통 용량 초과 파일)에서는 F8/Delete가 조용히 영구 삭제됨.
+
+### 변경
+- `trash_windows.go`: `fofWantNukeWarning(0x4000)` 추가, 플래그를 `trashFlags` 상수로 분리
+  → 영구 삭제가 될 경우 Windows가 확인 창 표시, 취소 시 "중단됨" 에러 반환
+- 테스트: `trash_windows_test.go` (플래그 검증). 실제 동작은 네트워크 드라이브에서 수동 확인 필요
+
 ## 2026-10-24 (Todo.md #81 — FTP TLS 옵션 동작)
 
 ### 원인

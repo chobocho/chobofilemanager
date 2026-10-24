@@ -15,12 +15,18 @@ import (
 // pFrom은 더블-널-종단된 UTF-16 다중 경로 문자열이어야 합니다.
 
 const (
-	foDelete         = 0x0003
-	fofAllowUndo     = 0x0040
+	foDelete          = 0x0003
+	fofAllowUndo      = 0x0040
 	fofNoConfirmation = 0x0010
-	fofNoErrorUI     = 0x0400
-	fofSilent        = 0x0004
+	fofNoErrorUI      = 0x0400
+	fofSilent         = 0x0004
+	// 휴지통을 쓸 수 없는 경우(네트워크 드라이브, 일부 USB, 휴지통 용량 초과) 영구 삭제 전에 경고.
+	// FOF_NOCONFIRMATION을 부분적으로 무시하고 확인 창을 띄움 (Todo #82)
+	fofWantNukeWarning = 0x4000
 )
+
+// 사용자가 경고 창에서 취소하면 fAnyOperationsAborted가 설정되어 에러로 보고됨
+const trashFlags = fofAllowUndo | fofNoConfirmation | fofNoErrorUI | fofSilent | fofWantNukeWarning
 
 type shFileOpStructW struct {
 	hwnd                  uintptr
@@ -58,7 +64,7 @@ func trashItems(paths []string) error {
 		wFunc:  foDelete,
 		pFrom:  &buf[0],
 		pTo:    nil,
-		fFlags: fofAllowUndo | fofNoConfirmation | fofNoErrorUI | fofSilent,
+		fFlags: trashFlags,
 	}
 
 	shell32 := syscall.NewLazyDLL("shell32.dll")

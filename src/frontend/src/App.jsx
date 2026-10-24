@@ -14,6 +14,7 @@ import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
+import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit } from './utils/fileTypes.js'
 import styles from './styles/App.module.css'
 
 // Todo #55: Starlark 스크래치 단축키 — Ctrl+M (이전 Ctrl+Enter는 TextEditor 내부 Run으로만 사용)
@@ -27,7 +28,6 @@ export default function App() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
   const theme       = useThemeStore(s => s.theme)
-  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
   const [view, setView]             = useState('files')
   const [modal, setModal]           = useState(null)
@@ -56,12 +56,12 @@ export default function App() {
   }, [])
 
   const tryOpenViewer = useCallback((file) => {
-    if (file.size > MAX_FILE_SIZE) { setFileSizeError(file.name); return }
+    if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
     setViewerFile(file.path)
   }, [])
 
   const tryOpenEditor = useCallback((file) => {
-    if (file.size > MAX_FILE_SIZE) { setFileSizeError(file.name); return }
+    if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
     setEditorFile(file.path)
   }, [])
 
@@ -341,7 +341,7 @@ export default function App() {
       {fileSizeError && (
         <ConfirmDialog
           title="파일 크기 초과"
-          message={`"${fileSizeError}" 파일이 10MB를 초과하여 내장 뷰어/에디터로 열 수 없습니다.`}
+          message={`"${fileSizeError}" 파일이 ${MAX_VIEWER_FILE_SIZE / 1024 / 1024}MB를 초과하여 내장 뷰어/에디터로 열 수 없습니다.`}
           confirmLabel="확인"
           hideCancel
           onConfirm={() => { setFileSizeError(null); focusActivePanel() }}

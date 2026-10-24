@@ -67,7 +67,7 @@ function setupApi() {
 beforeEach(() => {
   for (const k of Object.keys(fs)) delete fs[k]
   fs['/a'] = [dir('/a', 'sub'), file('/a', 'x.txt'), file('/a', 'y.txt'),
-    file('/a', 'big.txt', { size: 11 * 1024 * 1024 }), file('/a', 'pic.png')]
+    file('/a', 'big.txt', { size: 33 * 1024 * 1024 }), file('/a', 'pic.png')]
   fs['/a/sub'] = []
   fs['/b'] = [file('/b', 'x.txt'), file('/b', 'z.txt')]
   setupApi()
@@ -326,12 +326,12 @@ describe('App 커버리지 — 뷰어/에디터', () => {
     expect(api.ReadTextFile).toHaveBeenCalledWith('/a/y.txt')
   })
 
-  it('AP-22: 10MB 초과 파일은 크기 초과 안내, 확인으로 닫힘', async () => {
+  it('AP-22: 32MB 초과 파일은 크기 초과 안내, 확인으로 닫힘 (Todo #114)', async () => {
     await renderApp()
     cursorTo('big.txt')
     await key({ key: 'F3' })
     expect(screen.getByText('파일 크기 초과')).toBeTruthy()
-    expect(screen.getByText(/big\.txt.*10MB/)).toBeTruthy()
+    expect(screen.getByText(/big\.txt.*32MB/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '확인' }))
     expect(screen.queryByText('파일 크기 초과')).toBeNull()
     await key({ key: 'F4' })

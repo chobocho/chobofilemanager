@@ -2,6 +2,18 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #114 — 뷰어/에디터 파일 크기 제한 10MB → 32MB)
+
+### 근거 (측정)
+- CodeMirror 전환 후 프론트: 20MB 열기 83~175ms, 50MB 169~197ms, 100MB 350~404ms, 키 입력은 크기와 무관하게 17ms
+- Go 읽기+디코딩+JSON: 50MB 약 0.14s / 일시 메모리 약 500MB (파일 크기의 약 10배, 즉시 해제)
+- Wails IPC(WebView2) 구간은 헤드리스로 측정 불가 → 여유를 두고 32MB로 결정
+
+### 변경
+- `utils/fileTypes.js`: `MAX_VIEWER_FILE_SIZE`(32MB), `exceedsViewerLimit` — App의 F3/F4 크기 검사와 안내 문구가 이 상수 사용
+- `filemanager.go`: `maxViewerFileSize` 64MB → 32MB (프론트와 동일)
+- 테스트: LIM-01~02, AP-22(33MB 거부/32MB 문구), Go `limit_sync_test.go`(백엔드·프론트 값 일치 검사) — Go 통과, 프론트 785건 통과
+
 ## 2026-10-25 (Todo.md #113 — 뷰어/에디터 구문 강조)
 
 ### 변경

@@ -15,6 +15,14 @@ export const IMAGE_EXTS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico',
 ])
 
+// 내장 뷰어/에디터로 여는 최대 파일 크기 (Todo #114 — CodeMirror 전환 후 10MB → 32MB).
+// 백엔드 maxViewerFileSize(filemanager.go)와 같아야 하며 limit_sync_test.go가 검사합니다.
+export const MAX_VIEWER_FILE_SIZE = 32 * 1024 * 1024
+
+export function exceedsViewerLimit(size) {
+  return (size || 0) > MAX_VIEWER_FILE_SIZE
+}
+
 export function isTextFile(ext) {
   return TEXT_EXTS.has((ext || '').toLowerCase())
 }

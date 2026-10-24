@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isTextFile, isImageFile, isViewableFile, formatSize, formatDate, TEXT_EXTS } from './fileTypes.js'
+import { isTextFile, isImageFile, isViewableFile, formatSize, formatDate, TEXT_EXTS, MAX_VIEWER_FILE_SIZE, exceedsViewerLimit } from './fileTypes.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const read = (p) => readFileSync(resolve(__dirname, p), 'utf8')
@@ -51,5 +51,19 @@ describe('버전 표시 (Todo #102)', () => {
     expect(src).toMatch(/Chobocho Commander V\{pkg\.version\}/)
     const pkg = JSON.parse(read('../../package.json'))
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/)
+  })
+})
+
+// ─── Todo #114: 내장 뷰어/에디터 파일 크기 제한 32MB ─────────────────────────
+describe('뷰어 크기 제한 (Todo #114)', () => {
+  it('LIM-01: 제한은 32MB', () => {
+    expect(MAX_VIEWER_FILE_SIZE).toBe(32 * 1024 * 1024)
+  })
+  it('LIM-02: 경계값 — 32MB 이하는 열림, 초과는 거부', () => {
+    expect(exceedsViewerLimit(10 * 1024 * 1024 + 1)).toBe(false) // 예전 10MB 제한은 해제
+    expect(exceedsViewerLimit(32 * 1024 * 1024)).toBe(false)
+    expect(exceedsViewerLimit(32 * 1024 * 1024 + 1)).toBe(true)
+    expect(exceedsViewerLimit(0)).toBe(false)
+    expect(exceedsViewerLimit(undefined)).toBe(false)
   })
 })

@@ -384,8 +384,9 @@ func (fm *FileManager) ReadTextFile(path string) (string, error) {
 //
 // 인코딩 자동 판별이 틀린 케이스(짧은 한글 파일, 혼합 인코딩 등)에서
 // 사용자가 F3/F4 뷰어/편집기 UI로 수동 변경할 때 사용.
-// 내장 뷰어/에디터로 읽을 수 있는 최대 크기. 프론트(10MB 제한)를 거치지 않는 호출에도 메모리 폭주 방지 (Todo #98)
-const maxViewerFileSize = 64 * 1024 * 1024
+// 내장 뷰어/에디터로 읽을 수 있는 최대 크기 (Todo #98, #114: 32MB).
+// 프론트 MAX_VIEWER_FILE_SIZE(utils/fileTypes.js)와 같은 값 — 프론트 검사를 거치지 않는 호출에도 메모리 폭주 방지
+const maxViewerFileSize = 32 * 1024 * 1024
 
 func readLimited(path string) ([]byte, error) {
 	info, err := os.Stat(path)

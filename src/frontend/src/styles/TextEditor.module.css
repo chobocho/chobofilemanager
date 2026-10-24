@@ -228,6 +228,13 @@
   contain: strict;
 }
 
+/* CodeMirror 텍스트 영역 (Todo #110) */
+.surface {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
 .loading, .error {
   flex: 1;
   display: flex;

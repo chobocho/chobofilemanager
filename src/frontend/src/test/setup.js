@@ -1,0 +1,13 @@
+// vitest 전역 설정 (Todo #110)
+// jsdom은 레이아웃을 계산하지 않아 CodeMirror가 쓰는 Range 측정 API가 없음 → 빈 값으로 대체
+if (typeof Range !== 'undefined') {
+  if (!Range.prototype.getClientRects) {
+    Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: function* () {} })
+  }
+  if (!Range.prototype.getBoundingClientRect) {
+    Range.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0 })
+  }
+}
+if (typeof document !== 'undefined' && !document.elementFromPoint) {
+  document.elementFromPoint = () => null
+}

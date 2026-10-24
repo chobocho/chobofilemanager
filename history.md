@@ -2,6 +2,25 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #110 — 에디터(F4) CodeMirror 6 전환)
+
+### 변경
+- 의존성: `@codemirror/state`, `@codemirror/view`, `@codemirror/commands`
+- `CodeSurface.jsx` 신규: CodeMirror 6 래퍼 (줄 번호, 현재 줄 강조, 실행 취소, Tab=공백 2칸, 글자 크기/줄 바꿈 설정,
+  ref API: getText/getDoc/getSelection/select/focus). 부모에는 키 입력마다 문서 객체만 전달(전체 문자열 복사 없음)
+- `TextEditor.jsx`: textarea·가상 줄 번호 제거 → CodeSurface 사용. 줄/문자 수는 `doc.lines/length`,
+  미저장 판정은 길이 비교 후 `doc.eq(원본)`, 검색은 문서가 바뀔 때만 소문자 캐시 생성, CRLF 보존(#112) 유지
+- 테스트 드라이버(`src/test/textSurface.js`)가 textarea/CodeMirror 둘 다 지원(act 처리), `src/test/setup.js`(jsdom Range 측정 API 대체)
+- 계약 테스트가 전환 중 버그 1건(Tab 명령의 선택 범위 생성 오류)을 잡아 수정. textarea 전용 TEC-21은 줄 번호 표시 테스트로 교체
+- 총 742건 통과, `vite build` 확인 (번들 340KB → 617KB, gzip 105KB → 196KB)
+
+### 측정 (npm run bench, 헤드리스 Edge)
+| 크기 | 에디터 열기 (전 → 후) | 키 입력 1회 중앙값 (전 → 후) |
+|---|---|---|
+| 1MB | 129~271ms → 27ms | 129~209ms → 17ms |
+| 5MB | 0.84~0.91s → 32ms | 1.1~1.2s → 17ms |
+| 10MB | 2.1~2.3s → 75ms | 2.2~2.4s → 17ms |
+
 ## 2026-10-25 (Todo.md #109 — 뷰어/에디터 성능 기준선 측정)
 
 ### 변경

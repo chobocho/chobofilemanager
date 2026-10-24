@@ -11,7 +11,7 @@ import TextEditor from './TextEditor.jsx'
 import FileViewer from './FileViewer.jsx'
 import { useFileStore } from '../stores/fileStore'
 import {
-  findSurfaceWithText, textOf, typeText, keyIn, isReadOnly, select, selectionOf,
+  findSurfaceWithText, textOf, typeText, keyIn, isReadOnly, select, selectionOf, hasFocus,
 } from '../test/textSurface.js'
 
 const h = React.createElement
@@ -115,12 +115,12 @@ describe('텍스트 영역 계약 — 에디터 (CT)', () => {
 
   it('CT-07: 로드 후 텍스트 영역에 포커스, 검색창 Esc 후 다시 텍스트 영역으로', async () => {
     const { el } = await openEditor('focus me')
-    await waitFor(() => expect(document.activeElement).toBe(el))
+    await waitFor(() => expect(hasFocus(el)).toBe(true))
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)
     await waitFor(() => expect(document.activeElement).toBe(input))
     fireEvent.keyDown(input, { key: 'Escape' })
-    expect(document.activeElement).toBe(el)
+    expect(hasFocus(el)).toBe(true)
   })
 
   it('CT-08: 인코딩 변경 시 새 인코딩으로 다시 읽은 내용으로 교체', async () => {
@@ -212,7 +212,7 @@ describe('텍스트 영역 계약 — 뷰어 (CT)', () => {
 
   it('CT-24: 로드 후 텍스트 영역에 포커스', async () => {
     const { el } = await openViewer('focus')
-    await waitFor(() => expect(document.activeElement).toBe(el))
+    await waitFor(() => expect(hasFocus(el)).toBe(true))
   })
 })
 

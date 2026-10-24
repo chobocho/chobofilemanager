@@ -12,6 +12,9 @@
     "bench": "node bench/run.mjs"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.4",
     "dompurify": "^3.2.6",
     "lucide-react": "^0.383.0",
     "marked": "^18.0.2",

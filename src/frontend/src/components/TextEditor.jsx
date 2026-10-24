@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Text } from '@codemirror/state'
 import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye, Play, Terminal } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
 import { ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
+import CodeSurface from './CodeSurface.jsx'
 import styles from '../styles/TextEditor.module.css'
 
 export function isStarlarkFile(ext) {
@@ -27,12 +29,18 @@ export function isSwitchToViewerShortcut(e) {
   return e.key === 'F3' && !e.ctrlKey && !e.metaKey && !e.altKey
 }
 
-const LINE_HEIGHT = 20  // matches CSS line-height: 20px
-const LINE_BUFFER = 10  // extra lines to render above/below viewport
+// CodeMirror 상태의 주 선택 시작 위치 → 1부터 시작하는 줄/열
+function cursorFromState(state) {
+  const pos = state.selection.main.from
+  const line = state.doc.lineAt(pos)
+  return { line: line.number, col: pos - line.from + 1 }
+}
 
 export default function TextEditor({ path, onClose, onSwitchToViewer }) {
-  const [content, setContent]           = useState('')
-  const [original, setOriginal]         = useState('')
+  // Todo #110: 편집 내용은 CodeMirror 문서가 보관 — 키 입력마다 전체 문자열을 상태로 복사하지 않음
+  const [loadedText, setLoadedText]     = useState('')
+  const [stats, setStats]               = useState({ lines: 1, length: 0 })
+  const [isDirty, setIsDirty]           = useState(false)
   const [loading, setLoading]           = useState(true)
   const [saving, setSaving]             = useState(false)
   const [error, setError]               = useState(null)
@@ -40,7 +48,6 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [cursor, setCursor]             = useState({ line: 1, col: 1 })
   // 미저장 상태에서 나가려 할 때 보류 중인 동작: null | 'close' | 'viewer' (Todo #75)
   const [pendingLeave, setPendingLeave] = useState(null)
-  const [scrollTop, setScrollTop]       = useState(0)
   const [searchOpen, setSearchOpen]     = useState(false)
   const [searchQuery, setSearchQuery]   = useState('')
   const [noMatch, setNoMatch]           = useState(false)
@@ -50,9 +57,9 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   // 원본 줄바꿈. 편집 영역은 항상 LF로 다루고 저장할 때 원래 줄바꿈으로 되돌림 (Todo #112)
   const eolRef = useRef('\n')
 
-  const textareaRef    = useRef(null)
-  const lineNumbersRef = useRef(null)
-  const bodyRef        = useRef(null)
+  const surfaceRef     = useRef(null)
+  const originalDocRef = useRef(Text.empty) // 마지막으로 읽거나 저장한 문서 (미저장 판정 기준)
+  const searchCacheRef = useRef({ doc: null, lower: '' })
   const searchInputRef = useRef(null)
   const saveConfirmRef = useRef(null)
 
@@ -60,15 +67,6 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const fileName = path?.split(/[/\\]/).pop() || 'file'
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isStarlark = isStarlarkFile(ext)
-  const isDirty = content !== original
-
-  // Compute line count only when content changes
-  const lineCount = useMemo(() => content.split('\n').length, [content])
-
-  // Virtual line number range — only render lines near the viewport
-  const viewHeight   = bodyRef.current?.clientHeight ?? 600
-  const firstVisible = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - LINE_BUFFER)
-  const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / LINE_HEIGHT) + LINE_BUFFER)
 
   useEffect(() => {
     let cancelled = false  // Todo #97: 늦게 끝난 이전 파일 로드 결과는 무시
@@ -80,15 +78,19 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         if (cancelled) return
         eolRef.current = raw.includes('\r\n') ? '\r\n' : '\n'
         const text = raw.replace(/\r\n/g, '\n')
-        setContent(text)
-        setOriginal(text)
+        const doc = Text.of(text.split('\n'))
+        originalDocRef.current = doc
+        setLoadedText(text)
+        setStats({ lines: doc.lines, length: doc.length })
+        setIsDirty(false)
+        setCursor({ line: 1, col: 1 })
       } catch(e) {
         if (!cancelled) setError(String(e))
       } finally {
         if (!cancelled) {
           setLoading(false)
           // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
-          setTimeout(() => textareaRef.current?.focus(), 0)
+          setTimeout(() => surfaceRef.current?.focus(), 0)
         }
       }
     }
@@ -99,14 +101,14 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   // 인코딩 변경: 미저장 변경분이 있으면 확인 — 사용자 실수로 편집 내용 잃는 걸 방지
   const handleEncodingCycle = useCallback(() => {
     const next = nextEncoding(encoding)
-    if (content !== original) {
+    if (isDirty) {
       const ok = window.confirm(
         `저장하지 않은 변경사항이 있습니다.\n인코딩을 "${ENCODING_LABELS[next]}"로 변경하면 변경 내용이 사라집니다. 계속하시겠습니까?`
       )
       if (!ok) return
     }
     setEncoding(next)
-  }, [encoding, content, original])
+  }, [encoding, isDirty])
 
   // 저장 성공 여부를 반환. 로딩 중/읽기 오류 상태에서는 빈 내용으로 덮어쓰지 않도록 거부 (Todo #76).
   // 저장 실패는 편집 내용을 가리지 않도록 상태 표시줄에 표시.
@@ -114,9 +116,14 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     if (loading || error) return false
     setSaving(true)
     try {
+      const doc = surfaceRef.current?.getDoc() ?? originalDocRef.current
+      const content = doc.toString()
       const data = eolRef.current === '\r\n' ? content.replace(/\n/g, '\r\n') : content
       await writeFile(path, data, encoding)
-      setOriginal(content)
+      originalDocRef.current = doc
+      // 저장하는 동안 더 입력했다면 여전히 미저장
+      const now = surfaceRef.current?.getDoc() ?? doc
+      setIsDirty(!now.eq(doc))
       setSaveError(null)
       return true
     } catch(e) {
@@ -125,7 +132,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     } finally {
       setSaving(false)
     }
-  }, [path, content, encoding, writeFile, loading, error])
+  }, [path, encoding, writeFile, loading, error])
 
   const leave = useCallback((action) => {
     setPendingLeave(null)
@@ -186,13 +193,13 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         e.stopPropagation()
         if (pendingLeave) {
           setPendingLeave(null)
-          textareaRef.current?.focus()
+          surfaceRef.current?.focus()
           return
         }
         if (searchOpen) {
           setSearchOpen(false)
           setNoMatch(false)
-          textareaRef.current?.focus()
+          surfaceRef.current?.focus()
           return
         }
         requestLeave('close')
@@ -219,54 +226,23 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     return () => window.removeEventListener('keydown', handler, true)
   }, [pendingLeave, searchOpen, isStarlark, onSwitchToViewer, requestLeave])
 
-  // Sync line numbers scroll position with textarea (ssMemo pattern)
-  const handleScroll = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta) return
-    setScrollTop(ta.scrollTop)
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = ta.scrollTop
-    }
+  // 문서 변경: 줄/문자 수와 미저장 여부만 갱신 (길이가 다르면 내용 비교 없이 dirty)
+  const handleDocChange = useCallback((doc) => {
+    setStats({ lines: doc.lines, length: doc.length })
+    const orig = originalDocRef.current
+    setIsDirty(doc.length !== orig.length || !doc.eq(orig))
   }, [])
 
-  const handleCursorChange = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta) return
-    setCursor(buildCursorPosition(ta.value, ta.selectionStart))
+  const handleSelectionChange = useCallback((state) => {
+    setCursor(cursorFromState(state))
   }, [])
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      const ta = textareaRef.current
-      const start = ta.selectionStart
-      const end = ta.selectionEnd
-      const newContent = content.substring(0, start) + '  ' + content.substring(end)
-      setContent(newContent)
-      setTimeout(() => {
-        ta.selectionStart = ta.selectionEnd = start + 2
-      }, 0)
-      return
-    }
-    // Ctrl/Cmd+Enter: Starlark 실행 (Todo #50). textarea 단계에서도 처리해
-    // window 캡처 핸들러 외에 이중 안전장치.
-    if (isStarlark && isStarlarkRunShortcut(e)) {
-      e.preventDefault()
-      e.stopPropagation()
-      handleRunRef.current()
-    }
-  }, [content, isStarlark])
-
-  // Scroll to match: positions match 1/3 from top (ssMemo scrollToIndex pattern)
-  const scrollToMatch = useCallback((el, index) => {
-    const textBefore = el.value.slice(0, index)
-    const lineIndex = textBefore.split('\n').length - 1
-    const style = window.getComputedStyle(el)
-    const lineHeight = parseFloat(style.lineHeight) || LINE_HEIGHT
-    const paddingTop = parseFloat(style.paddingTop) || 12
-    const targetTop = lineIndex * lineHeight + paddingTop
-    const offset = el.clientHeight / 3
-    el.scrollTop = Math.max(0, targetTop - offset)
+  // 검색용 소문자 텍스트 — 문서가 바뀌었을 때만 다시 계산
+  const lowerText = useCallback(() => {
+    const doc = surfaceRef.current?.getDoc()
+    if (!doc) return ''
+    if (searchCacheRef.current.doc !== doc) searchCacheRef.current = { doc, lower: doc.toString().toLowerCase() }
+    return searchCacheRef.current.lower
   }, [])
 
   const showNoMatch = useCallback(() => {
@@ -275,39 +251,33 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   }, [])
 
   const findNext = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta || !searchQuery) return
-    const lowerContent = ta.value.toLowerCase()
+    const surface = surfaceRef.current
+    if (!surface || !searchQuery) return
+    const lowerContent = lowerText()
     const lowerQuery = searchQuery.toLowerCase()
-    const startIndex = ta.selectionEnd ?? 0
+    const startIndex = surface.getSelection()[1]
     let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
     if (matchIndex === -1 && startIndex > 0) {
       matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
     }
     if (matchIndex === -1) { showNoMatch(); return }
-    ta.focus()
-    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
-    scrollToMatch(ta, matchIndex)
-    handleCursorChange()
-  }, [searchQuery, scrollToMatch, showNoMatch, handleCursorChange])
+    surface.select(matchIndex, matchIndex + searchQuery.length)
+  }, [searchQuery, showNoMatch, lowerText])
 
   const findPrev = useCallback(() => {
-    const ta = textareaRef.current
-    if (!ta || !searchQuery) return
-    const lowerContent = ta.value.toLowerCase()
+    const surface = surfaceRef.current
+    if (!surface || !searchQuery) return
+    const lowerContent = lowerText()
     const lowerQuery = searchQuery.toLowerCase()
     // 선택이 맨 앞(0)이면 lastIndexOf(q, 0)이 같은 위치를 다시 찾으므로 바로 끝에서부터 순환 (Todo #107)
-    const sel = ta.selectionStart ?? 0
+    const sel = surface.getSelection()[0]
     let matchIndex = sel > 0 ? lowerContent.lastIndexOf(lowerQuery, sel - 1) : -1
     if (matchIndex === -1) {
       matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
     }
     if (matchIndex === -1) { showNoMatch(); return }
-    ta.focus()
-    ta.setSelectionRange(matchIndex, matchIndex + searchQuery.length)
-    scrollToMatch(ta, matchIndex)
-    handleCursorChange()
-  }, [searchQuery, scrollToMatch, showNoMatch, handleCursorChange])
+    surface.select(matchIndex, matchIndex + searchQuery.length)
+  }, [searchQuery, showNoMatch, lowerText])
 
   const handleSearchKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
@@ -315,7 +285,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       e.stopPropagation()
       setSearchOpen(false)
       setNoMatch(false)
-      textareaRef.current?.focus()
+      surfaceRef.current?.focus()
     } else if (e.key === 'Enter') {
       e.preventDefault()
       e.stopPropagation()
@@ -327,7 +297,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const closeSearch = useCallback(() => {
     setSearchOpen(false)
     setNoMatch(false)
-    textareaRef.current?.focus()
+    surfaceRef.current?.focus()
   }, [])
 
   return (
@@ -434,49 +404,19 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         )}
 
         {/* Body */}
-        <div className={styles.body} ref={bodyRef}>
+        <div className={styles.body}>
           {loading ? (
             <div className={styles.loading}>Loading...</div>
           ) : error ? (
             <div className={styles.error}>⚠ {error}</div>
           ) : (
-            <>
-              {/* Virtual line numbers — only visible range + buffer is in DOM */}
-              <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden>
-                {/* Spacer for lines above viewport */}
-                <div style={{ height: firstVisible * LINE_HEIGHT }} />
-                {Array.from({ length: lastVisible - firstVisible + 1 }, (_, i) => {
-                  const lineNum = firstVisible + i + 1
-                  return (
-                    <div
-                      key={lineNum}
-                      className={`${styles.lineNum} ${cursor.line === lineNum ? styles.lineNumActive : ''}`}
-                    >
-                      {lineNum}
-                    </div>
-                  )
-                })}
-                {/* Spacer for lines below viewport */}
-                <div style={{ height: Math.max(0, lineCount - lastVisible - 1) * LINE_HEIGHT }} />
-              </div>
-
-              {/* Textarea */}
-              <textarea
-                data-text-surface
-                ref={textareaRef}
-                className={styles.textarea}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onKeyUp={handleCursorChange}
-                onClick={handleCursorChange}
-                onScroll={handleScroll}
-                spellCheck={false}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-            </>
+            <CodeSurface
+              ref={surfaceRef}
+              text={loadedText}
+              onDocChange={handleDocChange}
+              onSelectionChange={handleSelectionChange}
+              className={styles.surface}
+            />
           )}
         </div>
 
@@ -496,9 +436,9 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
 
         {/* Status bar */}
         <div className={styles.statusBar}>
-          <span>{lineCount} lines</span>
+          <span>{stats.lines} lines</span>
           <span>Ln {cursor.line}, Col {cursor.col}</span>
-          <span>{content.length} chars</span>
+          <span>{stats.length} chars</span>
           <span>{ENCODING_LABELS[encoding]}</span>
           {isDirty && <span className={styles.unsaved}>Unsaved changes</span>}
           {saveError && <span className={styles.unsaved}>저장 실패: {saveError}</span>}

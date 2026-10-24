@@ -263,11 +263,10 @@ describe('TextEditor 커버리지 (TEC)', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('TEC-21: [textarea 구현 전용 — 텍스트 영역 교체 시 삭제] 스크롤 시 줄번호 동기화', async () => {
-    const { ta, container } = await open()
-    ta.scrollTop = 40
-    fireEvent.scroll(ta)
-    const ln = container.querySelector('[aria-hidden]')
-    expect(ln.scrollTop).toBe(40)
+  it('TEC-21: 줄 번호 표시 (CodeMirror gutter, Todo #110)', async () => {
+    const { container } = await open()
+    const gutter = container.querySelector('.cm-lineNumbers')
+    expect(gutter).toBeTruthy()
+    expect(gutter.textContent).toContain('1')
   })
 })

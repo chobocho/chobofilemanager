@@ -148,3 +148,164 @@
 - ✓ 6단계 완료 (2026-05-14): trace 모드(`execute(trace=True)` → `[TRACE ln=N]` 로그) +
   예제 프로그램 3종(Fibonacci, Primes, Star). Starlark는 stdin이 없어 진짜 REPL은
   불가능 → trace 모드가 디버거 역할. Go 회귀 +1.
+---
+
+# 전체 코드 리뷰 결과 (2026-10-24)
+우선순위 순. 각 항목은 설계 → 테스트 → 구현 → 검증 → 커밋 순서로 하나씩 진행.
+
+## 🔴 P0 — 데이터 손실 · 보안
+
+## 68. 같은 폴더로 이동(F6) + 덮어쓰기 시 원본 영구 삭제
+- `filemanager.go` `MoveItemsOverwrite`: src == dst 검사 없이 `RemoveAll(dst)` 선실행
+- 덮어쓰기 시 대상 선삭제 → 이동 실패 시 양쪽 모두 손실 가능 (임시 이름 백업 후 교체 방식 검토)
+
+## 69. 같은 폴더로 복사(F5) + 덮어쓰기 시 파일이 0바이트로 잘림
+- `CopyItems` / `copyFile`: src == dst 검사 없음, `os.Create(dst)`가 원본을 truncate
+
+## 70. 폴더를 자기 자신/하위 폴더로 복사·이동 시 무한 재귀
+- `copyDir`: `D:\a` → `D:\a\a\a\...` 생성. Windows는 대소문자 무시 비교 필요
+- 68~70 공통: 복사/이동 경로 검증 헬퍼(동일 경로, 하위 경로) 추가
+
+## 71. moveOne이 모든 Rename 실패를 cross-device로 간주
+- 같은 이름 폴더 존재 시 덮어쓰기 없이 조용히 병합, 사용 중 파일은 복사 후 원본 반쯤 삭제
+- `ERROR_NOT_SAME_DEVICE`/EXDEV일 때만 copy+delete 폴백
+
+## 72. 파일 열기(Enter) 시 명령 주입
+- `buildOpenCmd`: `cmd /c start "" path` → 파일명의 `&`, `|`, `^`, `%`가 cmd 구문으로 해석
+- `readme&evil.bat` 열면 evil.bat 실행. ShellExecuteW 또는 `rundll32 url.dll,FileProtocolHandler` 사용
+
+## 73. 마크다운 뷰어 XSS → 임의 명령 실행
+- `FileViewer.jsx` `marked.parse` → `dangerouslySetInnerHTML` sanitize 없음
+- `<img onerror>`로 Go 바인딩(RunShellCommand 등) 호출 가능. DOMPurify 적용 + 링크 클릭 시 외부 브라우저로
+
+## 74. 에디터 저장 시 원래 인코딩 무시 (항상 UTF-8, BOM 제거)
+- `TextEditor.jsx` 저장 → `WriteTextFile`이 `[]byte(content)` 그대로 기록
+- CP949/UTF-16/Johab 파일을 한 글자 수정해도 전체가 UTF-8로 변환됨. 인코딩 인자 받아 재인코딩
+
+## 75. 에디터 X 버튼 / F3(뷰어 전환) 시 미저장 확인 없이 편집 내용 소실
+- Esc만 `isDirty` 확인. X, F3, 눈 아이콘도 확인 팝업 거치도록
+
+## 76. 에디터 로딩 중/읽기 오류 상태에서 Ctrl+S 시 빈 내용으로 덮어씀
+- `handleSave`에 `loading`/`error` 가드. 저장 실패 시 "저장 후 닫기"가 그대로 닫히는 문제 포함
+
+## 77. 모달/뷰어/FTP 화면에서 전역 단축키(F5/F6/F8/Delete/Tab)가 뒤 패널에 동작
+- `Toolbar.jsx` window keydown이 INPUT/TEXTAREA만 제외
+- 확인창 중 F6 → 실제 이동, 이미지 뷰어 중 Delete → 커서 파일 삭제, FTP 화면 중 Delete → 숨은 로컬 파일 삭제
+- 이미지 뷰어·충돌 대화상자가 포커스를 가져가지 않아 Enter/Backspace/화살표도 패널로 샘
+- 전역 "모달 열림" 상태 도입하여 키보드 소유권 일원화
+
+## 78. 커서가 [..]에 있을 때 F8/F5/F6/F2가 첫 번째 파일에 적용됨
+- `fileStore.js` delete/copy/move, RenameDialog가 `cursorOnParent` 미확인
+- "현재 커서 파일" 계산 헬퍼(`getCursorFile`)로 통합
+
+## 79. Ctrl+A가 숨김 파일까지 선택 → 보이지 않는 파일 삭제
+- `selectAll`이 `showHidden` 무시. `toggleHidden` 시 숨겨진 항목 선택 해제
+
+## 80. FTP 다중 연결 시 엉뚱한 서버에 명령 전송
+- `Connect`가 새 연결 id를 반환하지 않고, 프론트가 map 순회 결과의 마지막 요소를 사용
+- `Connect`가 id 반환하도록 변경 (`ftpStore.js`, `FTPManager.jsx` 둘 다)
+
+## 81. FTP "TLS 사용" 옵션 무시 → 비밀번호 평문 전송
+- `UseTLS`, `Passive` 미사용. `DialWithExplicitTLS` 적용
+
+## 82. 휴지통 없는 드라이브에서 F8이 경고 없이 영구 삭제
+- `trash_windows.go`에 `FOF_WANTNUKEWARNING` 없음 (네트워크/USB/용량 초과)
+
+## 🟠 P1 — 중요
+
+## 83. FTP 연결 동시 사용 경합
+- `ServerConn`을 락 없이 공유 → 목록 새로고침과 다운로드가 겹치면 응답 섞임/전송 중단. 연결별 mutex
+- `Disconnect`가 전역 락을 잡은 채 네트워크 I/O, 읽기/쓰기 타임아웃 없음
+
+## 84. FTP 다운로드/업로드 실패가 성공으로 보고
+- `r.Close()`/`out.Close()` 에러 무시 → 잘린 파일이 성공 처리
+- 기존 로컬 파일을 먼저 truncate. 임시 파일 다운로드 후 rename
+- 원격 경로에 `filepath.Base` 사용 (`\`, `:` 처리 문제)
+
+## 85. FTP 원격 삭제 확인창 없음, Delete 실패 원인 은폐
+- `DeleteItem`이 Delete 실패 시 무조건 `RemoveDirRecur` 폴백 → 실제 에러 숨김
+
+## 86. FTP 비밀번호 평문(0644) 저장, 북마크 동시성/손상 처리
+- DPAPI 또는 비밀번호 미저장 옵션
+- `SaveBookmark`/`DeleteBookmark` 락 없음, `json.Unmarshal` 실패 무시 후 덮어써서 전체 소실
+
+## 87. 설정/북마크/에디터 저장이 원자적이지 않음
+- `os.WriteFile` 직접 사용 → 저장 중 크래시 시 원본 손상. temp + rename
+- 파일 북마크 read-modify-write에 락 없음
+
+## 88. settings.json의 음수 activeIdx로 시작 시 panic
+- `settings.go` `idx < 0` 미검사. `filterValidPaths`가 경로 제거 후 ActiveIdx 미보정
+
+## 89. 압축/압축 해제 에러 무시 + zip 형식 오류
+- `CompressItems`: Create/Open/io.Copy/Close 에러 무시, 엔트리 이름에 `\` 사용, 빈 폴더 누락, 루프 안 defer
+- `ExtractArchive`: 모든 실패를 건너뛰고 성공 반환
+
+## 90. copyFile의 Close 에러 무시 → 이동 시 원본 삭제로 데이터 손실 가능
+- 심볼릭 링크/정션 폴더 복사 시 중간 실패, 목록에서 폴더가 파일로 표시
+
+## 91. 드라이브 루트(C:\, /)에서 작업 후 목록 갱신 안 됨
+- `fileStore.js` `parentDir('C:\foo')` → `'C:'`, `parentDir('/foo')` → `'/foo'`
+- `navigateToBookmark`가 `ListDirectory('C:')` 호출 (현재 작업 폴더 목록이 나옴)
+
+## 92. 폴더 이동 경합 및 뒤로/앞으로 상태 오류
+- `navigate`/`switchTab`: 늦게 온 이전 응답이 현재 목록 덮어씀 (요청 ID 필요)
+- `navigateBack/Forward`: try/catch 없음, 커서 범위 초과, 세션/작업 폴더 미갱신
+
+## 93. 정렬이 새로고침 후 이름순으로 초기화, 정렬 시 커서가 다른 파일로
+- `setSort` 결과가 `navigate`/`refresh`에서 유지되지 않음
+
+## 94. 인코딩 감지 오류
+- x/text EUC-KR 디코더가 에러를 반환하지 않아 `cp949StrictValid` 항상 true → Johab 판정 경로가 죽은 코드
+- Johab 단독 자모(ㅋㅋㅋ) 디코딩 실패(�), 잘못된 리드 바이트 뒤 개행 삼킴
+- UTF-8 읽기 시 NFC 정규화 → 열고 저장만 해도 NFD 한글/호환 한자 변경
+- `utf8ValidityScore`가 서로게이트/overlong 미거부
+
+## 95. 인덱스가 숨김 필터를 무시하는 문제
+- `BookmarkDialog.jsx` "현재 파일 추가", `navigateToBookmark` 커서 위치가 다른 파일을 가리킴
+
+## 96. ConfirmDialog 확인 시 비동기 에러가 다음 대화상자에 표시
+- `onConfirm(); onClose()` 동기 호출 → 실패 메시지가 다음 삭제 팝업에 "삭제 실패"로 노출
+
+## 97. 뷰어/에디터 로드 상태 미초기화 및 경합
+- 이미지 하나 실패 후 ←/→로 넘겨도 계속 오류 표시, 빠른 넘김 시 이전 이미지 표시
+
+## 98. 대용량 폴더/검색 결과 성능
+- 가상화 없음 + `useFileStore()` 전체 구독으로 상태 표시줄 변경에도 전체 목록 재렌더
+- 텍스트/이미지를 크기 제한 없이 메모리에 로드
+
+## 🟡 P2 — 개선
+
+## 99. 기타 백엔드 소소한 버그
+- 비재귀 검색 시 폴더 이름 매칭 안 됨 (`SearchFiles`)
+- UNC 경로(`\srv\share`) 경로 표시줄 깨짐 (`GetPathParts`)
+- 이름 충돌 rename 루프가 IsNotExist 외 에러에서 무한 반복, `.bashrc` → ` (1).bashrc`
+- `DeleteItems`에 빈 경로/드라이브 루트 가드 없음, `CreateFile` O_EXCL 미사용
+- `RunShellCommand` 출력을 항상 EUC-KR로 디코딩
+- `/proc/mounts`의 `\040` 미디코딩
+
+## 100. 기타 프론트엔드 소소한 버그
+- 이미지 뷰어에서 F4 → 바이너리를 에디터로 열어 저장 시 이미지 손상
+- Shift+C/T/W 퀵 점프 미동작 (`FilePanel.jsx` case 'C' 등에서 break)
+- 셸 히스토리 비었을 때 ↑가 입력 중 명령 삭제
+- 미저장 확인창 Esc로 취소 불가, IME 조합 중(`isComposing`) 키 처리
+- 탭 닫기 시 비활성 탭을 닫아도 활성 탭이 바뀜
+- `createFile`/`rename` 등 unhandled promise rejection
+- 브라우저 mock(`runtime.js`)에 바인딩 다수 누락
+
+## 101. GW-BASIC 인터프리터 문법 보완 (`examples/gwbasic.star`)
+- `:` 다중 문장 미동작
+- AND/OR/NOT/MOD, `^`, `\` 연산자 미지원
+- `7/2` → 3 (정수 나눗셈), 참 값 1 (→ -1)
+- `FOR I=5 TO 1` 본문 1회 실행 (→ 0회), NEXT 스택 정리, `NEXT J,I`
+- `READ A(I)` / `INPUT A(I)`가 배열 전체를 덮어씀
+- PRINT 끝 `;`/`,` 줄바꿈 억제, 숫자 앞뒤 공백, 14칸 존, float 출력 형식
+- 런타임 에러 시 앞선 출력 전부 소실
+- `1/0`, 문자열·숫자 비교, 숫자 아닌 INPUT 시 호스트 크래시
+- REM 뒤 텍스트 토큰화 오류, 미정의 문자열 변수 기본값 0, 배열 자동 DIM(10) 없음
+- `SIN(1E30)` 무한 루프, RND(괄호 없음) 0 반환
+- ON GOTO/GOSUB, CHR$/STR$/VAL/ASC 등 미지원, DATA 파싱 문제
+
+## 102. 공통 리팩터링 / 품질
+- 버전 단일화: `wails.json` `info.productVersion` + ldflags (현재 main.go 하드코딩, package.json 1.0.0)
+- 확장자 목록·아이콘·`formatSize` 중복 정리 (진입점마다 동작 상이)
+- 위 버그들에 대한 회귀 테스트 추가 (현재 테스트로 잡히는 항목 없음)

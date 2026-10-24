@@ -111,6 +111,10 @@ func (a *App) WriteTextFile(path string, content string) error {
 	return a.fileManager.WriteTextFile(path, content)
 }
 
+func (a *App) WriteTextFileWithEncoding(path string, content string, encName string) error {
+	return a.fileManager.WriteTextFileWithEncoding(path, content, encName)
+}
+
 func (a *App) OpenFile(path string) error {
 	return a.fileManager.OpenFile(path)
 }

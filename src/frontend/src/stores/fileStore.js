@@ -579,8 +579,10 @@ export const useFileStore = create((set, get) => ({
     return ''
   },
 
-  writeFile: async (path, content) => {
-    await api.WriteTextFile(path, content)
+  // encoding: 'auto'면 백엔드가 기존 파일의 인코딩을 유지 (Todo #74)
+  writeFile: async (path, content, encoding = 'auto') => {
+    if (api.WriteTextFileWithEncoding) await api.WriteTextFileWithEncoding(path, content, encoding)
+    else await api.WriteTextFile(path, content)
     await get()._refreshAffected([parentDir(path)])
   },
 

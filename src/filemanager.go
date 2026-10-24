@@ -435,6 +435,29 @@ func (fm *FileManager) WriteTextFile(path string, content string) error {
 	return os.WriteFile(path, []byte(content), 0644)
 }
 
+// WriteTextFileWithEncoding: 지정 인코딩으로 저장합니다 (Todo #74).
+// encName이 auto/빈 값이면 기존 파일의 인코딩을 판별해 유지하고, 새/빈 파일은 UTF-8로 저장합니다.
+// 인코딩할 수 없는 문자가 있으면 파일을 건드리지 않고 에러를 반환합니다.
+func (fm *FileManager) WriteTextFileWithEncoding(path string, content string, encName string) error {
+	enc, isAuto := parseEncodingName(encName)
+	if isAuto {
+		enc = EncUTF8
+		if f, err := os.Open(path); err == nil {
+			buf := make([]byte, detectionWindow)
+			n, _ := io.ReadFull(f, buf)
+			f.Close()
+			if n > 0 {
+				enc = DetectEncoding(buf[:n])
+			}
+		}
+	}
+	data, err := EncodeFromUTF8(content, enc)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
+}
+
 // imageMimeType: 파일 확장자를 보고 표준 MIME 타입을 결정.
 // 미지원 확장자는 application/octet-stream (브라우저가 처리 불가능하지만
 // 호출자에게 "지원 안 됨"을 명확히 알리는 표식).

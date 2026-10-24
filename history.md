@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #74 — 에디터 저장 시 원래 인코딩 유지)
+
+### 원인
+`WriteTextFile`이 `[]byte(content)`를 그대로 기록 → CP949/UTF-16/Johab 파일을 저장하면 전체가 BOM 없는 UTF-8로 바뀜.
+
+### 변경
+- `encoding_detect.go`: `EncodeFromUTF8` (UTF-8 BOM, UTF-16 LE/BE + BOM, CP949, Johab)
+- `johab.go`: `johabEncode` (ASCII + 가~힣, 그 외 문자는 에러)
+- `filemanager.go`/`app.go`: `WriteTextFileWithEncoding(path, content, encName)` — auto면 기존 파일 인코딩 판별 후 유지,
+  새/빈 파일은 UTF-8. 인코딩 불가 문자가 있으면 파일을 건드리지 않고 에러
+- `fileStore.writeFile(path, content, encoding='auto')`, `TextEditor`가 현재 선택한 인코딩 전달, mock 추가
+- 테스트: Go `encoding_write_test.go` 11건, 프론트 ENC-01~02 (총 344건 통과)
+
 ## 2026-10-24 (Todo.md #73 — 마크다운 뷰어 XSS 차단)
 
 ### 원인

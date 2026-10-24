@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // 조합형(Johab, KS X 1001-1992 부속서 3 / Microsoft CP1361) 한글 디코더.
 // hviewer/johab.h 의 비트 디코더를 Go로 포팅.
 //
@@ -128,4 +130,39 @@ func johabHangulCount(buf []byte) int {
 		i += 2
 	}
 	return hits
+}
+
+// johabEncode: UTF-8 문자열 → Johab 바이트 (Todo #74).
+// ASCII와 완성형 한글 음절(가~힣)만 지원 — 그 외 문자는 에러를 반환해 조용한 손실을 막습니다.
+func johabEncode(s string) ([]byte, error) {
+	var choBits, jungBits, jongBits [32]uint16
+	for bits, idx := range johabCho {
+		if idx != 0xFF {
+			choBits[idx] = uint16(bits)
+		}
+	}
+	for bits, idx := range johabJung {
+		if idx != 0xFF {
+			jungBits[idx] = uint16(bits)
+		}
+	}
+	for bits, idx := range johabJong {
+		if idx != 0xFF {
+			jongBits[idx] = uint16(bits)
+		}
+	}
+	out := make([]byte, 0, len(s))
+	for _, r := range s {
+		switch {
+		case r < 0x80:
+			out = append(out, byte(r))
+		case r >= 0xAC00 && r <= 0xD7A3:
+			n := uint16(r - 0xAC00)
+			code := 0x8000 | choBits[n/(21*28)]<<10 | jungBits[(n%(21*28))/28]<<5 | jongBits[n%28]
+			out = append(out, byte(code>>8), byte(code))
+		default:
+			return nil, fmt.Errorf("조합형으로 저장할 수 없는 문자: %q", r)
+		}
+	}
+	return out, nil
 }

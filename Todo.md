@@ -178,7 +178,7 @@
 - `FileViewer.jsx` `marked.parse` → `dangerouslySetInnerHTML` sanitize 없음
 - `<img onerror>`로 Go 바인딩(RunShellCommand 등) 호출 가능. DOMPurify 적용 + 링크 클릭 시 외부 브라우저로
 
-## 74. 에디터 저장 시 원래 인코딩 무시 (항상 UTF-8, BOM 제거)
+## ~~74. 에디터 저장 시 원래 인코딩 무시 (항상 UTF-8, BOM 제거)~~ ✓ 완료 (2026-10-24)
 - `TextEditor.jsx` 저장 → `WriteTextFile`이 `[]byte(content)` 그대로 기록
 - CP949/UTF-16/Johab 파일을 한 글자 수정해도 전체가 UTF-8로 변환됨. 인코딩 인자 받아 재인코딩
 

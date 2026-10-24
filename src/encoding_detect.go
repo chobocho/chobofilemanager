@@ -13,6 +13,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"unicode/utf16"
 	"unicode/utf8"
 
@@ -267,4 +268,34 @@ func decodeUTF16(body []byte, order binary.ByteOrder) string {
 		u16[i] = order.Uint16(body[i*2:])
 	}
 	return string(utf16.Decode(u16))
+}
+
+// EncodeFromUTF8: UTF-8 문자열을 지정 인코딩 바이트로 변환 (Todo #74 — 원래 인코딩으로 저장).
+// UTF-16은 BOM을 붙입니다 (BOM이 있어야 자동 판별 가능). 표현할 수 없는 문자는 에러.
+func EncodeFromUTF8(s string, enc Encoding) ([]byte, error) {
+	switch enc {
+	case EncUTF8BOM:
+		return append([]byte{0xEF, 0xBB, 0xBF}, s...), nil
+	case EncUTF16LE, EncUTF16BE:
+		var order binary.AppendByteOrder = binary.LittleEndian
+		out := []byte{0xFF, 0xFE}
+		if enc == EncUTF16BE {
+			order = binary.BigEndian
+			out = []byte{0xFE, 0xFF}
+		}
+		for _, u := range utf16.Encode([]rune(s)) {
+			out = order.AppendUint16(out, u)
+		}
+		return out, nil
+	case EncCP949:
+		b, err := korean.EUCKR.NewEncoder().Bytes([]byte(s))
+		if err != nil {
+			return nil, fmt.Errorf("CP949로 저장할 수 없는 문자가 있습니다: %w", err)
+		}
+		return b, nil
+	case EncJohab:
+		return johabEncode(s)
+	default:
+		return []byte(s), nil
+	}
 }

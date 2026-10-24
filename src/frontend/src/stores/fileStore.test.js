@@ -20,6 +20,7 @@ vi.mock('../wailsjs/runtime', () => ({
     OpenFile: vi.fn(),
     ReadTextFile: vi.fn(),
     WriteTextFile: vi.fn(),
+    WriteTextFileWithEncoding: vi.fn().mockResolvedValue(undefined),
     ChangeWorkingDirectory: vi.fn().mockResolvedValue(undefined),
     RunStarlarkFile: vi.fn().mockResolvedValue(''),
     SaveSessionState: vi.fn().mockResolvedValue(undefined),
@@ -1178,5 +1179,32 @@ describe('Todo #103 — 빈 폴더 커서 위치', () => {
     const left = useFileStore.getState().left
     expect(left.history).toEqual(['/test/sub', '/test/other'])
     expect(left.historyIndex).toBe(1)
+  })
+})
+
+// ─── Todo #74 — 저장 시 인코딩 전달 ────────────────────────────────────────────
+describe('Todo #74 — writeFile 인코딩', () => {
+  let useFileStore
+  let api
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    api.WriteTextFileWithEncoding.mockClear()
+    api.WriteTextFile.mockClear()
+  })
+
+  it('ENC-01: 지정 인코딩을 백엔드로 전달', async () => {
+    await useFileStore.getState().writeFile('/x/a.txt', '한글', 'cp949')
+    expect(api.WriteTextFileWithEncoding).toHaveBeenCalledWith('/x/a.txt', '한글', 'cp949')
+    expect(api.WriteTextFile).not.toHaveBeenCalled()
+  })
+
+  it('ENC-02: 인코딩 미지정 시 auto(기존 파일 인코딩 유지)', async () => {
+    await useFileStore.getState().writeFile('/x/a.txt', 'abc')
+    expect(api.WriteTextFileWithEncoding).toHaveBeenCalledWith('/x/a.txt', 'abc', 'auto')
   })
 })

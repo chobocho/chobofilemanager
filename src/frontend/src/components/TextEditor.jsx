@@ -98,14 +98,14 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const handleSave = useCallback(async () => {
     setSaving(true)
     try {
-      await writeFile(path, content)
+      await writeFile(path, content, encoding)
       setOriginal(content)
     } catch(e) {
       setError(String(e))
     } finally {
       setSaving(false)
     }
-  }, [path, content, writeFile])
+  }, [path, content, encoding, writeFile])
 
   const handleSaveAndClose = useCallback(async () => {
     await handleSave()

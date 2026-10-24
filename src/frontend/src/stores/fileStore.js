@@ -654,9 +654,11 @@ export const useFileStore = create((set, get) => ({
       const lastSep = Math.max(bm.path.lastIndexOf('/'), bm.path.lastIndexOf('\\'))
       const parentPath = parentDir(bm.path)
       const fileName = bm.path.substring(lastSep + 1)
-      await get().navigate(panel, parentPath)
-      const files = get()[panel].files
-      const idx = files.findIndex(f => f.name === fileName)
+      if (!(await get().navigate(panel, parentPath))) return
+      // 커서 인덱스는 숨김 필터 적용 목록 기준 (Todo #95)
+      const st = get()[panel]
+      const visible = st.showHidden ? st.files : st.files.filter(f => !f.isHidden)
+      const idx = visible.findIndex(f => f.name === fileName)
       if (idx >= 0) {
         set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
       }

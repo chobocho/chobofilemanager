@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Bookmark, Plus, Trash2, X, FolderOpen, FileText, ArrowDownAZ } from 'lucide-react'
-import { useFileStore } from '../stores/fileStore'
+import { useFileStore, getCursorFile } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import styles from '../styles/BookmarkDialog.module.css'
 
@@ -61,10 +61,8 @@ export default function BookmarkDialog({ onClose }) {
 
   const panel = store.activePanel
   const activePath = store[panel]?.path || ''
-  const cursorIdx  = store[panel]?.cursor ?? 0
-  const cursorOnParent = store[panel]?.cursorOnParent ?? false
-  const files = store[panel]?.files || []
-  const cursorFile = !cursorOnParent ? files[cursorIdx] : null
+  // 커서는 숨김 필터가 적용된 visible 목록 기준 (Todo #95)
+  const cursorFile = getCursorFile(store[panel])
   const cursorIsFile = cursorFile && !cursorFile.isDir
 
   useEffect(() => { load() }, [])

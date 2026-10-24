@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #95 — 숨김 필터를 무시한 커서 인덱스 수정)
+
+### 원인
+커서 인덱스는 숨김 필터 적용 목록 기준인데, `BookmarkDialog`의 "현재 파일 추가"와 `navigateToBookmark`가
+전체 `files` 기준으로 인덱싱 → 숨김 파일이 있으면 다른 파일을 북마크하거나 다른 파일에 커서.
+
+### 변경
+- `BookmarkDialog.jsx`: `getCursorFile` 사용
+- `navigateToBookmark`: visible 목록에서 인덱스 검색, 밀린 이동이면 커서 설정 생략
+- 테스트: BM-01 (총 395건 통과)
+
 ## 2026-10-24 (Todo.md #94 — 인코딩 감지/디코딩 오류 수정)
 
 ### 원인

@@ -260,7 +260,7 @@
 - UTF-8 읽기 시 NFC 정규화 → 열고 저장만 해도 NFD 한글/호환 한자 변경
 - `utf8ValidityScore`가 서로게이트/overlong 미거부
 
-## 95. 인덱스가 숨김 필터를 무시하는 문제
+## ~~95. 인덱스가 숨김 필터를 무시하는 문제~~ ✓ 완료 (2026-10-24)
 - `BookmarkDialog.jsx` "현재 파일 추가", `navigateToBookmark` 커서 위치가 다른 파일을 가리킴
 
 ## 96. ConfirmDialog 확인 시 비동기 에러가 다음 대화상자에 표시

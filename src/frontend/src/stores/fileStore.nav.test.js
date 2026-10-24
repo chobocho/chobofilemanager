@@ -144,3 +144,23 @@ describe('Todo #93 — sort', () => {
     expect(useFileStore.getState().left.files[0].name).toBe('dir')
   })
 })
+
+// ─── Todo #95: 북마크 이동 시 숨김 필터 기준 커서 ─────────────────────────────
+describe('Todo #95 — navigateToBookmark 커서', () => {
+  it('BM-01: 숨김 파일이 앞에 있어도 북마크 파일에 커서', async () => {
+    vi.resetModules()
+    const useFileStore = (await import('./fileStore.js')).useFileStore
+    const api = (await import('../wailsjs/runtime')).default
+    api.ListDirectory.mockReset()
+    api.ListDirectory.mockResolvedValue({ path: '/d', files: [
+      { name: '.a', path: '/d/.a', isHidden: true, isDir: false },
+      { name: '.b', path: '/d/.b', isHidden: true, isDir: false },
+      { name: 'x.txt', path: '/d/x.txt', isHidden: false, isDir: false },
+    ] })
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: false } }))
+    await useFileStore.getState().navigateToBookmark('left', { isFile: true, path: '/d/x.txt' })
+    const left = useFileStore.getState().left
+    const visible = left.files.filter(f => !f.isHidden)
+    expect(visible[left.cursor].name).toBe('x.txt')
+  })
+})

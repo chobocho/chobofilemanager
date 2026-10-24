@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #86 — FTP 비밀번호 평문 저장 금지, 북마크 동시성/손상 처리)
+
+### 원인
+- 북마크 파일(`~/.chobocho-commander/ftp_bookmarks.json`, 0644)에 비밀번호를 평문으로 저장할 수 있었음
+- `SaveBookmark`/`DeleteBookmark`/`GetBookmarks`에 락이 없고 내부 slice를 그대로 반환
+- JSON 파싱 실패를 무시 → 빈 목록으로 시작 후 다음 저장이 손상된 원본을 덮어써 전체 소실
+
+### 변경
+- `src/fileutil.go` 신규: `writeFileAtomic`(temp + sync + rename), `backupCorrupt`(`.corrupt-<시각>` 보관)
+- `SaveBookmark`: 비밀번호 제거, 락 적용 / `GetBookmarks`: 복사본 반환 / `DeleteBookmark`: 락 적용
+- `loadBookmarks`: 이전 버전이 저장한 비밀번호 제거 후 재저장, 손상 시 백업 / `loadHistory`도 손상 시 백업
+- 북마크/히스토리 파일 0600 + 원자적 저장
+- `FTPManager.jsx`: 계정이 있는 북마크 클릭 시 접속 창(비밀번호 입력)으로 열기
+- 테스트: `ftpbookmark_test.go` 6건
+
 ## 2026-10-24 (Todo.md #85 — FTP 원격 삭제 확인창, 삭제 실패 원인 은폐 수정)
 
 ### 원인

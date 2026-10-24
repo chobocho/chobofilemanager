@@ -225,7 +225,7 @@
 ## ~~85. FTP 원격 삭제 확인창 없음, Delete 실패 원인 은폐~~ ✓ 완료 (2026-10-24)
 - `DeleteItem`이 Delete 실패 시 무조건 `RemoveDirRecur` 폴백 → 실제 에러 숨김
 
-## 86. FTP 비밀번호 평문(0644) 저장, 북마크 동시성/손상 처리
+## ~~86. FTP 비밀번호 평문(0644) 저장, 북마크 동시성/손상 처리~~ ✓ 완료 (2026-10-24)
 - DPAPI 또는 비밀번호 미저장 옵션
 - `SaveBookmark`/`DeleteBookmark` 락 없음, `json.Unmarshal` 실패 무시 후 덮어써서 전체 소실
 

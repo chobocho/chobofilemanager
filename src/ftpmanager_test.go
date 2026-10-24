@@ -17,6 +17,7 @@ func newTestFTPManager(t *testing.T) *FTPManager {
 	return &FTPManager{
 		connections:  make(map[string]*ftpConnection),
 		bookmarkFile: filepath.Join(dir, "bookmarks.json"),
+		historyFile:  filepath.Join(dir, "history.json"),
 	}
 }
 

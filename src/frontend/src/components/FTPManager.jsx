@@ -439,7 +439,15 @@ export default function FTPManager() {
               )}
               {ftpStore.bookmarks.map(bm => (
                 <div key={bm.id} className={styles.bookmarkItem}>
-                  <div className={styles.bookmarkName} onClick={() => handleConnect(bm.config)}>
+                  {/* 비밀번호는 저장하지 않으므로(Todo #86) 계정이 있으면 접속 창에서 비밀번호 입력 */}
+                  <div className={styles.bookmarkName} onClick={() => {
+                    if (bm.config.username) {
+                      setConnectPrefill({ ...bm.config, password: '' })
+                      setShowConnect(true)
+                    } else {
+                      handleConnect(bm.config)
+                    }
+                  }}>
                     <Star size={11} /><span>{bm.name}</span><span className={styles.bookmarkHost}>{bm.config.host}</span>
                   </div>
                   <button className={styles.bookmarkDelete} onClick={() => ftpStore.deleteBookmark(bm.id)}><Trash2 size={11} /></button>

@@ -337,11 +337,16 @@ func (fm *FTPManager) GetConnections() []FTPConnectionInfo {
 	return list
 }
 
+// SaveBookmark: 비밀번호는 저장하지 않습니다 (Todo #86 — 평문 저장 방지, 접속 시 입력).
 func (fm *FTPManager) SaveBookmark(bookmark FTPBookmark) error {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+
 	if bookmark.ID == "" {
 		bookmark.ID = fmt.Sprintf("bm_%d", time.Now().UnixNano())
 	}
 	bookmark.Created = time.Now()
+	bookmark.Config.Password = ""
 
 	// Update existing or append
 	updated := false
@@ -360,10 +365,16 @@ func (fm *FTPManager) SaveBookmark(bookmark FTPBookmark) error {
 }
 
 func (fm *FTPManager) GetBookmarks() []FTPBookmark {
-	return fm.bookmarks
+	fm.mu.RLock()
+	defer fm.mu.RUnlock()
+	result := make([]FTPBookmark, len(fm.bookmarks))
+	copy(result, fm.bookmarks)
+	return result
 }
 
 func (fm *FTPManager) DeleteBookmark(id string) error {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
 	for i, bm := range fm.bookmarks {
 		if bm.ID == id {
 			fm.bookmarks = append(fm.bookmarks[:i], fm.bookmarks[i+1:]...)
@@ -442,12 +453,16 @@ func (fm *FTPManager) ClearHistory() error {
 	return fm.saveHistory()
 }
 
+// 손상된 JSON은 백업 후 빈 목록으로 시작 (다음 저장이 원본을 덮어쓰지 않도록, Todo #86)
 func (fm *FTPManager) loadHistory() {
 	data, err := os.ReadFile(fm.historyFile)
 	if err != nil {
 		return
 	}
-	json.Unmarshal(data, &fm.history)
+	if err := json.Unmarshal(data, &fm.history); err != nil {
+		fm.history = nil
+		backupCorrupt(fm.historyFile)
+	}
 }
 
 func (fm *FTPManager) saveHistory() error {
@@ -455,7 +470,7 @@ func (fm *FTPManager) saveHistory() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(fm.historyFile, data, 0644)
+	return writeFileAtomic(fm.historyFile, data, 0600)
 }
 
 func (fm *FTPManager) loadBookmarks() {
@@ -463,7 +478,22 @@ func (fm *FTPManager) loadBookmarks() {
 	if err != nil {
 		return
 	}
-	json.Unmarshal(data, &fm.bookmarks)
+	if err := json.Unmarshal(data, &fm.bookmarks); err != nil {
+		fm.bookmarks = nil
+		backupCorrupt(fm.bookmarkFile)
+		return
+	}
+	// 이전 버전이 저장한 비밀번호는 지우고 파일도 다시 씀
+	scrubbed := false
+	for i := range fm.bookmarks {
+		if fm.bookmarks[i].Config.Password != "" {
+			fm.bookmarks[i].Config.Password = ""
+			scrubbed = true
+		}
+	}
+	if scrubbed {
+		fm.saveBookmarks()
+	}
 }
 
 func (fm *FTPManager) saveBookmarks() error {
@@ -471,5 +501,5 @@ func (fm *FTPManager) saveBookmarks() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(fm.bookmarkFile, data, 0644)
+	return writeFileAtomic(fm.bookmarkFile, data, 0600)
 }

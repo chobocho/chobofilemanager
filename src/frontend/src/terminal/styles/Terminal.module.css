@@ -103,3 +103,8 @@
 .swatches span { width: 16px; height: 10px; border-radius: 2px; }
 .hlRow { display: flex; align-items: center; gap: 6px; }
 .hlRow input { flex: 1; }
+
+/* 매크로 창 (Todo #121) */
+.macros { width: 700px; max-width: calc(100vw - 32px); }
+.macroKey { min-width: 56px; color: var(--text-accent); font-size: 11px; }
+.macroText { min-height: 160px; resize: vertical; font-family: 'D2Coding', Consolas, monospace; font-size: 12px; }

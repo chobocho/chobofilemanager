@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { sessionById, allSessions } from '../core/session'
 import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
+import { sendMacro } from '../core/macros'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
@@ -27,7 +28,7 @@ const newTabState = (id, temp = false) => ({
 })
 
 // saveRequest: 열려 있는 "세션으로 저장" 창의 내용, sessionManager: 세션 관리자 열림
-const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false })
+const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false, macros: false, macroSel: 0 })
 
 let saveResolve = null // "세션으로 저장" 창의 결과를 기다리는 쪽
 
@@ -223,6 +224,17 @@ export const useTermStore = create((set, get) => ({
       const req = sessionById(o.id)?.req
       get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
     }
+  },
+
+  // 매크로 창 (Ctrl+Shift+M), 매크로 보내기 (F키 또는 창의 보내기)
+  openMacros: () => set({ macros: true }),
+  closeMacros: () => {
+    set({ macros: false })
+    sessionById(get().activeId)?.focus()
+  },
+  sendMacro: (m) => {
+    const s = sessionById(get().activeId)
+    if (s) sendMacro(s, m)
   },
 
   // 설정 창 (Ctrl+Shift+O)

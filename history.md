@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #69 — 같은 폴더 복사+덮어쓰기 시 0바이트 문제 수정)
+
+### 원인
+`copyFile`이 원본과 대상이 같은지 확인하지 않고 `os.Create(dst)`로 원본을 먼저 비움 → 0바이트 파일이 성공으로 보고됨.
+
+### 변경
+- `copyFile` / `copyDir`: `samePath`면 `errSameSource` 반환 (모든 복사·이동 경로에 적용)
+- `MoveItemsOverwrite`도 같은 `errSameSource` 사용
+- 같은 폴더 "이름 변경 복사"(`CopyItemsRename`)는 기존대로 `f (1).txt` 생성
+- 테스트: `transfer_test.go` 4건 추가
+
 ## 2026-10-24 (Todo.md #68 — 같은 폴더 이동+덮어쓰기 시 원본 삭제 수정)
 
 ### 원인

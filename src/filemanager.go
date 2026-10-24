@@ -266,7 +266,7 @@ func (fm *FileManager) MoveItemsOverwrite(sources []string, destination string) 
 	for _, src := range sources {
 		destPath := filepath.Join(destination, filepath.Base(src))
 		if samePath(src, destPath) {
-			return fmt.Errorf("원본과 대상이 같습니다: %s", filepath.Base(src))
+			return errSameSource(src)
 		}
 		if _, err := os.Lstat(src); err != nil {
 			return err
@@ -761,7 +761,15 @@ func isHiddenFile(name string) bool {
 	return strings.HasPrefix(name, ".")
 }
 
+// errSameSource: 원본과 대상이 같은 항목일 때 반환 (Todo #69 — os.Create가 원본을 비우는 것 방지)
+func errSameSource(src string) error {
+	return fmt.Errorf("원본과 대상이 같습니다: %s", filepath.Base(src))
+}
+
 func copyFile(src, dst string) error {
+	if samePath(src, dst) {
+		return errSameSource(src)
+	}
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -787,6 +795,9 @@ func copyFile(src, dst string) error {
 }
 
 func copyDir(src, dst string) error {
+	if samePath(src, dst) {
+		return errSameSource(src)
+	}
 	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err

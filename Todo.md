@@ -159,7 +159,7 @@
 - `filemanager.go` `MoveItemsOverwrite`: src == dst 검사 없이 `RemoveAll(dst)` 선실행
 - 덮어쓰기 시 대상 선삭제 → 이동 실패 시 양쪽 모두 손실 가능 (임시 이름 백업 후 교체 방식 검토)
 
-## 69. 같은 폴더로 복사(F5) + 덮어쓰기 시 파일이 0바이트로 잘림
+## ~~69. 같은 폴더로 복사(F5) + 덮어쓰기 시 파일이 0바이트로 잘림~~ ✓ 완료 (2026-10-24)
 - `CopyItems` / `copyFile`: src == dst 검사 없음, `os.Create(dst)`가 원본을 truncate
 
 ## 70. 폴더를 자기 자신/하위 폴더로 복사·이동 시 무한 재귀

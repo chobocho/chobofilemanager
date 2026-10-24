@@ -142,3 +142,61 @@ func assertNoBackupLeft(t *testing.T, dir string) {
 		}
 	}
 }
+
+// ─── Todo #69: CopyItems 원본=대상 ────────────────────────────────────────────
+
+func TestCopyItems_SameFolderDoesNotTruncate(t *testing.T) {
+	base := t.TempDir()
+	src := filepath.Join(base, "f.txt")
+	os.WriteFile(src, []byte("precious"), 0644)
+
+	if err := newTestFM().CopyItems([]string{src}, base); err == nil {
+		t.Error("copying onto itself should return an error")
+	}
+	if data, _ := os.ReadFile(src); string(data) != "precious" {
+		t.Fatalf("source must not be truncated, got %q", data)
+	}
+}
+
+func TestCopyItems_SameFolderDirDoesNotTruncate(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "d")
+	os.MkdirAll(dir, 0755)
+	inner := filepath.Join(dir, "inner.txt")
+	os.WriteFile(inner, []byte("precious"), 0644)
+
+	if err := newTestFM().CopyItems([]string{dir}, base); err == nil {
+		t.Error("copying dir onto itself should return an error")
+	}
+	if data, _ := os.ReadFile(inner); string(data) != "precious" {
+		t.Fatalf("dir contents must not be truncated, got %q", data)
+	}
+}
+
+func TestCopyFile_SamePathRejected(t *testing.T) {
+	base := t.TempDir()
+	f := filepath.Join(base, "f.txt")
+	os.WriteFile(f, []byte("precious"), 0644)
+	if err := copyFile(f, f); err == nil {
+		t.Error("copyFile onto itself should return an error")
+	}
+	if data, _ := os.ReadFile(f); string(data) != "precious" {
+		t.Fatalf("file must not be truncated, got %q", data)
+	}
+}
+
+func TestCopyItemsRename_SameFolderMakesDuplicate(t *testing.T) {
+	base := t.TempDir()
+	src := filepath.Join(base, "f.txt")
+	os.WriteFile(src, []byte("precious"), 0644)
+
+	if err := newTestFM().CopyItemsRename([]string{src}, base); err != nil {
+		t.Fatalf("CopyItemsRename: %v", err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(base, "f (1).txt")); string(data) != "precious" {
+		t.Errorf("duplicate should have same content, got %q", data)
+	}
+	if data, _ := os.ReadFile(src); string(data) != "precious" {
+		t.Errorf("source must stay intact, got %q", data)
+	}
+}

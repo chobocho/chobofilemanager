@@ -43,6 +43,10 @@ export default function App() {
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
+  // Todo #77: 화면 위에 무언가 떠 있으면 파일 패널 단축키를 막음 (키 입력이 뒤 패널로 새지 않게)
+  const overlayOpen = !!(modal || editorFile || viewerFile || deleteTarget || trashTarget
+    || copyConflict || moveConflict || fileSizeError)
+
   // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
   const focusActivePanel = useCallback(() => {
     const active = useFileStore.getState().activePanel
@@ -81,6 +85,7 @@ export default function App() {
 
   useEffect(() => {
     const handler = (e) => {
+      if (overlayOpen) return
       if (e.ctrlKey && e.key === 'o') {
         e.preventDefault()
         setModal('shell')
@@ -92,15 +97,14 @@ export default function App() {
         import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
       }
       // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
-      if (isStarlarkScratchShortcut(e)
-          && !editorFile && !viewerFile && !modal) {
+      if (isStarlarkScratchShortcut(e)) {
         e.preventDefault()
         handleStarlarkScratch()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [editorFile, viewerFile, modal, handleStarlarkScratch])
+  }, [overlayOpen, handleStarlarkScratch])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -204,6 +208,7 @@ export default function App() {
     <div className={styles.app} data-theme={theme}>
       <Toolbar
         view={view} onViewChange={setView}
+        shortcutsDisabled={overlayOpen}
         onHelp={() => setModal('help')}
         onNewFile={() => setModal('newfile')}
         onSearch={() => setModal('search')}
@@ -237,14 +242,14 @@ export default function App() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer}
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
                 requestAnimationFrame(() => ref.current?.focus())
               }} />
             <div className={styles.divider} />
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer}
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef

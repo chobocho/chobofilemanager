@@ -127,7 +127,7 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, keyboardDisabled = false }, ref) {
   const store = useFileStore()
   const panel = store[side]
   const isActive = store.activePanel === side
@@ -205,6 +205,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
 
   const handleKeyDown = useCallback((e) => {
     if (!isActive) return
+    // Todo #77: 오버레이(뷰어/대화상자)가 열려 있으면 포커스가 남아 있어도 패널 조작 금지
+    if (keyboardDisabled) return
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
     const files = visibleFiles
     const cur = panel.cursor
@@ -403,7 +405,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         }
         break
     }
-  }, [isActive, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel])
+  }, [isActive, keyboardDisabled, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return

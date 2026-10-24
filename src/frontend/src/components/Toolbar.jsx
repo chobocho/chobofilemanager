@@ -22,6 +22,7 @@ export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
   onRename, onCopy, onMove, onNewDir, onDelete, onTrash, onView, onEdit, onSwitchPanel, onBookmarks, onHelp,
+  shortcutsDisabled = false,
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
@@ -30,6 +31,13 @@ export default function Toolbar({
   useEffect(() => {
     const handler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      // Todo #77: 모달/뷰어/에디터가 열려 있으면 뒤의 파일 패널에 작용하는 단축키를 모두 양보
+      if (shortcutsDisabled) return
+      // FTP 화면에서는 숨겨진 로컬 패널에 작용하지 않도록 F1(도움말)만 허용
+      if (view !== 'files') {
+        if (e.key === 'F1') { e.preventDefault(); onHelp?.() }
+        return
+      }
       // Todo #54: Shift+Delete = 영구 삭제. 일반 Delete + F8 = 휴지통(Todo #57)
       if (isPermanentDeleteShortcut(e)) {
         e.preventDefault()
@@ -71,7 +79,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onTrash, onSwitchPanel, onNewFile, onBookmarks])
+  }, [shortcutsDisabled, view, onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onTrash, onSwitchPanel, onNewFile, onBookmarks])
 
   return (
     <div className={styles.toolbar}>

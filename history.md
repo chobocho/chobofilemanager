@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #77 — 모달/뷰어/FTP 화면에서 파일 단축키 차단)
+
+### 원인
+Toolbar의 window keydown이 INPUT/TEXTAREA만 제외 → 확인창 중 F6 실제 이동, 이미지 뷰어 중 Delete로 패널 커서 파일 삭제,
+FTP 화면에서 Delete로 숨은 로컬 파일 삭제. 뷰어/충돌창이 포커스를 가져가지 않아 Enter/Backspace/화살표도 패널로 전달.
+
+### 변경
+- `App.jsx`: `overlayOpen`(modal, 뷰어, 에디터, 삭제/휴지통/충돌/크기 경고 대화상자) 계산 → Toolbar `shortcutsDisabled`, FilePanel `keyboardDisabled`로 전달
+  - Ctrl+O / F9 / Ctrl+M 전역 핸들러도 오버레이 중 무시
+- `Toolbar.jsx`: 오버레이 중 모든 단축키 양보 (Tab 기본 동작도 막지 않음), FTP 뷰에서는 F1만 허용
+- `FilePanel.jsx`: `keyboardDisabled`면 키 입력 무시
+- 테스트: `Toolbar.shortcuts.test.js` 신규 KB-01~06 (총 361건 통과)
+
 ## 2026-10-24 (Todo.md #76 — 에디터 로딩/오류 상태 저장 방지, 저장 실패 처리)
 
 ### 원인

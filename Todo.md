@@ -188,7 +188,7 @@
 ## ~~76. 에디터 로딩 중/읽기 오류 상태에서 Ctrl+S 시 빈 내용으로 덮어씀~~ ✓ 완료 (2026-10-24)
 - `handleSave`에 `loading`/`error` 가드. 저장 실패 시 "저장 후 닫기"가 그대로 닫히는 문제 포함
 
-## 77. 모달/뷰어/FTP 화면에서 전역 단축키(F5/F6/F8/Delete/Tab)가 뒤 패널에 동작
+## ~~77. 모달/뷰어/FTP 화면에서 전역 단축키(F5/F6/F8/Delete/Tab)가 뒤 패널에 동작~~ ✓ 완료 (2026-10-24)
 - `Toolbar.jsx` window keydown이 INPUT/TEXTAREA만 제외
 - 확인창 중 F6 → 실제 이동, 이미지 뷰어 중 Delete → 커서 파일 삭제, FTP 화면 중 Delete → 숨은 로컬 파일 삭제
 - 이미지 뷰어·충돌 대화상자가 포커스를 가져가지 않아 Enter/Backspace/화살표도 패널로 샘

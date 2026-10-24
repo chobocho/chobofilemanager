@@ -2,6 +2,17 @@
 
 > 이전 이력: [history_20261024_233705.md](history_20261024_233705.md) (2026-10-24 23:37 시점 전체 백업)
 
+## 2026-10-24 (Todo.md #106 — FTP 북마크/히스토리에 TLS 설정 보존)
+
+### 원인
+`FTPConnectionInfo`/`FTPHistory`에 TLS 필드가 없어 TLS로 접속 후 저장한 북마크·최근 접속이 `useTls`를 잃고,
+나중에 클릭하면 평문 FTP로 접속.
+
+### 변경
+- `ftpmanager.go`: `FTPConnectionInfo.UseTLS`, `FTPHistory.UseTLS` 추가 (재접속 시 최신 설정으로 갱신)
+- `FTPManager.jsx`: 북마크 저장 시 `useTls` 포함, 최근 접속 항목 클릭 시 TLS 체크 상태 미리 채움
+- 테스트: Go `ftptls_test.go` 2건, 프론트 FM-52(skip 해제)/FM-53, FM-31 기대값 갱신 (프론트 722건 전부 통과, skip 0)
+
 ## 2026-10-24 (Todo.md #104 — Go 테스트 커버리지 보완, 완료)
 
 ### 변경

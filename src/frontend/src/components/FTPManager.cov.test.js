@@ -527,6 +527,14 @@ describe('FTPManager 통합 흐름', () => {
     await waitFor(() => expect(screen.queryByText('최근 접속')).toBeNull())
   })
 
+  it('FM-53: TLS로 접속했던 최근 접속 항목은 접속 창에서 TLS가 체크됨 (Todo #106)', async () => {
+    api.FTPGetHistory.mockResolvedValue([{ id: 's1', host: 'secure.example', port: 21, username: 'dave', useTls: true }])
+    await renderMgr()
+    await click(screen.getByText('Bookmarks', { selector: 'button' }))
+    await click(screen.getByText('dave@secure.example'))
+    expect(screen.getByLabelText('Use TLS (FTPS)').checked).toBe(true)
+  })
+
   it('FM-31: Bookmark 저장 — 이름 입력 시 비밀번호 없이 저장, 취소 시 미저장', async () => {
     const { container } = await renderMgr()
     await connect(container)
@@ -536,7 +544,7 @@ describe('FTPManager 통합 흐름', () => {
     window.prompt = vi.fn(() => 'Mine')
     await click(screen.getByText('Bookmark', { selector: 'button' }))
     await waitFor(() => expect(screen.getByText('Bookmark saved')).toBeTruthy())
-    expect(api.FTPSaveBookmark).toHaveBeenCalledWith({ name: 'Mine', config: { host: 'ftp.test', port: 21, username: 'bob', password: '' } })
+    expect(api.FTPSaveBookmark).toHaveBeenCalledWith({ name: 'Mine', config: { host: 'ftp.test', port: 21, username: 'bob', password: '', useTls: false } })
   })
 
   it('FM-32: 라이트 테마에서도 렌더링(아이콘 색상 맵)', async () => {
@@ -567,7 +575,8 @@ describe('FTPManager 통합 흐름', () => {
     await waitFor(() => expect(screen.getByText(/disk full/)).toBeTruthy())
   })
 
-  it.skip('BUG: TLS 연결에서 저장한 북마크가 useTls를 잃어 재접속 시 평문 FTP로 접속', async () => {
+  it('FM-52: TLS 연결에서 저장한 북마크가 useTls 유지 (Todo #106)', async () => {
+    api.FTPGetConnections.mockResolvedValue([{ ...CONN, useTls: true }])
     const { container } = await renderMgr()
     await click(screen.getByText('Connect', { selector: 'button' }))
     fireEvent.change(screen.getByPlaceholderText('ftp.example.com'), { target: { value: 'ftp.test' } })

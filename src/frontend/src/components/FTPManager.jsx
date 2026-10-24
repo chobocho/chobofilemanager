@@ -372,7 +372,7 @@ export default function FTPManager() {
   const handleSaveBookmark = () => {
     const name = window.prompt('Bookmark name:')
     if (!name || !activeConn) return
-    ftpStore.saveBookmark({ name, config: { host: activeConn.host, port: activeConn.port, username: activeConn.username, password: '' } })
+    ftpStore.saveBookmark({ name, config: { host: activeConn.host, port: activeConn.port, username: activeConn.username, password: '', useTls: !!activeConn.useTls } })
     setStatus('Bookmark saved')
   }
 
@@ -463,7 +463,7 @@ export default function FTPManager() {
                   {ftpStore.history.map(h => (
                     <div key={h.id} className={styles.bookmarkItem}>
                       <div className={styles.bookmarkName} onClick={() => {
-                        setConnectPrefill({ host: h.host, port: h.port, username: h.username === 'anonymous' ? '' : h.username, password: '', passive: true })
+                        setConnectPrefill({ host: h.host, port: h.port, username: h.username === 'anonymous' ? '' : h.username, password: '', passive: true, useTls: !!h.useTls })
                         setShowConnect(true)
                       }}>
                         <Wifi size={11} />

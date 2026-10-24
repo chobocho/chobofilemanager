@@ -39,6 +39,7 @@ type FTPConnectionInfo struct {
 	Port        int       `json:"port"`
 	Username    string    `json:"username"`
 	Connected   bool      `json:"connected"`
+	UseTLS      bool      `json:"useTls"` // 북마크 저장 시 TLS 설정 유지용 (Todo #106)
 	ConnectedAt time.Time `json:"connectedAt"`
 }
 
@@ -59,6 +60,7 @@ type FTPHistory struct {
 	Username      string    `json:"username"`
 	LastConnected time.Time `json:"lastConnected"`
 	ConnectCount  int       `json:"connectCount"`
+	UseTLS        bool      `json:"useTls"` // 마지막 접속의 TLS 사용 여부 (Todo #106)
 }
 
 type FTPManager struct {
@@ -331,6 +333,7 @@ func (fm *FTPManager) GetConnections() []FTPConnectionInfo {
 			Port:        conn.config.Port,
 			Username:    conn.config.Username,
 			Connected:   true,
+			UseTLS:      conn.config.UseTLS,
 			ConnectedAt: conn.connectedAt,
 		})
 	}
@@ -403,6 +406,7 @@ func (fm *FTPManager) AddHistory(config FTPConfig) {
 		if h.ID == id {
 			fm.history[i].LastConnected = time.Now()
 			fm.history[i].ConnectCount++
+			fm.history[i].UseTLS = config.UseTLS
 			fm.saveHistory()
 			return
 		}
@@ -418,6 +422,7 @@ func (fm *FTPManager) AddHistory(config FTPConfig) {
 		Username:      u,
 		LastConnected: time.Now(),
 		ConnectCount:  1,
+		UseTLS:        config.UseTLS,
 	}}, fm.history...)
 	// 최대 50개 유지
 	if len(fm.history) > 50 {

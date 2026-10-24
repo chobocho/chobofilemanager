@@ -385,8 +385,22 @@ func (fm *FileManager) ReadTextFile(path string) (string, error) {
 //
 // 인코딩 자동 판별이 틀린 케이스(짧은 한글 파일, 혼합 인코딩 등)에서
 // 사용자가 F3/F4 뷰어/편집기 UI로 수동 변경할 때 사용.
+// 내장 뷰어/에디터로 읽을 수 있는 최대 크기. 프론트(10MB 제한)를 거치지 않는 호출에도 메모리 폭주 방지 (Todo #98)
+const maxViewerFileSize = 64 * 1024 * 1024
+
+func readLimited(path string) ([]byte, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if info.Size() > maxViewerFileSize {
+		return nil, fmt.Errorf("파일이 너무 큽니다 (%d MB 초과): %s", maxViewerFileSize/1024/1024, filepath.Base(path))
+	}
+	return os.ReadFile(path)
+}
+
 func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (string, error) {
-	data, err := os.ReadFile(path)
+	data, err := readLimited(path)
 	if err != nil {
 		return "", err
 	}
@@ -510,7 +524,7 @@ func (fm *FileManager) CreateStarlarkScratchFile() (string, error) {
 // 프론트엔드는 <img src={dataUrl}>로 그대로 사용. Wails에서 file:// URL을
 // 직접 띄우는 것보다 이식성·보안 측면에서 단순.
 func (fm *FileManager) ReadImageFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	data, err := readLimited(path)
 	if err != nil {
 		return "", err
 	}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo, useState, forwardRef, useImperativeHandle, memo } from 'react'
 import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
 import { isViewableFile } from './FileViewer.jsx'
@@ -128,9 +128,12 @@ const COLUMNS = [
 ]
 
 const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, keyboardDisabled = false }, ref) {
-  const store = useFileStore()
-  const panel = store[side]
-  const isActive = store.activePanel === side
+  // Todo #98: 필요한 조각만 구독 — 상태 표시줄 등 무관한 변경으로 목록 전체가 다시 그려지지 않도록.
+  // 액션은 안정적인 함수이므로 getState()로 사용
+  const store = useFileStore.getState()
+  const panel = useFileStore(s => s[side])
+  const isActive = useFileStore(s => s.activePanel === side)
+  const drives = useFileStore(s => s.drives)
   const theme = useThemeStore(s => s.theme)
   const listRef = useRef(null)
 
@@ -141,7 +144,6 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   const [pathInput, setPathInput] = useState('')
   const [editingPath, setEditingPath] = useState(false)
   const cursorOnParent = panel.cursorOnParent
-  const drives = store.drives
   const quickJumpRef = useRef({ char: '', matchPos: 0 })
 
   useEffect(() => {
@@ -149,9 +151,9 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   }, [panel.path])
 
 
-  const visibleFiles = panel.showHidden
-    ? panel.files
-    : panel.files.filter(f => !f.isHidden)
+  const visibleFiles = useMemo(
+    () => panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden),
+    [panel.files, panel.showHidden])
 
   // 루트 경로 여부 (더 이상 올라갈 수 없음)
   const isAtRoot = isRootPath(panel.path)
@@ -175,6 +177,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       useFileStore.setState(s => ({ [side]: { ...s[side], selected: newSelected } }))
     }
   }
+
+  // 행 컴포넌트(memo)에 안정적인 핸들러를 넘기기 위해 최신 핸들러를 ref로 참조 (Todo #98)
+  const rowHandlersRef = useRef({})
+  const onRowClick = useCallback((e, file, index) => rowHandlersRef.current.click(e, file, index), [])
+  const onRowDoubleClick = useCallback((file) => rowHandlersRef.current.dbl(file), [])
 
   const handleRowDoubleClick = async (file) => {
     if (file.isDir) {
@@ -443,6 +450,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     store.navigate(side, e.target.value)
   }
 
+  rowHandlersRef.current = { click: handleRowClick, dbl: handleRowDoubleClick }
+
   const selectedCount = panel.selected.size
   const totalSize = visibleFiles
     .filter(f => panel.selected.has(f.path) && !f.isDir)
@@ -574,43 +583,18 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             <div className={styles.colCell} style={{ width: COLUMNS[3].width }} />
           </div>
         )}
-        {!panel.loading && !panel.error && visibleFiles.map((file, index) => {
-          const isCursor = panel.cursor === index
-          const isSelected = panel.selected.has(file.path)
-          const { icon: Icon, color } = getFileIcon(file, theme)
-
-          return (
-            <div
-              key={file.path}
-              data-row={index}
-              className={`
-                ${styles.fileRow}
-                ${isActive && isCursor && !cursorOnParent ? styles.cursor : ''}
-                ${isSelected ? styles.selected : ''}
-                ${file.isHidden ? styles.hidden : ''}
-                ${index % 2 === 0 ? styles.even : styles.odd}
-              `}
-              onClick={(e) => handleRowClick(e, file, index)}
-              onDoubleClick={() => handleRowDoubleClick(file)}
-              title={file.path}
-            >
-              <div className={styles.colName} style={{ width: COLUMNS[0].width }}>
-                <Icon size={14} style={{ color, flexShrink: 0 }} />
-                <span className={styles.fileName}>{file.name}</span>
-                {file.isSymlink && <ChevronRight size={10} className={styles.symlinkIcon} />}
-              </div>
-              <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
-                {formatSize(file.size, file.isDir)}
-              </div>
-              <div className={styles.colCell} style={{ width: COLUMNS[2].width }}>
-                {formatDate(file.modified)}
-              </div>
-              <div className={styles.colCell} style={{ width: COLUMNS[3].width }}>
-                {!file.isDir ? file.extension?.replace('.', '') : ''}
-              </div>
-            </div>
-          )
-        })}
+        {!panel.loading && !panel.error && visibleFiles.map((file, index) => (
+          <FileRow
+            key={file.path}
+            file={file}
+            index={index}
+            highlighted={isActive && panel.cursor === index && !cursorOnParent}
+            selected={panel.selected.has(file.path)}
+            theme={theme}
+            onRowClick={onRowClick}
+            onRowDoubleClick={onRowDoubleClick}
+          />
+        ))}
       </div>
 
       {/* Panel footer */}
@@ -635,6 +619,41 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
 })
 
 export default FilePanel
+
+// 파일 한 줄. 커서/선택이 바뀐 행만 다시 그려지도록 memo (Todo #98 — 큰 폴더에서 키 입력마다 전체 재렌더 방지)
+const FileRow = memo(function FileRow({ file, index, highlighted, selected, theme, onRowClick, onRowDoubleClick }) {
+  const { icon: Icon, color } = getFileIcon(file, theme)
+  return (
+    <div
+      data-row={index}
+      className={`
+        ${styles.fileRow}
+        ${highlighted ? styles.cursor : ''}
+        ${selected ? styles.selected : ''}
+        ${file.isHidden ? styles.hidden : ''}
+        ${index % 2 === 0 ? styles.even : styles.odd}
+      `}
+      onClick={(e) => onRowClick(e, file, index)}
+      onDoubleClick={() => onRowDoubleClick(file)}
+      title={file.path}
+    >
+      <div className={styles.colName} style={{ width: COLUMNS[0].width }}>
+        <Icon size={14} style={{ color, flexShrink: 0 }} />
+        <span className={styles.fileName}>{file.name}</span>
+        {file.isSymlink && <ChevronRight size={10} className={styles.symlinkIcon} />}
+      </div>
+      <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
+        {formatSize(file.size, file.isDir)}
+      </div>
+      <div className={styles.colCell} style={{ width: COLUMNS[2].width }}>
+        {formatDate(file.modified)}
+      </div>
+      <div className={styles.colCell} style={{ width: COLUMNS[3].width }}>
+        {!file.isDir ? file.extension?.replace('.', '') : ''}
+      </div>
+    </div>
+  )
+})
 
 function TabBar({ side, panel, store }) {
   const getLabel = (path) => {

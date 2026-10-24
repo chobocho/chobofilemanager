@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #98 — 대용량 폴더/파일 성능)
+
+### 원인
+- `FilePanel`이 `useFileStore()`로 스토어 전체를 구독 → 상태 표시줄 문구, 반대쪽 패널 변경에도 양쪽 목록 전체 재렌더
+- 행이 인라인으로 렌더링되어 커서 한 칸 이동에도 모든 행을 다시 그림
+- 백엔드 텍스트/이미지 읽기에 크기 제한 없음
+
+### 변경
+- `FilePanel.jsx`: `s[side]`/`activePanel`/`drives`만 선택 구독, 액션은 `getState()`, `visibleFiles` useMemo
+- `FileRow`를 `memo` 컴포넌트로 분리하고 ref 기반 안정 핸들러 전달 → 바뀐 행만 재렌더
+- `filemanager.go`: `readLimited`(64MB 초과 거부)를 `ReadTextFileWithEncoding`/`ReadImageFile`에 적용
+- 테스트: `FilePanel.perf.test.js` PERF-01~03(Profiler로 재렌더 여부 검증, 수정 전 코드에서 실패 확인), Go `readlimit_test.go` 3건
+- 남은 과제: 수만 개 항목 폴더의 가상 스크롤은 미적용
+
 ## 2026-10-24 (Todo.md #97 — 뷰어/에디터 로드 상태 미초기화 및 경합)
 
 ### 원인

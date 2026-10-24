@@ -198,7 +198,7 @@
 - `fileStore.js` delete/copy/move, RenameDialog가 `cursorOnParent` 미확인
 - "현재 커서 파일" 계산 헬퍼(`getCursorFile`)로 통합
 
-## 79. Ctrl+A가 숨김 파일까지 선택 → 보이지 않는 파일 삭제
+## ~~79. Ctrl+A가 숨김 파일까지 선택 → 보이지 않는 파일 삭제~~ ✓ 완료 (2026-10-24)
 - `selectAll`이 `showHidden` 무시. `toggleHidden` 시 숨겨진 항목 선택 해제
 
 ## 80. FTP 다중 연결 시 엉뚱한 서버에 명령 전송

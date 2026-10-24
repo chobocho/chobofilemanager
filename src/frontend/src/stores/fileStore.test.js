@@ -1267,3 +1267,42 @@ describe('Todo #78 — [..] 커서', () => {
     expect(r.paths).toEqual(['/p/b'])
   })
 })
+
+// ─── Todo #79 — 숨김 파일은 전체 선택/선택 유지에서 제외 ─────────────────────
+describe('Todo #79 — selectAll / toggleHidden 숨김 파일', () => {
+  let useFileStore
+  const f = (name) => ({ name, path: `/t/${name}`, isDir: false, isHidden: name.startsWith('.'), size: 1, modified: '', extension: '' })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    useFileStore = (await import('./fileStore.js')).useFileStore
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: { ...s.left, path: '/t', files: [f('.git'), f('a.txt'), f('desktop.ini'), f('.env')], selected: new Set(), showHidden: false },
+    }))
+  })
+
+  it('HID-01: showHidden=false면 Ctrl+A가 보이는 파일만 선택', () => {
+    useFileStore.getState().selectAll('left')
+    const sel = useFileStore.getState().left.selected
+    expect([...sel].sort()).toEqual(['/t/a.txt', '/t/desktop.ini'])
+  })
+
+  it('HID-02: showHidden=true면 숨김 파일 포함 전체 선택', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: true } }))
+    useFileStore.getState().selectAll('left')
+    expect(useFileStore.getState().left.selected.size).toBe(4)
+  })
+
+  it('HID-03: 숨김 표시를 끄면 숨겨지는 항목의 선택이 해제됨', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: true, selected: new Set(['/t/.git', '/t/a.txt']) } }))
+    useFileStore.getState().toggleHidden('left')
+    expect([...useFileStore.getState().left.selected]).toEqual(['/t/a.txt'])
+  })
+
+  it('HID-04: 숨김 표시를 켜는 경우 선택은 그대로', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, showHidden: false, selected: new Set(['/t/a.txt']) } }))
+    useFileStore.getState().toggleHidden('left')
+    expect([...useFileStore.getState().left.selected]).toEqual(['/t/a.txt'])
+  })
+})

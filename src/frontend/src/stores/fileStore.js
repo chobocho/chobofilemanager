@@ -272,9 +272,12 @@ export const useFileStore = create((set, get) => ({
     })
   },
 
+  // Todo #79: 숨김 파일이 안 보일 때는 선택하지 않음 (보이지 않는 파일까지 삭제되는 것 방지)
   selectAll: (panel) => {
     set(s => {
-      const selected = new Set(s[panel].files.map(f => f.path))
+      const p = s[panel]
+      const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+      const selected = new Set(visible.map(f => f.path))
       return { [panel]: { ...s[panel], selected } }
     })
   },
@@ -308,8 +311,16 @@ export const useFileStore = create((set, get) => ({
     })
   },
 
+  // 숨김 표시를 끄면 숨겨지는 항목의 선택도 해제 (Todo #79)
   toggleHidden: (panel) => {
-    set(s => ({ [panel]: { ...s[panel], showHidden: !s[panel].showHidden } }))
+    set(s => {
+      const p = s[panel]
+      const showHidden = !p.showHidden
+      if (showHidden) return { [panel]: { ...p, showHidden } }
+      const hidden = new Set(p.files.filter(f => f.isHidden).map(f => f.path))
+      const selected = new Set([...p.selected].filter(path => !hidden.has(path)))
+      return { [panel]: { ...p, showHidden, selected } }
+    })
   },
 
   // ─── File Operations ──────────────────────────────────────────────────────

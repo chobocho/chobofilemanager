@@ -186,14 +186,8 @@ func (fm *FileManager) CopyItemsRename(sources []string, destination string) err
 		name := filepath.Base(src)
 		destPath := filepath.Join(destination, name)
 		if _, err := os.Stat(destPath); err == nil {
-			ext := filepath.Ext(name)
-			base := strings.TrimSuffix(name, ext)
-			for n := 1; ; n++ {
-				candidate := filepath.Join(destination, fmt.Sprintf("%s (%d)%s", base, n, ext))
-				if _, err := os.Stat(candidate); os.IsNotExist(err) {
-					destPath = candidate
-					break
-				}
+			if destPath, err = uniqueName(destination, name); err != nil {
+				return err
 			}
 		}
 		if info.IsDir() {
@@ -291,14 +285,8 @@ func (fm *FileManager) MoveItemsRename(sources []string, destination string) err
 		name := filepath.Base(src)
 		destPath := filepath.Join(destination, name)
 		if _, err := os.Stat(destPath); err == nil {
-			ext := filepath.Ext(name)
-			base := strings.TrimSuffix(name, ext)
-			for n := 1; ; n++ {
-				candidate := filepath.Join(destination, fmt.Sprintf("%s (%d)%s", base, n, ext))
-				if _, err := os.Stat(candidate); os.IsNotExist(err) {
-					destPath = candidate
-					break
-				}
+			if destPath, err = uniqueName(destination, name); err != nil {
+				return err
 			}
 		}
 		if err := fm.moveOne(src, destPath); err != nil {
@@ -310,6 +298,11 @@ func (fm *FileManager) MoveItemsRename(sources []string, destination string) err
 
 func (fm *FileManager) DeleteItems(paths []string) error {
 	for _, p := range paths {
+		if err := guardDeletable(p); err != nil {
+			return err
+		}
+	}
+	for _, p := range paths {
 		if err := os.RemoveAll(p); err != nil {
 			return err
 		}
@@ -319,6 +312,11 @@ func (fm *FileManager) DeleteItems(paths []string) error {
 
 // Todo #57: 휴지통(Recycle Bin)으로 이동. Windows: SHFileOperationW, 그 외: 미지원.
 func (fm *FileManager) TrashItems(paths []string) error {
+	for _, p := range paths {
+		if err := guardDeletable(p); err != nil {
+			return err
+		}
+	}
 	return trashItems(paths)
 }
 
@@ -330,10 +328,11 @@ func (fm *FileManager) CreateDirectory(path string) error {
 }
 
 func (fm *FileManager) CreateFile(path string) error {
-	if _, err := os.Stat(path); err == nil {
+	// O_EXCL: 확인과 생성 사이에 만들어진 파일을 비우지 않도록 (Todo #99)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if os.IsExist(err) {
 		return fmt.Errorf("파일이 이미 존재합니다: %s", filepath.Base(path))
 	}
-	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -567,12 +566,7 @@ func (fm *FileManager) RunShellCommand(command, workDir string) (string, error) 
 	}
 	cmd.Dir = workDir
 	output, err := cmd.CombinedOutput()
-	if runtime.GOOS == "windows" {
-		if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(output); decErr == nil {
-			return string(decoded), err
-		}
-	}
-	return string(output), err
+	return decodeShellOutput(output), err
 }
 
 func (fm *FileManager) OpenCmdWindow(workDir string) error {
@@ -592,6 +586,20 @@ func (fm *FileManager) GetPathParts(path string) []PathPart {
 	var parts []PathPart
 
 	if runtime.GOOS == "windows" {
+		// UNC 경로(\\server\share\...)는 "\\server\share"를 첫 조각으로 (Todo #99)
+		if vol := filepath.VolumeName(path); strings.HasPrefix(vol, `\\`) {
+			root := vol + `\`
+			parts = append(parts, PathPart{Name: vol, Path: root})
+			accumulated := root
+			for _, seg := range strings.Split(strings.TrimPrefix(path[len(vol):], `\`), `\`) {
+				if seg == "" {
+					continue
+				}
+				accumulated = filepath.Join(accumulated, seg)
+				parts = append(parts, PathPart{Name: seg, Path: accumulated})
+			}
+			return parts
+		}
 		segments := strings.Split(path, string(filepath.Separator))
 		accumulated := ""
 		for _, seg := range segments {
@@ -652,13 +660,18 @@ func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]
 		if err != nil {
 			return nil
 		}
-		if !recursive && d.IsDir() && path != rootPath {
-			return filepath.SkipDir
+		if path == rootPath {
+			return nil // 검색 루트 자체는 결과에서 제외
+		}
+		// 비재귀 검색: 폴더도 이름 매칭은 하되 내부로 들어가지 않음 (Todo #99)
+		skip := error(nil)
+		if !recursive && d.IsDir() {
+			skip = filepath.SkipDir
 		}
 		name := strings.ToLower(d.Name())
 		for _, term := range terms {
 			if !strings.Contains(name, term) {
-				return nil
+				return skip
 			}
 		}
 		info, err := d.Info()
@@ -672,7 +685,7 @@ func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]
 				Extension: strings.ToLower(filepath.Ext(d.Name())),
 			})
 		}
-		return nil
+		return skip
 	}
 
 	err := filepath.WalkDir(rootPath, walkFn)
@@ -701,6 +714,14 @@ func (fm *FileManager) GetFileSize(path string) (int64, error) {
 func (fm *FileManager) CompressItems(sources []string, destPath string) error {
 	if !strings.HasSuffix(destPath, ".zip") {
 		destPath += ".zip"
+	}
+	// 같은 이름의 압축 파일이 있으면 덮어쓰지 않고 "archive (1).zip" 형태로 (Todo #99)
+	if _, err := os.Lstat(destPath); err == nil {
+		unique, err := uniqueName(filepath.Dir(destPath), filepath.Base(destPath))
+		if err != nil {
+			return err
+		}
+		destPath = unique
 	}
 	for _, src := range sources {
 		if isSubPath(src, destPath) {
@@ -794,15 +815,9 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 	// 압축 파일명(확장자 제거)으로 서브폴더 생성, 이미 존재하면 (N) 접미사 추가
 	base := filepath.Base(archivePath)
 	folderName := strings.TrimSuffix(base, filepath.Ext(base))
-	subDir := filepath.Join(destDir, folderName)
-	if _, err := os.Stat(subDir); err == nil {
-		for n := 1; ; n++ {
-			candidate := filepath.Join(destDir, fmt.Sprintf("%s (%d)", folderName, n))
-			if _, err := os.Stat(candidate); os.IsNotExist(err) {
-				subDir = candidate
-				break
-			}
-		}
+	subDir, err := uniqueName(destDir, folderName)
+	if err != nil {
+		return err
 	}
 	destDir = subDir
 	if err := os.MkdirAll(destDir, 0755); err != nil {

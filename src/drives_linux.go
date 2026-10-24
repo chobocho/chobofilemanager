@@ -27,7 +27,7 @@ func getLinuxMounts() []DriveInfo {
 			continue
 		}
 		device := fields[0]
-		mountPoint := fields[1]
+		mountPoint := unescapeMountField(fields[1]) // 8진수 이스케이프(공백 등) 복원 (Todo #99)
 		fsType := fields[2]
 
 		skip := []string{"proc", "sysfs", "devpts", "tmpfs", "cgroup", "pstore", "debugfs", "securityfs", "fusectl", "hugetlbfs", "mqueue", "udev", "devtmpfs", "binfmt_misc", "configfs", "autofs"}

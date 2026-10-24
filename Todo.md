@@ -275,7 +275,7 @@
 
 ## 🟡 P2 — 개선
 
-## 99. 기타 백엔드 소소한 버그
+## ~~99. 기타 백엔드 소소한 버그~~ ✓ 완료 (2026-10-24)
 - 비재귀 검색 시 폴더 이름 매칭 안 됨 (`SearchFiles`)
 - UNC 경로(`\srv\share`) 경로 표시줄 깨짐 (`GetPathParts`)
 - 이름 충돌 rename 루프가 IsNotExist 외 에러에서 무한 반복, `.bashrc` → ` (1).bashrc`

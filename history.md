@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #99 — 백엔드 잔여 버그 묶음)
+
+### 변경
+- `SearchFiles`: 비재귀 검색에서도 폴더 이름 매칭(내부로는 진입 안 함), 검색 루트 자체는 결과에서 제외
+- `GetPathParts`: UNC 경로(`\srv\share\...`)를 `\srv\share`부터 올바르게 분할
+- `uniqueName`(신규, `fileutil.go`): `a (1).txt`, `.bashrc (1)`, IsNotExist 외 에러 시 즉시 반환(무한 루프 방지)
+  → CopyItemsRename/MoveItemsRename/ExtractArchive 폴더명에 적용
+- `CompressItems`: 같은 이름 압축 파일이 있으면 덮어쓰지 않고 `archive (1).zip`으로 저장 (리뷰 중 추가 발견)
+- `DeleteItems`/`TrashItems`: 빈 경로·루트·홈 폴더 거부(`guardDeletable`), 하나라도 위험하면 아무것도 지우지 않음
+- `CreateFile`: `O_EXCL`로 생성 (확인~생성 사이 경합으로 기존 파일 비우기 방지)
+- `RunShellCommand`: 출력이 UTF-8이면 그대로, 아니면 CP949 디코딩 (`decodeShellOutput`)
+- `drives_linux.go`: `/proc/mounts`의 8진수 이스케이프(`\040` 등) 복원
+- 테스트: `misc_test.go` 11건
+
 ## 2026-10-24 (Todo.md #98 — 대용량 폴더/파일 성능)
 
 ### 원인

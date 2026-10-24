@@ -41,6 +41,19 @@ export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm',
   const cancelRef  = useRef(null)
   const confirmRef = useRef(null)
   const [focusIndex, setFocusIndex] = useState(1)  // 기본 Confirm
+  const [busy, setBusy] = useState(false)
+
+  // Todo #96: onConfirm(비동기)이 끝날 때까지 기다리고 닫기는 호출 측이 결정 —
+  // 실패 시 대화상자를 유지해 오류 메시지를 보여주고 다시 시도/취소할 수 있게 함
+  const handleConfirm = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await onConfirm()
+    } finally {
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     const target = focusIndex === 0 ? cancelRef.current : confirmRef.current
@@ -83,7 +96,8 @@ export function ConfirmDialog({ title, message, items, confirmLabel = 'Confirm',
         <button
           ref={confirmRef}
           className={`${styles.btnConfirm} ${danger ? styles.btnDanger : ''}`}
-          onClick={() => { onConfirm(); onClose() }}
+          onClick={handleConfirm}
+          disabled={busy}
         >
           {confirmLabel}
         </button>

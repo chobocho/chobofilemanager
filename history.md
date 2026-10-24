@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #96 — 확인창 비동기 에러가 다음 대화상자에 표시되는 문제)
+
+### 원인
+ConfirmDialog의 Confirm 버튼이 `onConfirm(); onClose()`를 동기 호출 → 대화상자와 오류 상태가 즉시 지워지고,
+이후 비동기 삭제가 실패하면 `setDeleteError`가 보이지 않는 상태로 남아 다음 삭제 팝업에 "삭제 실패"로 표시.
+
+### 변경
+- `ConfirmDialog.jsx`: `handleConfirm`이 `onConfirm`을 await, 닫기는 호출 측이 결정(성공 시 App이 닫음),
+  처리 중 버튼 비활성화로 중복 실행 방지 → 실패 시 같은 대화상자에 오류 표시 후 재시도/취소 가능
+- 테스트: `ConfirmDialog.async.test.js` CD-01~03 (총 398건 통과)
+
 ## 2026-10-24 (Todo.md #95 — 숨김 필터를 무시한 커서 인덱스 수정)
 
 ### 원인

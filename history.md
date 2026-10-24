@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #80 — FTP 다중 연결 시 엉뚱한 서버로 명령 전송 수정)
+
+### 원인
+`Connect`가 새 연결 id를 반환하지 않아 프론트가 `GetConnections()`의 마지막 요소를 사용했는데,
+Go map 순회 순서가 무작위라 다른 서버 연결이 선택될 수 있었음. 같은 시각 접속 시 id 충돌 가능성도 있었음.
+
+### 변경
+- `ftpmanager.go`: `Connect`가 `(id, error)` 반환, 접속 순번(`seq`)을 id에 포함, `GetConnections`를 접속 순으로 정렬
+- `app.go`: `FTPConnect` 반환형 변경
+- `ftpStore.connect`: 반환된 id로 연결 검색, null 목록 처리
+- `FTPManager.jsx`: `ftpStore.connect` 사용, 재접속 시 이전 연결 해제
+- 테스트: Go용 가짜 FTP 서버(`fakeftp_test.go`) + `ftpconnect_test.go` 3건, 프론트 `ftpStore.test.js` FC-01~02
+
 ## 2026-10-24 (Todo.md #79 — Ctrl+A가 숨김 파일까지 선택하는 문제 수정)
 
 ### 원인

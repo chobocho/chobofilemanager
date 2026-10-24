@@ -48,11 +48,12 @@ export const useFTPStore = create((set, get) => ({
     set({ history: [] })
   },
 
+  // 백엔드가 돌려준 id로 새 연결을 찾음 (Todo #80 — 목록 순서로 추측하지 않음)
   connect: async (config) => {
-    await api.FTPConnect(config)
-    const connections = await api.FTPGetConnections()
-    set({ connections: connections || [] })
-    return connections[connections.length - 1]
+    const id = await api.FTPConnect(config)
+    const connections = (await api.FTPGetConnections()) || []
+    set({ connections })
+    return connections.find(c => c.id === id) || null
   },
 
   disconnect: async (id) => {

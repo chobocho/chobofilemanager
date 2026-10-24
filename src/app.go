@@ -165,7 +165,7 @@ func (a *App) RunStarlarkFile(path string) (string, error) {
 
 // ─── FTP Manager API ─────────────────────────────────────────────────────────
 
-func (a *App) FTPConnect(config FTPConfig) error {
+func (a *App) FTPConnect(config FTPConfig) (string, error) {
 	return a.ftpManager.Connect(config)
 }
 

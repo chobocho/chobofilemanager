@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +42,7 @@ type FTPConnectionInfo struct {
 
 type ftpConnection struct {
 	id          string
+	seq         uint64 // 접속 순서 (Windows 시계 해상도로 connectedAt이 같을 수 있음)
 	client      *ftp.ServerConn
 	config      FTPConfig
 	connectedAt time.Time
@@ -59,6 +61,7 @@ type FTPManager struct {
 	ctx          context.Context
 	mu           sync.RWMutex
 	connections  map[string]*ftpConnection
+	nextSeq      uint64
 	bookmarks    []FTPBookmark
 	bookmarkFile string
 	history      []FTPHistory
@@ -84,7 +87,8 @@ func NewFTPManager() *FTPManager {
 	return fm
 }
 
-func (fm *FTPManager) Connect(config FTPConfig) error {
+// Connect: 접속 후 새 연결 id를 반환합니다 (Todo #80 — 프론트가 목록 순서로 추측하지 않도록).
+func (fm *FTPManager) Connect(config FTPConfig) (string, error) {
 	if config.Port == 0 {
 		config.Port = 21
 	}
@@ -96,7 +100,7 @@ func (fm *FTPManager) Connect(config FTPConfig) error {
 
 	client, err := ftp.Dial(addr, opts...)
 	if err != nil {
-		return fmt.Errorf("connection failed: %w", err)
+		return "", fmt.Errorf("connection failed: %w", err)
 	}
 
 	username := config.Username
@@ -108,21 +112,23 @@ func (fm *FTPManager) Connect(config FTPConfig) error {
 
 	if err := client.Login(username, password); err != nil {
 		client.Quit()
-		return fmt.Errorf("login failed: %w", err)
+		return "", fmt.Errorf("login failed: %w", err)
 	}
 
-	id := fmt.Sprintf("%s_%d_%d", config.Host, config.Port, time.Now().UnixNano())
-
 	fm.mu.Lock()
+	fm.nextSeq++
+	seq := fm.nextSeq
+	id := fmt.Sprintf("%s_%d_%d_%d", config.Host, config.Port, time.Now().UnixNano(), seq)
 	fm.connections[id] = &ftpConnection{
 		id:          id,
+		seq:         seq,
 		client:      client,
 		config:      config,
 		connectedAt: time.Now(),
 	}
 	fm.mu.Unlock()
 
-	return nil
+	return id, nil
 }
 
 func (fm *FTPManager) Disconnect(id string) error {
@@ -275,8 +281,15 @@ func (fm *FTPManager) GetConnections() []FTPConnectionInfo {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
 
-	var list []FTPConnectionInfo
+	conns := make([]*ftpConnection, 0, len(fm.connections))
 	for _, conn := range fm.connections {
+		conns = append(conns, conn)
+	}
+	// map 순회 순서는 무작위이므로 접속 순서로 정렬
+	sort.Slice(conns, func(i, j int) bool { return conns[i].seq < conns[j].seq })
+
+	var list []FTPConnectionInfo
+	for _, conn := range conns {
 		list = append(list, FTPConnectionInfo{
 			ID:          conn.id,
 			Host:        conn.config.Host,

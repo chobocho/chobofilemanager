@@ -269,10 +269,13 @@ export default function FTPManager() {
     setStatus('Connecting...')
     try {
       const api = (await import('../wailsjs/runtime')).default
-      await api.FTPConnect(config)
-      const conns = await api.FTPGetConnections()
-      if (conns?.length > 0) {
-        const conn = conns[conns.length - 1]
+      // 이미 연결된 상태에서 다시 접속하면 이전 연결을 정리 (연결 누수 방지)
+      if (activeConn) {
+        await api.FTPDisconnect(activeConn.id).catch(() => {})
+        setActiveConn(null)
+      }
+      const conn = await ftpStore.connect(config)
+      if (conn) {
         setActiveConn(conn)
         await navigateFTPDirect(conn.id, '/')
         setStatus(`Connected to ${config.host}`)

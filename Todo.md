@@ -201,7 +201,7 @@
 ## ~~79. Ctrl+A가 숨김 파일까지 선택 → 보이지 않는 파일 삭제~~ ✓ 완료 (2026-10-24)
 - `selectAll`이 `showHidden` 무시. `toggleHidden` 시 숨겨진 항목 선택 해제
 
-## 80. FTP 다중 연결 시 엉뚱한 서버에 명령 전송
+## ~~80. FTP 다중 연결 시 엉뚱한 서버에 명령 전송~~ ✓ 완료 (2026-10-24)
 - `Connect`가 새 연결 id를 반환하지 않고, 프론트가 map 순회 결과의 마지막 요소를 사용
 - `Connect`가 id 반환하도록 변경 (`ftpStore.js`, `FTPManager.jsx` 둘 다)
 

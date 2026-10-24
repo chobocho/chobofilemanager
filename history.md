@@ -16,6 +16,8 @@
 
 ### 테스트
 - connect 11건, termStore 10건, TerminalWorkspace 10건, 실제 xterm 애드온 로드 1건, App Terminal 보기 3건 — 프론트 866건 통과, typecheck, build
+- **실제 Go 백엔드 종단 점검** `bench/e2e-terminal.mjs` (`wails dev` 실행 중 `npm run e2e:terminal`): 브라우저용 dev 서버(실제 바인딩)를 헤드리스 Edge로 열어
+  Terminal 보기 → cmd(ConPTY) 연결 → `echo` 실행 결과 수신 → 탭 이름 → 탭 닫기까지 통과
 - 남은 #120 항목: 인증 프롬프트, 창 닫기 확인(app:close), 자동 재접속, 여러 줄 붙여넣기 확인, 검색
 
 ## 2026-10-25 (Todo.md #119 — T3: 터미널 프론트 기반)

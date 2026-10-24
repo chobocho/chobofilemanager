@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #70 — 폴더를 자기 하위로 복사·이동 시 무한 재귀 수정)
+
+### 원인
+`copyDir`의 WalkDir가 새로 만든 대상 폴더를 다시 순회 → `a\a\a\...` 무한 생성.
+이동도 Rename 실패 후 copyDir 폴백으로 같은 문제 발생.
+
+### 변경
+- `transfer.go`: `isSubPath`(정규화 + Windows 대소문자 무시, 공통 접두사 형제 폴더 제외), `errIntoSelf`
+- `copyDir`, `moveOne` 시작 시 하위 경로 검사
+- 테스트: `transfer_test.go` 4건 추가 (isSubPath, 복사/이름변경복사/이동)
+
 ## 2026-10-24 (Todo.md #69 — 같은 폴더 복사+덮어쓰기 시 0바이트 문제 수정)
 
 ### 원인

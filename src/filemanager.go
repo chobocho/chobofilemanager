@@ -230,6 +230,9 @@ func (fm *FileManager) CopyItemsSkipConflicts(sources []string, destination stri
 }
 
 func (fm *FileManager) moveOne(src, destPath string) error {
+	if isSubPath(src, destPath) {
+		return errIntoSelf(src)
+	}
 	if err := os.Rename(src, destPath); err == nil {
 		return nil
 	}
@@ -797,6 +800,9 @@ func copyFile(src, dst string) error {
 func copyDir(src, dst string) error {
 	if samePath(src, dst) {
 		return errSameSource(src)
+	}
+	if isSubPath(src, dst) {
+		return errIntoSelf(src)
 	}
 	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

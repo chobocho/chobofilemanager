@@ -200,3 +200,73 @@ func TestCopyItemsRename_SameFolderMakesDuplicate(t *testing.T) {
 		t.Errorf("source must stay intact, got %q", data)
 	}
 }
+
+// ─── Todo #70: 자기 자신/하위 폴더로 복사·이동 ────────────────────────────────
+
+func TestIsSubPath(t *testing.T) {
+	base := t.TempDir()
+	a := filepath.Join(base, "a")
+	if !isSubPath(a, filepath.Join(a, "b")) {
+		t.Error("a/b should be under a")
+	}
+	if !isSubPath(a, filepath.Join(a, "b", "c")) {
+		t.Error("a/b/c should be under a")
+	}
+	if isSubPath(a, filepath.Join(base, "ab")) {
+		t.Error("sibling with common prefix must not count as sub path")
+	}
+	if isSubPath(a, a) {
+		t.Error("same path is not a sub path")
+	}
+	if runtime.GOOS == "windows" && !isSubPath(a, strings.ToUpper(filepath.Join(a, "b"))) {
+		t.Error("case-insensitive on Windows")
+	}
+}
+
+func TestCopyItems_IntoOwnSubdirRejected(t *testing.T) {
+	base := t.TempDir()
+	a := filepath.Join(base, "a")
+	sub := filepath.Join(a, "sub")
+	os.MkdirAll(sub, 0755)
+	os.WriteFile(filepath.Join(a, "f.txt"), []byte("x"), 0644)
+
+	if err := newTestFM().CopyItems([]string{a}, sub); err == nil {
+		t.Error("copying a dir into its own subdir should fail")
+	}
+	if _, err := os.Stat(filepath.Join(sub, "a")); !os.IsNotExist(err) {
+		t.Error("no recursive copy should be created")
+	}
+}
+
+func TestCopyItemsRename_IntoSelfRejected(t *testing.T) {
+	base := t.TempDir()
+	a := filepath.Join(base, "a")
+	os.MkdirAll(a, 0755)
+	os.WriteFile(filepath.Join(a, "f.txt"), []byte("x"), 0644)
+
+	if err := newTestFM().CopyItemsRename([]string{a}, a); err == nil {
+		t.Error("copying a dir into itself should fail")
+	}
+	entries, _ := os.ReadDir(a)
+	if len(entries) != 1 {
+		t.Errorf("dir must be untouched, got %d entries", len(entries))
+	}
+}
+
+func TestMoveItems_IntoOwnSubdirRejected(t *testing.T) {
+	base := t.TempDir()
+	a := filepath.Join(base, "a")
+	sub := filepath.Join(a, "sub")
+	os.MkdirAll(sub, 0755)
+	os.WriteFile(filepath.Join(a, "f.txt"), []byte("x"), 0644)
+
+	if err := newTestFM().MoveItems([]string{a}, sub); err == nil {
+		t.Error("moving a dir into its own subdir should fail")
+	}
+	if _, err := os.Stat(filepath.Join(a, "f.txt")); err != nil {
+		t.Error("source must remain intact")
+	}
+	if _, err := os.Stat(filepath.Join(sub, "a")); !os.IsNotExist(err) {
+		t.Error("no partial copy should be created")
+	}
+}

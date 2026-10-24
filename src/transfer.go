@@ -57,3 +57,17 @@ func replaceWith(dest string, op func() error) error {
 	}
 	return os.RemoveAll(backup)
 }
+
+// isSubPath: child가 parent 폴더의 하위 경로인지 확인합니다 (같은 경로는 false).
+func isSubPath(parent, child string) bool {
+	p, c := pathKey(parent), pathKey(child)
+	if !strings.HasSuffix(p, string(filepath.Separator)) {
+		p += string(filepath.Separator)
+	}
+	return strings.HasPrefix(c, p)
+}
+
+// errIntoSelf: 폴더를 자기 자신의 하위로 복사·이동하려 할 때 반환 (Todo #70 — 무한 재귀 방지)
+func errIntoSelf(src string) error {
+	return fmt.Errorf("폴더를 자기 자신의 하위 폴더로 복사·이동할 수 없습니다: %s", filepath.Base(src))
+}

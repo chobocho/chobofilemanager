@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #75 — 에디터 X/F3/뷰어 버튼의 미저장 확인)
+
+### 원인
+Esc만 `isDirty`를 확인하고, X 버튼·F3·눈 아이콘은 `onClose`/`onSwitchToViewer`를 바로 호출 → 편집 내용 소실.
+
+### 변경
+- `TextEditor.jsx`: `confirmClose` → `pendingLeave`('close' | 'viewer'), `requestLeave`/`leave` 헬퍼로 통일
+  - 확인창 "저장"은 저장 후 원래 요청한 동작(닫기 또는 뷰어 전환) 수행
+  - 확인창이 열린 상태에서 Esc는 확인창 취소
+- 테스트: `TextEditor.dirty.test.js` 신규 (RTL 렌더 테스트 TED-01~08, 총 352건 통과)
+
 ## 2026-10-24 (Todo.md #74 — 에디터 저장 시 원래 인코딩 유지)
 
 ### 원인

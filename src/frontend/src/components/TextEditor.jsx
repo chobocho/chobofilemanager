@@ -37,7 +37,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const [saving, setSaving]             = useState(false)
   const [error, setError]               = useState(null)
   const [cursor, setCursor]             = useState({ line: 1, col: 1 })
-  const [confirmClose, setConfirmClose] = useState(false)
+  // 미저장 상태에서 나가려 할 때 보류 중인 동작: null | 'close' | 'viewer' (Todo #75)
+  const [pendingLeave, setPendingLeave] = useState(null)
   const [scrollTop, setScrollTop]       = useState(0)
   const [searchOpen, setSearchOpen]     = useState(false)
   const [searchQuery, setSearchQuery]   = useState('')
@@ -107,10 +108,23 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
     }
   }, [path, content, encoding, writeFile])
 
-  const handleSaveAndClose = useCallback(async () => {
+  const leave = useCallback((action) => {
+    setPendingLeave(null)
+    if (action === 'viewer') onSwitchToViewer?.()
+    else onClose()
+  }, [onClose, onSwitchToViewer])
+
+  // 닫기/뷰어 전환 요청: 변경 사항이 있으면 확인창을 먼저 띄움
+  const requestLeave = useCallback((action) => {
+    if (isDirty) setPendingLeave(action)
+    else leave(action)
+  }, [isDirty, leave])
+
+  const handleSaveAndLeave = useCallback(async () => {
+    const action = pendingLeave
     await handleSave()
-    onClose()
-  }, [handleSave, onClose])
+    leave(action)
+  }, [handleSave, leave, pendingLeave])
 
   const handleRun = useCallback(async () => {
     if (running) return
@@ -145,17 +159,19 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       }
       if (e.key === 'Escape') {
         e.stopPropagation()
+        if (pendingLeave) {
+          setPendingLeave(null)
+          textareaRef.current?.focus()
+          return
+        }
         if (searchOpen) {
           setSearchOpen(false)
           setNoMatch(false)
           textareaRef.current?.focus()
           return
         }
-        if (isDirty) {
-          setConfirmClose(true)
-        } else {
-          onClose()
-        }
+        requestLeave('close')
+        return
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
@@ -170,13 +186,13 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
       if (isSwitchToViewerShortcut(e) && onSwitchToViewer) {
         e.preventDefault()
         e.stopPropagation()
-        onSwitchToViewer()
+        requestLeave('viewer')
         return
       }
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [isDirty, searchOpen, isStarlark, onClose, onSwitchToViewer])
+  }, [pendingLeave, searchOpen, isStarlark, onSwitchToViewer, requestLeave])
 
   // Sync line numbers scroll position with textarea (ssMemo pattern)
   const handleScroll = useCallback(() => {
@@ -290,7 +306,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
 
   return (
     <div className={styles.overlay}>
-      {confirmClose && (
+      {pendingLeave && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmDialog}>
             <div className={styles.confirmTitle}>저장하지 않은 변경사항</div>
@@ -298,9 +314,9 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
               <strong>{fileName}</strong>의 변경사항을 저장하시겠습니까?
             </div>
             <div className={styles.confirmActions}>
-              <button className={styles.btnSaveConfirm} onClick={handleSaveAndClose}>저장</button>
-              <button className={styles.btnDiscard}     onClick={onClose}>저장 안 함</button>
-              <button className={styles.btnCancel}      onClick={() => setConfirmClose(false)}>취소</button>
+              <button className={styles.btnSaveConfirm} onClick={handleSaveAndLeave}>저장</button>
+              <button className={styles.btnDiscard}     onClick={() => leave(pendingLeave)}>저장 안 함</button>
+              <button className={styles.btnCancel}      onClick={() => setPendingLeave(null)}>취소</button>
             </div>
           </div>
         </div>
@@ -319,7 +335,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
             {onSwitchToViewer && (
               <button
                 className={styles.btnSearch}
-                onClick={onSwitchToViewer}
+                onClick={() => requestLeave('viewer')}
                 title="뷰어로 열기 (F3)"
               >
                 <Eye size={13} />
@@ -360,7 +376,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
               {saving ? 'Saving...' : 'Save'}
               <span className={styles.shortcut}>Ctrl+S</span>
             </button>
-            <button className={styles.btnClose} onClick={onClose} title="Close (Esc)">
+            <button className={styles.btnClose} onClick={() => requestLeave('close')} title="Close (Esc)">
               <X size={14} />
             </button>
           </div>

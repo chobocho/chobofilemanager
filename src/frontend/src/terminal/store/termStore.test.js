@@ -135,3 +135,92 @@ describe('termStore (TM)', () => {
     expect(useTermStore.getState().tabs[0].state).toBe('idle')
   })
 })
+
+// ─── Todo #121: 분할 (그룹 = 탭 막대의 한 칸, 그 안의 여러 칸) ──────────────────
+import { leaves, paneRects } from '../core/layout'
+
+describe('termStore 분할 (SP)', () => {
+  let api
+  beforeEach(() => {
+    api = backend()
+    useTermStore.getState().resetForTest()
+  })
+  const st = () => useTermStore.getState()
+  const groupOf = (id) => st().groups.find(g => leaves(g.layout).includes(id))
+
+  it('SP-01: 새 탭 = 새 그룹(칸 하나)', () => {
+    const a = st().newTab(), b = st().newTab()
+    expect(st().groups.map(g => leaves(g.layout))).toEqual([[a], [b]])
+  })
+
+  it('SP-02: 분할 — 같은 그룹에 새 칸, 활성화, 대화상자(취소하면 닫히는 임시 칸)', () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'row')
+    expect(groupOf(b)).toBe(groupOf(a))
+    expect(st().groups).toHaveLength(1)
+    expect(st().activeId).toBe(b)
+    expect(st().tabs.find(t => t.id === b)).toMatchObject({ dialog: true, temp: true })
+    expect(paneRects(groupOf(a).layout)[b]).toEqual({ x: 0.5, y: 0, w: 0.5, h: 1 })
+  })
+
+  it('SP-03: 임시 칸의 대화상자를 닫으면 칸도 닫힘 / 연결하면 임시가 아님', async () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'col')
+    await st().cancelDialog(b)
+    expect(st().tabs.map(t => t.id)).toEqual([a])
+    expect(leaves(st().groups[0].layout)).toEqual([a])
+    expect(st().activeId).toBe(a)
+    // 처음 연 탭은 임시가 아니어서 대화상자만 닫힘
+    await st().cancelDialog(a)
+    expect(st().tabs.map(t => t.id)).toEqual([a])
+  })
+
+  it('SP-04: 분할 칸 닫기 — 같은 그룹의 남은 칸 활성, 마지막 칸이면 그룹 제거', async () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'row')
+    const c = st().newTab()
+    st().setActive(b)
+    await st().closeTab(b)
+    expect(st().activeId).toBe(a)
+    expect(st().groups.map(g => leaves(g.layout))).toEqual([[a], [c]])
+    await st().closeTab(a)
+    expect(st().groups.map(g => leaves(g.layout))).toEqual([[c]])
+    expect(st().activeId).toBe(c)
+  })
+
+  it('SP-05: Alt+방향키 이동 (분할된 그룹 안에서만)', () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'row')
+    st().focusDir(-1, 0)
+    expect(st().activeId).toBe(a)
+    st().focusDir(1, 0)
+    expect(st().activeId).toBe(b)
+    expect(st().focusDir(0, 1)).toBe(false) // 아래쪽 칸 없음
+  })
+
+  it('SP-06: 경계선 비율 조정', () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'row')
+    st().setRatio(groupOf(a).id, '', 0.25)
+    expect(paneRects(groupOf(a).layout)[a].w).toBeCloseTo(0.25)
+    expect(b).toBeTruthy()
+  })
+
+  it('SP-07: Ctrl+Tab 순환은 그룹 순서 → 그룹 안 칸 순서', () => {
+    const a = st().newTab()
+    const c = st().newTab()
+    const b = st().splitPane(a, 'row')
+    st().setActive(a)
+    st().cycle(1); expect(st().activeId).toBe(b)
+    st().cycle(1); expect(st().activeId).toBe(c)
+    st().cycle(1); expect(st().activeId).toBe(a)
+  })
+
+  it('SP-08: 활성 그룹', () => {
+    const a = st().newTab()
+    const b = st().splitPane(a, 'row')
+    st().newTab()
+    st().setActive(b)
+    expect(st().activeGroupId()).toBe(groupOf(a).id)
+  })
+})

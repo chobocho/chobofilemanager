@@ -6,6 +6,7 @@ import type {ITerminalOptions} from '@xterm/xterm';
 import {fontFamily} from './cjkwidth';
 import {themeByName} from './themes';
 import type {TermSettings} from './settings';
+import {splitKeyDir} from './layout';
 
 export function lookOptions(s: TermSettings, wide = false): ITerminalOptions {
     return {
@@ -19,9 +20,15 @@ export function lookOptions(s: TermSettings, wide = false): ITerminalOptions {
 }
 
 // Keys the terminal workspace handles itself; xterm must not turn them into input.
-export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>): boolean {
+export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'> & {code?: string}): boolean {
     const k = ev.key.length === 1 ? ev.key.toUpperCase() : ev.key;
+    if (splitKeyDir({ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey, code: ev.code ?? ''})) return true;
     if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S')) return true;
     if (ev.ctrlKey && (k === 'Tab' || k === 'PageUp' || k === 'PageDown')) return true;
     return false;
+}
+
+/** Alt+arrow moves between panes — only in a split tab; otherwise the program gets it. */
+export function isPaneMoveKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey'>): boolean {
+    return ev.altKey && !ev.ctrlKey && !ev.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key);
 }

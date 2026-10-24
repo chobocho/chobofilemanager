@@ -71,7 +71,7 @@ export default function ConnectDialog({ tab }) {
     if (e.key === 'Escape') {
       e.preventDefault()
       if (listOpen) setListOpen(false)
-      else useTermStore.getState().closeDialog(tab.id)
+      else useTermStore.getState().cancelDialog(tab.id)
     }
   }
 
@@ -81,7 +81,7 @@ export default function ConnectDialog({ tab }) {
         <div className={styles.dialogHeader}>
           <Plug size={14} /><span>연결</span>
           <span className={styles.proto}>{proto}</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={() => useTermStore.getState().closeDialog(tab.id)}><X size={13} /></button>
+          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={() => useTermStore.getState().cancelDialog(tab.id)}><X size={13} /></button>
         </div>
         <div className={styles.hostRow}>
           <label htmlFor="term-host">Host</label>
@@ -119,7 +119,7 @@ export default function ConnectDialog({ tab }) {
         </div>
         {tab.error && <div className={styles.error} role="alert">{tab.error}</div>}
         <div className={styles.dialogActions}>
-          <button type="button" onClick={() => useTermStore.getState().closeDialog(tab.id)}>취소</button>
+          <button type="button" onClick={() => useTermStore.getState().cancelDialog(tab.id)}>취소</button>
           <button type="submit" className={styles.primary} disabled={tab.connecting}>{tab.connecting ? '연결 중...' : '연결'}</button>
         </div>
       </form>

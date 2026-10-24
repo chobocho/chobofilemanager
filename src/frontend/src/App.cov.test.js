@@ -296,8 +296,8 @@ describe('App 커버리지 — 뷰어/에디터', () => {
     await renderApp()
     cursorTo('x.txt')
     await key({ key: 'F3' })
-    await flush()
-    expect(api.ReadTextFile).toHaveBeenCalledWith('/a/x.txt')
+    // 뷰어는 지연 로딩 조각 — 불러올 때까지 대기
+    await waitFor(() => expect(api.ReadTextFile).toHaveBeenCalledWith('/a/x.txt'))
     await key({ key: 'Escape' })
     await flush()
     // 뷰어가 닫혀 단축키가 다시 패널에 동작

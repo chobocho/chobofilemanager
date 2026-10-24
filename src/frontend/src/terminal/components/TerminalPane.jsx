@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react'
 import { TermSession } from '../core/session'
 import { Reconnector } from '../core/reconnect'
-import { lookOptions, isWorkspaceKey } from '../core/look'
+import { lookOptions, isWorkspaceKey, isPaneMoveKey } from '../core/look'
+import { leaves } from '../core/layout'
 import { settings } from '../core/settings'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
@@ -13,7 +14,7 @@ export function needsPasteConfirm(text) {
   return !settings.pasteNoConfirm && /[\r\n]/.test(text)
 }
 
-export default function TerminalPane({ id, active, createTerminal, addons = true, onPasteRequest }) {
+export default function TerminalPane({ id, active, visible = active, rect, createTerminal, addons = true, onPasteRequest }) {
   const hostRef = useRef(null)
   const sessionRef = useRef(null)
   const onPasteRequestRef = useRef(onPasteRequest)
@@ -23,8 +24,9 @@ export default function TerminalPane({ id, active, createTerminal, addons = true
     const s = new TermSession(id, { createTerminal, addons, options: lookOptions(settings) })
     sessionRef.current = s
     s.open(hostRef.current)
-    // 탭 단축키는 xterm 입력으로 보내지 않고 작업 공간이 처리
-    s.term.attachCustomKeyEventHandler(ev => !isWorkspaceKey(ev))
+    // 탭·분할 단축키는 xterm 입력으로 보내지 않고 작업 공간이 처리 (Alt+방향키는 분할된 탭에서만)
+    const inSplit = () => leaves(useTermStore.getState().groupOfPane(id)?.layout ?? { type: 'pane', id }).length > 1
+    s.term.attachCustomKeyEventHandler(ev => !isWorkspaceKey(ev) && !(isPaneMoveKey(ev) && inSplit()))
     const store = useTermStore.getState()
     const rc = new Reconnector(s, { autoReconnect: () => settings.autoReconnect })
     const offs = [
@@ -64,5 +66,14 @@ export default function TerminalPane({ id, active, createTerminal, addons = true
     s?.focus()
   }, [active])
 
-  return <div data-term-pane={id} hidden={!active} className={styles.pane} ref={hostRef} />
+  // 분할 비율이 바뀌면 다시 맞춤
+  useEffect(() => { if (visible) sessionRef.current?.fit() }, [visible, rect?.x, rect?.y, rect?.w, rect?.h])
+
+  const pct = (v) => `${Math.round(v * 10000) / 100}%`
+  const style = rect ? { left: pct(rect.x), top: pct(rect.y), width: pct(rect.w), height: pct(rect.h) } : undefined
+  return (
+    <div data-term-pane={id} hidden={!visible} style={style} ref={hostRef}
+      className={`${styles.pane} ${active ? styles.paneActive : ''}`}
+      onMouseDown={() => { if (!active) useTermStore.getState().setActive(id) }} />
+  )
 }

@@ -7,6 +7,7 @@ vi.mock('../wailsjs/runtime', () => ({ default: {} }))
 import FileViewer from './FileViewer.jsx'
 import TextEditor from './TextEditor.jsx'
 import { useFileStore } from '../stores/fileStore'
+import { findSurfaceWithText, querySurfaceWithText } from '../test/textSurface.js'
 
 const h = React.createElement
 Element.prototype.scrollIntoView = vi.fn()
@@ -39,10 +40,10 @@ describe('FileViewer/TextEditor 로드 (Todo #97)', () => {
     useFileStore.setState({ readFile, readImage: vi.fn() })
     const { rerender } = render(h(FileViewer, { path: '/t/a.txt', onClose: () => {} }))
     rerender(h(FileViewer, { path: '/t/b.txt', onClose: () => {} }))
-    await screen.findByDisplayValue('BBB')
+    await findSurfaceWithText('BBB')
     await act(async () => { first.resolve('AAA') })
-    expect(screen.queryByDisplayValue('AAA')).toBeNull()
-    expect(screen.getByDisplayValue('BBB')).toBeTruthy()
+    expect(querySurfaceWithText('AAA')).toBeNull()
+    expect(querySurfaceWithText('BBB')).toBeTruthy()
   })
 
   it('LD-03: 에디터도 이전 로드 결과를 무시', async () => {
@@ -51,8 +52,8 @@ describe('FileViewer/TextEditor 로드 (Todo #97)', () => {
     useFileStore.setState({ readFile, writeFile: vi.fn() })
     const { rerender } = render(h(TextEditor, { path: '/t/a.txt', onClose: () => {} }))
     rerender(h(TextEditor, { path: '/t/b.txt', onClose: () => {} }))
-    await screen.findByDisplayValue('BBB')
+    await findSurfaceWithText('BBB')
     await act(async () => { first.resolve('AAA') })
-    expect(screen.queryByDisplayValue('AAA')).toBeNull()
+    expect(querySurfaceWithText('AAA')).toBeNull()
   })
 })

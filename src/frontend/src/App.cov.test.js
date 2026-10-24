@@ -14,6 +14,7 @@ vi.mock('../wailsjs/runtime/runtime', () => ({ Quit: vi.fn() }))
 import api from './wailsjs/runtime'
 import App from './App.jsx'
 import { useFileStore } from './stores/fileStore'
+import { findSurfaceWithText } from './test/textSurface.js'
 
 const h = React.createElement
 Element.prototype.scrollIntoView = vi.fn()
@@ -321,7 +322,7 @@ describe('App 커버리지 — 뷰어/에디터', () => {
     await renderApp()
     cursorTo('y.txt')
     await key({ key: 'F4' })
-    expect(await screen.findByDisplayValue('hello content')).toBeTruthy()
+    expect(await findSurfaceWithText('hello content')).toBeTruthy()
     expect(api.ReadTextFile).toHaveBeenCalledWith('/a/y.txt')
   })
 
@@ -449,7 +450,7 @@ describe('App 커버리지 — 패널/뷰/도움말/기타', () => {
     await key({ key: 'Escape' })
     await flush()
     fireEvent.click(screen.getByTitle('Edit (F4)'))
-    expect(await screen.findByDisplayValue('hello content')).toBeTruthy()
+    expect(await findSurfaceWithText('hello content')).toBeTruthy()
   })
 
   it('AP-32: 툴바 New File/Search/압축/압축 풀기 버튼', async () => {

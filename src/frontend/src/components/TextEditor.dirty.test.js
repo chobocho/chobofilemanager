@@ -6,6 +6,7 @@ vi.mock('../wailsjs/runtime', () => ({ default: {} }))
 
 import TextEditor from './TextEditor.jsx'
 import { useFileStore } from '../stores/fileStore'
+import { findSurfaceWithText, querySurfaceWithText, typeText } from '../test/textSurface.js'
 
 const h = React.createElement
 
@@ -24,14 +25,14 @@ describe('TextEditor 미저장 확인 (Todo #75)', () => {
 
   async function renderDirty() {
     render(h(TextEditor, { path: '/x/a.txt', onClose, onSwitchToViewer }))
-    const ta = await screen.findByDisplayValue('abc')
-    fireEvent.change(ta, { target: { value: 'abcd' } })
+    const ta = await findSurfaceWithText('abc')
+    typeText(ta, 'abcd')
     return ta
   }
 
   it('TED-01: 변경 없으면 X 버튼으로 바로 닫힘', async () => {
     render(h(TextEditor, { path: '/x/a.txt', onClose, onSwitchToViewer }))
-    await screen.findByDisplayValue('abc')
+    await findSurfaceWithText('abc')
     fireEvent.click(screen.getByTitle('Close (Esc)'))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -76,7 +77,7 @@ describe('TextEditor 미저장 확인 (Todo #75)', () => {
 
   it('TED-07: 변경 없으면 F3로 바로 뷰어 전환', async () => {
     render(h(TextEditor, { path: '/x/a.txt', onClose, onSwitchToViewer }))
-    await screen.findByDisplayValue('abc')
+    await findSurfaceWithText('abc')
     fireEvent.keyDown(window, { key: 'F3' })
     expect(onSwitchToViewer).toHaveBeenCalledTimes(1)
   })
@@ -122,12 +123,12 @@ describe('TextEditor 저장 가드 (Todo #76)', () => {
     writeFile = vi.fn().mockRejectedValue(new Error('read-only'))
     useFileStore.setState({ readFile: vi.fn().mockResolvedValue('abc'), writeFile })
     render(h(TextEditor, { path: '/x/a.txt', onClose }))
-    const ta = await screen.findByDisplayValue('abc')
-    fireEvent.change(ta, { target: { value: 'abcd' } })
+    const ta = await findSurfaceWithText('abc')
+    typeText(ta, 'abcd')
     fireEvent.click(screen.getByTitle('Close (Esc)'))
     fireEvent.click(screen.getByText('저장'))
     await screen.findByText(/저장 실패.*read-only/)
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByDisplayValue('abcd')).toBeTruthy()
+    expect(querySurfaceWithText('abcd')).toBeTruthy()
   })
 })

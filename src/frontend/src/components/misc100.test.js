@@ -11,6 +11,7 @@ import TextEditor from './TextEditor.jsx'
 import { ShellCommandDialog } from './ConfirmDialog.jsx'
 import { useFileStore } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
+import { findSurfaceWithText, typeText } from '../test/textSurface.js'
 
 const h = React.createElement
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -57,8 +58,8 @@ describe('Todo #100', () => {
   it('M-04: 미저장 확인창이 뜨면 포커스가 확인창 버튼으로 이동 (뒤에서 계속 입력되지 않음)', async () => {
     useFileStore.setState({ readFile: vi.fn().mockResolvedValue('abc'), writeFile: vi.fn() })
     render(h(TextEditor, { path: '/x/a.txt', onClose: vi.fn() }))
-    const ta = await screen.findByDisplayValue('abc')
-    fireEvent.change(ta, { target: { value: 'abcd' } })
+    const ta = await findSurfaceWithText('abc')
+    typeText(ta, 'abcd')
     fireEvent.click(screen.getByTitle('Close (Esc)'))
     expect(document.activeElement).toBe(screen.getByText('저장'))
   })
@@ -67,7 +68,7 @@ describe('Todo #100', () => {
     const onClose = vi.fn()
     useFileStore.setState({ readFile: vi.fn().mockResolvedValue('abc'), writeFile: vi.fn() })
     render(h(TextEditor, { path: '/x/a.txt', onClose }))
-    await screen.findByDisplayValue('abc')
+    await findSurfaceWithText('abc')
     fireEvent.keyDown(window, { key: 'Escape', isComposing: true })
     expect(onClose).not.toHaveBeenCalled()
   })

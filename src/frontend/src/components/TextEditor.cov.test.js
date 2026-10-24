@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import TextEditor from './TextEditor.jsx'
 import { useFileStore } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
+import { clickIn, getSurface, keyIn, notifyCursor, selectionOf, setSelectionQuiet, textOf, typeText } from '../test/textSurface.js'
 
 vi.mock('../wailsjs/runtime', () => ({ default: { RunStarlarkFile: vi.fn() } }))
 
@@ -17,7 +18,7 @@ async function open(path = '/x/a.txt', props = {}, text = 'hello\nworld\nHello a
   const onClose = vi.fn(), onSwitchToViewer = vi.fn()
   const r = render(h(TextEditor, { path, onClose, onSwitchToViewer, ...props }))
   await act(async () => {})
-  const ta = r.container.querySelector('textarea')
+  const ta = getSurface(r.container)
   return { ...r, ta, onClose, onSwitchToViewer }
 }
 
@@ -46,7 +47,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
 
   it('TEC-03: 편집 → dirty 표시, Ctrl+S 저장 후 dirty 해제', async () => {
     const { ta } = await open()
-    fireEvent.change(ta, { target: { value: 'changed' } })
+    typeText(ta, 'changed')
     expect(screen.getByText('Unsaved changes')).toBeTruthy()
     await act(async () => { fireEvent.keyDown(window, { key: 's', ctrlKey: true }) })
     expect(writeFile).toHaveBeenCalledWith('/x/a.txt', 'changed', 'auto')
@@ -56,7 +57,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
   it('TEC-04: 저장 실패 시 상태 표시줄에 오류 표시', async () => {
     const { ta } = await open()
     writeFile.mockRejectedValue(new Error('disk full'))
-    fireEvent.change(ta, { target: { value: 'x' } })
+    typeText(ta, 'x')
     await act(async () => { fireEvent.click(screen.getByText('Save')) })
     expect(screen.getByText('저장 실패: disk full')).toBeTruthy()
   })
@@ -68,12 +69,12 @@ describe('TextEditor 커버리지 (TEC)', () => {
       useFileStore.setState({ readFile, writeFile: vi.fn() })
       const { container } = render(h(TextEditor, { path: '/x/a.txt', onClose: vi.fn() }))
       await act(async () => { await vi.runAllTimersAsync() })
-      const ta = container.querySelector('textarea')
-      ta.setSelectionRange(1, 1)
-      fireEvent.keyDown(ta, { key: 'Tab' })
-      expect(ta.value).toBe('a  b')
+      const ta = getSurface(container)
+      setSelectionQuiet(ta, 1, 1)
+      keyIn(ta, { key: 'Tab' })
+      expect(textOf(ta)).toBe('a  b')
       act(() => { vi.runAllTimers() })
-      expect(ta.selectionStart).toBe(3)
+      expect(selectionOf(ta)[0]).toBe(3)
     } finally {
       vi.useRealTimers()
     }
@@ -81,11 +82,11 @@ describe('TextEditor 커버리지 (TEC)', () => {
 
   it('TEC-06: 커서 이동 시 Ln/Col 갱신', async () => {
     const { ta } = await open()
-    ta.setSelectionRange(8, 8)
-    fireEvent.keyUp(ta, { key: 'ArrowRight' })
+    setSelectionQuiet(ta, 8, 8)
+    notifyCursor(ta, { key: 'ArrowRight' })
     expect(screen.getByText('Ln 2, Col 3')).toBeTruthy()
-    ta.setSelectionRange(0, 0)
-    fireEvent.click(ta)
+    setSelectionQuiet(ta, 0, 0)
+    clickIn(ta)
     expect(screen.getByText('Ln 1, Col 1')).toBeTruthy()
   })
 
@@ -94,20 +95,20 @@ describe('TextEditor 커버리지 (TEC)', () => {
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)
     fireEvent.change(input, { target: { value: 'hello' } })
-    ta.setSelectionRange(0, 0)
+    setSelectionQuiet(ta, 0, 0)
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect([ta.selectionStart, ta.selectionEnd]).toEqual([0, 5])
+    expect(selectionOf(ta)).toEqual([0, 5])
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(ta.selectionStart).toBe(0) // wrap
+    expect(selectionOf(ta)[0]).toBe(0) // wrap
     fireEvent.click(screen.getByTitle('다음 (Enter)'))
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
     fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
-    expect(ta.selectionStart).toBe(0)
-    ta.setSelectionRange(23, 23)
+    expect(selectionOf(ta)[0]).toBe(0)
+    setSelectionQuiet(ta, 23, 23)
     fireEvent.click(screen.getByTitle('이전 (Shift+Enter)'))
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
   })
 
   // findPrev: startIndex = selectionStart-1 이 0으로 clamp되어 lastIndexOf(q, 0)이 다시 0 위치를 찾음
@@ -116,9 +117,9 @@ describe('TextEditor 커버리지 (TEC)', () => {
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)
     fireEvent.change(input, { target: { value: 'hello' } })
-    ta.setSelectionRange(0, 5)
+    setSelectionQuiet(ta, 0, 5)
     fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
   })
 
   it('TEC-08: 검색 결과 없음 → noMatch 클래스 후 600ms 뒤 해제', async () => {
@@ -158,9 +159,9 @@ describe('TextEditor 커버리지 (TEC)', () => {
   it('TEC-10: 빈 검색어로 Enter는 아무 동작 없음', async () => {
     const { ta } = await open()
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
-    ta.setSelectionRange(2, 2)
+    setSelectionQuiet(ta, 2, 2)
     fireEvent.keyDown(screen.getByPlaceholderText(/검색/), { key: 'Enter' })
-    expect(ta.selectionStart).toBe(2)
+    expect(selectionOf(ta)[0]).toBe(2)
   })
 
   it('TEC-11: 인코딩 순환 — 깨끗하면 바로 변경 후 재로딩', async () => {
@@ -172,7 +173,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
 
   it('TEC-12: 인코딩 순환 — dirty면 confirm, 취소 시 유지 / 확인 시 변경', async () => {
     const { ta } = await open()
-    fireEvent.change(ta, { target: { value: 'edited' } })
+    typeText(ta, 'edited')
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     fireEvent.click(screen.getByTitle(/인코딩: Auto/))
     expect(confirm).toHaveBeenCalledTimes(1)
@@ -185,7 +186,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
 
   it('TEC-13: dirty 상태 닫기 → 확인창, 취소/저장 안 함/저장', async () => {
     const { ta, onClose } = await open()
-    fireEvent.change(ta, { target: { value: 'edited' } })
+    typeText(ta, 'edited')
     fireEvent.click(screen.getByTitle('Close (Esc)'))
     expect(screen.getByText('저장하지 않은 변경사항')).toBeTruthy()
     fireEvent.click(screen.getByText('취소'))
@@ -202,7 +203,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
 
   it('TEC-14: dirty 상태 F3 → 확인창 → 저장 안 함 → 뷰어 전환', async () => {
     const { ta, onSwitchToViewer, onClose } = await open()
-    fireEvent.change(ta, { target: { value: 'edited' } })
+    typeText(ta, 'edited')
     fireEvent.keyDown(window, { key: 'F3' })
     fireEvent.click(screen.getByText('저장 안 함'))
     expect(onSwitchToViewer).toHaveBeenCalledTimes(1)
@@ -213,7 +214,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
   it('TEC-15: 저장 후 나가기에서 저장 실패 시 확인창만 닫고 머무름', async () => {
     const { ta, onClose } = await open()
     writeFile.mockRejectedValue('nope')
-    fireEvent.change(ta, { target: { value: 'edited' } })
+    typeText(ta, 'edited')
     fireEvent.click(screen.getByTitle('Close (Esc)'))
     await act(async () => { fireEvent.click(screen.getByText('저장')) })
     expect(onClose).not.toHaveBeenCalled()
@@ -245,7 +246,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
     await act(async () => { fireEvent.keyDown(window, { key: 'F5' }) })
     expect(screen.getByText('(출력 없음)')).toBeTruthy()
     api.RunStarlarkFile.mockRejectedValue('bad')
-    await act(async () => { fireEvent.keyDown(ta, { key: 'Enter', ctrlKey: true }) })
+    await act(async () => { keyIn(ta, { key: 'Enter', ctrlKey: true }) })
     expect(screen.getByText('오류: bad')).toBeTruthy()
   })
 
@@ -262,7 +263,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('TEC-21: textarea 스크롤 시 줄번호 스크롤 동기화', async () => {
+  it('TEC-21: [textarea 구현 전용 — 텍스트 영역 교체 시 삭제] 스크롤 시 줄번호 동기화', async () => {
     const { ta, container } = await open()
     ta.scrollTop = 40
     fireEvent.scroll(ta)

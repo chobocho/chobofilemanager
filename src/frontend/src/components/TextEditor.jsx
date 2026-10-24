@@ -457,6 +457,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
 
               {/* Textarea */}
               <textarea
+                data-text-surface
                 ref={textareaRef}
                 className={styles.textarea}
                 value={content}

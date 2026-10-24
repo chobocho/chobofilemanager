@@ -554,6 +554,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
 
               {/* Readonly textarea — supports setSelectionRange for search highlighting */}
               <textarea
+                data-text-surface
                 ref={textareaRef}
                 className={styles.pre}
                 value={content}

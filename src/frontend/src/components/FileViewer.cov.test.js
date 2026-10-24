@@ -3,6 +3,7 @@ import React from 'react'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import FileViewer from './FileViewer.jsx'
 import { useFileStore } from '../stores/fileStore'
+import { getSurface, isReadOnly, selectionOf, setSelectionQuiet, textOf } from '../test/textSurface.js'
 
 vi.mock('../wailsjs/runtime', () => ({ default: {} }))
 
@@ -17,7 +18,7 @@ async function open(path = '/x/a.txt', props = {}, text = 'hello\nworld\nHello a
   const onClose = vi.fn(), onSwitchToEditor = vi.fn(), onChangePath = vi.fn()
   const r = render(h(FileViewer, { path, onClose, onSwitchToEditor, onChangePath, ...props }))
   await act(async () => {})
-  const ta = r.container.querySelector('textarea')
+  const ta = getSurface(r.container)
   return { ...r, ta, onClose, onSwitchToEditor, onChangePath }
 }
 
@@ -27,7 +28,7 @@ describe('FileViewer 커버리지 (FVC)', () => {
   it('FVC-01: 텍스트 로드 — 읽기 전용, 상태 표시줄 정보', async () => {
     const { ta } = await open()
     expect(readFile).toHaveBeenCalledWith('/x/a.txt', 'auto')
-    expect(ta.readOnly).toBe(true)
+    expect(isReadOnly(ta)).toBe(true)
     expect(screen.getByText('READ ONLY')).toBeTruthy()
     expect(screen.getByText('3 lines')).toBeTruthy()
     expect(screen.getByText('23 chars')).toBeTruthy()
@@ -72,18 +73,18 @@ describe('FileViewer 커버리지 (FVC)', () => {
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)
     fireEvent.change(input, { target: { value: 'HELLO' } })
-    ta.setSelectionRange(0, 0)
+    setSelectionQuiet(ta, 0, 0)
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect([ta.selectionStart, ta.selectionEnd]).toEqual([0, 5])
+    expect(selectionOf(ta)).toEqual([0, 5])
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
     fireEvent.click(screen.getByTitle('다음 (Enter)'))
-    expect(ta.selectionStart).toBe(0)
-    ta.setSelectionRange(23, 23)
+    expect(selectionOf(ta)[0]).toBe(0)
+    setSelectionQuiet(ta, 23, 23)
     fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
     fireEvent.click(screen.getByTitle('이전 (Shift+Enter)'))
-    expect(ta.selectionStart).toBe(0)
+    expect(selectionOf(ta)[0]).toBe(0)
   })
 
   it('FVC-06b: 첫 번째 일치 위치에서 Shift+Enter 시 마지막 일치로 순환 (Todo #107)', async () => {
@@ -91,9 +92,9 @@ describe('FileViewer 커버리지 (FVC)', () => {
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)
     fireEvent.change(input, { target: { value: 'hello' } })
-    ta.setSelectionRange(0, 5)
+    setSelectionQuiet(ta, 0, 5)
     fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
-    expect(ta.selectionStart).toBe(12)
+    expect(selectionOf(ta)[0]).toBe(12)
   })
 
   it('FVC-07: 검색 결과 없음 → noMatch 후 해제', async () => {
@@ -156,7 +157,7 @@ describe('FileViewer 커버리지 (FVC)', () => {
     expect(screen.queryByPlaceholderText(/검색/)).toBeNull()
     expect(screen.queryByTitle('검색 (Ctrl+F)')).toBeNull()
     fireEvent.click(screen.getByTitle('원본 텍스트 보기'))
-    expect(container.querySelector('textarea').value).toMatch(/^# Title/)
+    expect(textOf(getSurface(container))).toMatch(/^# Title/)
     fireEvent.click(screen.getByTitle('마크다운 렌더링 보기'))
     expect(container.querySelector('h1')).toBeTruthy()
   })
@@ -236,7 +237,7 @@ describe('FileViewer 커버리지 (FVC)', () => {
     expect(onChangePath).not.toHaveBeenCalled()
   })
 
-  it('FVC-19: textarea 스크롤 시 줄번호 스크롤 동기화', async () => {
+  it('FVC-19: [textarea 구현 전용 — 텍스트 영역 교체 시 삭제] 스크롤 시 줄번호 동기화', async () => {
     const { ta, container } = await open()
     ta.scrollTop = 50
     fireEvent.scroll(ta)

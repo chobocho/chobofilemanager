@@ -2,6 +2,18 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #121 — T5 2차: 탭 우클릭 메뉴)
+
+### 변경
+- `core/tabActions.ts` 신규: 인코딩 적용(EUC-KR은 넓은 폭·EUC-KR 글꼴), 인코딩 전환(로컬 셸은 UTF-8 고정), 서버별 색 테마 저장/불러오기, 시리얼 Break, 연결 끊기(예약된 자동 재접속 취소)
+- `core/tabMenu.ts` 신규: 탭 상태별 메뉴 항목(다시 연결·복제·분할·색 테마·인코딩·Break·끊기·닫기/분할 창 닫기)
+- `TabMenu.jsx` 신규: 탭 칩 우클릭 메뉴, 색 테마 하위 메뉴(미리보기 견본), Esc/바깥 클릭으로 닫기
+- `termStore`: reconnect/duplicate(새 탭에서 같은 서버 자동 접속)/disconnect/toggleEncoding/chooseTheme/sendBreak, 연결 후 인코딩·서버 테마 적용
+- `TermSession`: `theme`, `reconnector`, `markIdle()` 추가
+
+### 테스트
+- `tabActions.test.ts`(TA-01~08, 20~22, 30), `TabMenu.test.jsx`(TB-01~07) 추가 — 프론트 920개, Go 전체 통과
+
 ## 2026-10-25 (Todo.md #121 — T5 1차: 터미널 화면 분할)
 
 ### 변경

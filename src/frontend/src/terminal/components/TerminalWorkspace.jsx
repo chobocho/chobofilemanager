@@ -12,6 +12,7 @@ import ConnectDialog from './ConnectDialog.jsx'
 import AuthPrompt from './AuthPrompt.jsx'
 import { CloseConfirm, PasteConfirm } from './TerminalModals.jsx'
 import SearchBar from './SearchBar.jsx'
+import TabMenu from './TabMenu.jsx'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
@@ -27,6 +28,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
   const [pasteRequest, setPasteRequest] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [menu, setMenu] = useState(null) // { id, x, y }
   const areaRef = useRef(null)
 
   useEffect(() => {
@@ -94,7 +96,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                 return (
                   <span key={id} title={t.tooltip || t.label}
                     className={`${styles.paneChip} ${id === activeId ? styles.paneChipActive : ''} ${t.activity ? styles.tabActivity : ''}`}
-                    onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}>
+                    onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}>
                     <span className={`${styles.dot} ${t.state !== 'idle' ? styles.dotOn : ''}`} />
                     <span data-tab-label>{t.label}</span>
                     <button type="button" className={styles.tabClose} title="탭 닫기 (Ctrl+Shift+W)"
@@ -136,6 +139,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       </div>
       <AuthPrompt describeTab={id => useTermStore.getState().tabs.find(t => t.id === id)?.tooltip ?? ''} />
       <CloseConfirm />
+      {menu && <TabMenu {...menu} onClose={() => setMenu(null)} />}
       <PasteConfirm request={pasteRequest} onAnswer={ok => { if (ok) pasteRequest?.paste(); setPasteRequest(null) }} />
     </div>
   )

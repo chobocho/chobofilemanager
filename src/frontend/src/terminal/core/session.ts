@@ -5,6 +5,7 @@
 
 import type {ITerminalOptions, Terminal} from '@xterm/xterm';
 import {clipboardSetText, onTermEvent, termApi} from './termApi';
+import type {Reconnector} from './reconnect';
 
 export type TermState = 'idle' | 'connecting' | 'on' | 'ftp';
 
@@ -68,9 +69,13 @@ export class TermSession {
     proto = '';
     encoding = 'UTF-8';
     title = '';
+    /** Color theme chosen for this tab's server ('' / undefined: the Settings theme). */
+    theme: string | undefined;
     /** The shell's folder reported with OSC 7 (file://host/path). */
     cwd: string | undefined;
     req: ConnectRequest | undefined;
+    /** Automatic reconnect of this tab (set by the view that owns the pane). */
+    reconnector: Reconnector | undefined;
 
     private outbox = '';
     private sending = false;
@@ -251,6 +256,11 @@ export class TermSession {
     receive(data: string | Uint8Array) {
         this.term.write(decodeTermData(data));
         this.outputListeners.forEach(l => l());
+    }
+
+    /** Disconnected on purpose: idle without the term:closed handling (no reconnect). */
+    markIdle() {
+        this.setState('idle');
     }
 
     /** term:closed: the session ended; lost means the connection broke. */

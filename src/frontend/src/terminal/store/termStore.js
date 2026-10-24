@@ -2,6 +2,11 @@ import { create } from 'zustand'
 import { sessionById } from '../core/session'
 import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
+import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession } from '../core/tabActions'
+
+// 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
+const fieldsOf = (req) => ({ host: req.host, port: String(req.port), login: req.login || '', pass: req.pass || '',
+  encoding: req.encoding || 'UTF-8', jump: req.jump || '' })
 
 // 터미널 탭(칸) 목록과 활성 칸 (Todo #120, #121). xterm 인스턴스(TermSession)는 React 상태 밖
 // (core/session.ts 레지스트리)에 두고, 여기에는 화면에 그릴 메타데이터만 둡니다.
@@ -26,10 +31,11 @@ const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1 })
 export const useTermStore = create((set, get) => ({
   ...initial(),
 
-  newTab: () => {
+  // pendingConnect: 칸이 만들어지면 바로 이 정보로 연결 (복제)
+  newTab: (pendingConnect = null) => {
     const id = get().nextId
     set(s => ({
-      tabs: [...s.tabs, newTabState(id)],
+      tabs: [...s.tabs, { ...newTabState(id), dialog: !pendingConnect, pendingConnect }],
       groups: [...s.groups, { id, layout: leaf(id) }],
       activeId: id,
       nextId: id + 1,
@@ -140,13 +146,48 @@ export const useTermStore = create((set, get) => ({
     try {
       const proto = await session.connect(req)
       get().updateTab(id, {
-        connecting: false, dialog: false, state: session.state, proto, temp: false,
+        connecting: false, dialog: false, state: session.state, proto, temp: false, sessionName,
         label: tabLabel(req, proto, sessionName), tooltip: tabTooltip(req, proto),
       })
+      // 인코딩별 글자 폭·글꼴, 이 서버에 저장된 색 테마
+      applyEncoding(session, session.encoding)
+      loadTabTheme(session)
     } catch (e) {
       get().updateTab(id, { connecting: false, dialog: true, state: 'idle', error: String(e?.message ?? e) })
     }
   },
+
+  // 탭 메뉴 동작 (Todo #121)
+  reconnect: async (id) => {
+    const s = sessionById(id)
+    if (!s?.req) return get().openDialog(id)
+    if (s.state !== 'idle') await disconnectSession(s, s.reconnector)
+    await get().connect(id, fieldsOf(s.req), get().tabs.find(t => t.id === id)?.sessionName)
+  },
+
+  duplicate: (id) => {
+    const s = sessionById(id)
+    if (!s?.req) return null
+    return get().newTab({ fields: fieldsOf(s.req), sessionName: get().tabs.find(t => t.id === id)?.sessionName })
+  },
+
+  // 칸이 만들어진 뒤 호출 — 복제처럼 미리 정해 둔 연결 실행
+  startPendingConnect: (id) => {
+    const t = get().tabs.find(x => x.id === id)
+    if (!t?.pendingConnect) return
+    const { fields, sessionName } = t.pendingConnect
+    get().updateTab(id, { pendingConnect: null })
+    return get().connect(id, fields, sessionName)
+  },
+
+  disconnect: async (id) => {
+    const s = sessionById(id)
+    if (s) await disconnectSession(s, s.reconnector)
+  },
+
+  toggleEncoding: async (id) => { const s = sessionById(id); if (s) await toggleEncoding(s) },
+  chooseTheme: async (id, name) => { const s = sessionById(id); if (s) await chooseTheme(s, name) },
+  sendBreak: async (id) => { const s = sessionById(id); if (s) await sendBreak(s) },
 
   resetForTest: () => set(initial()),
 }))

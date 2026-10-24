@@ -29,6 +29,7 @@ export default function TerminalPane({ id, active, visible = active, rect, creat
     s.term.attachCustomKeyEventHandler(ev => !isWorkspaceKey(ev) && !(isPaneMoveKey(ev) && inSplit()))
     const store = useTermStore.getState()
     const rc = new Reconnector(s, { autoReconnect: () => settings.autoReconnect })
+    s.reconnector = rc
     const offs = [
       store.bindSession(id, s),
       s.onOutput(() => useTermStore.getState().markActivity(id)),
@@ -48,6 +49,7 @@ export default function TerminalPane({ id, active, visible = active, rect, creat
       onPasteRequestRef.current?.({ text, paste: () => s.term.paste(text) })
     }
     host.addEventListener('paste', onPaste, true)
+    useTermStore.getState().startPendingConnect(id)
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => s.fit()) : null
     ro?.observe(hostRef.current)
     return () => {

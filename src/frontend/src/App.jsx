@@ -66,9 +66,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    Promise.all([init(), loadBkmarks()]).then(() => {
-      requestAnimationFrame(() => leftPanelRef.current?.focus())
-    })
+    Promise.all([init(), loadBkmarks()])
+      .catch(err => console.error('초기화 실패:', err))
+      .finally(() => requestAnimationFrame(() => leftPanelRef.current?.focus()))
   }, [])
 
   // Ctrl+M: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기. (Todo #55, 이전 Ctrl+Enter)
@@ -95,6 +95,7 @@ export default function App() {
         const s = useFileStore.getState()
         const workDir = s[s.activePanel].path
         import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
+          .catch(err => useFileStore.getState().setStatus(`명령 창 열기 실패: ${err}`))
       }
       // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
       if (isStarlarkScratchShortcut(e)) {
@@ -281,6 +282,7 @@ export default function App() {
         onCmd={() => {
           const s = useFileStore.getState()
           import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(s[s.activePanel].path))
+            .catch(err => s.setStatus(`명령 창 열기 실패: ${err}`))
         }}
       />
 
@@ -294,7 +296,7 @@ export default function App() {
       )}
       {modal === 'rename' && (
         <RenameDialog
-          onConfirm={(oldPath, newName) => { const s=useFileStore.getState(); s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
+          onConfirm={async (oldPath, newName) => { const s=useFileStore.getState(); await s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
           onClose={() => { setModal(null); focusActivePanel() }} />
       )}
       {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}

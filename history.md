@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #100 — 프론트엔드 잔여 버그 묶음)
+
+### 변경
+- `FilePanel.jsx`: Shift+문자 퀵 점프를 switch 앞에서 처리 → Shift+C/T/W가 'C'/'T'/'W' case에 막히던 문제 해결
+- `FileViewer.jsx`: 이미지에서는 F4/편집 버튼으로 에디터 전환 불가(바이너리 손상 방지), IME 조합 중 키 무시
+- `ConfirmDialog.jsx`(셸 대화상자): 히스토리가 비었을 때 ↑가 입력 중 명령을 지우지 않음
+- `TextEditor.jsx`: 미저장 확인창이 뜨면 "저장" 버튼으로 포커스, IME 조합 중(`isComposing`) 키 무시
+- `fileStore.closeTab`: 비활성 탭을 닫으면 현재 탭 유지(인덱스만 보정)
+- `App.jsx`: init/OpenCmdWindow 실패 처리, 이름 변경 await
+- `wailsjs/runtime.js`: 브라우저 mock에 누락 바인딩 10개 추가
+- 테스트: `misc100.test.js` M-01~07 (M-07은 소스의 `api.X` 호출을 스캔해 mock 누락을 검사), 총 411건 통과, `vite build` 확인
+
 ## 2026-10-24 (Todo.md #99 — 백엔드 잔여 버그 묶음)
 
 ### 변경

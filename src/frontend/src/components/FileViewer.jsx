@@ -215,6 +215,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
 
   useEffect(() => {
     const handler = (e) => {
+      if (e.isComposing) return // IME 조합 중인 키는 무시 (Todo #100)
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault()
         e.stopPropagation()
@@ -236,7 +237,8 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         onClose()
       }
       if (e.key === 'F3') { e.preventDefault(); e.stopPropagation(); onClose() }
-      if (isSwitchToEditorShortcut(e) && onSwitchToEditor) {
+      // 이미지는 텍스트 에디터로 열면 저장 시 손상되므로 전환 불가 (Todo #100)
+      if (isSwitchToEditorShortcut(e) && onSwitchToEditor && !isImage) {
         e.preventDefault()
         e.stopPropagation()
         onSwitchToEditor()
@@ -420,7 +422,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
           <span className={styles.readonlyBadge}>READ ONLY</span>
 
           <div className={styles.actions}>
-            {onSwitchToEditor && (
+            {onSwitchToEditor && !isImage && (
               <button
                 className={styles.btnSearch}
                 onClick={onSwitchToEditor}

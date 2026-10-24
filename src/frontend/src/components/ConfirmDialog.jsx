@@ -272,6 +272,7 @@ export function ShellCommandDialog({ workDir, onClose }) {
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowUp') {
       e.preventDefault()
+      if (history.length === 0) return // 히스토리가 없으면 입력 중인 명령 유지 (Todo #100)
       const next = Math.min(histIdx + 1, history.length - 1)
       setHistIdx(next)
       setCommand(history[next] ?? '')

@@ -218,6 +218,21 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     const files = visibleFiles
     const cur = panel.cursor
 
+    // Shift+a-z/0-9: 해당 글자로 시작하는 파일로 커서 이동 (반복 입력 시 순차 이동).
+    // switch보다 먼저 처리 — 'C'/'T'/'W' case가 Ctrl 조합만 처리하고 break해 퀵 점프가 막히던 문제 (Todo #100)
+    if (e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && /^[a-z0-9]$/i.test(e.key)) {
+      e.preventDefault()
+      const qj = quickJumpRef.current
+      const result = getQuickJumpTarget(files, e.key, qj.char, qj.matchPos)
+      if (result) {
+        quickJumpRef.current = { char: e.key.toLowerCase(), matchPos: result.matchPos }
+        store.setCursor(side, result.fileIdx)
+        store.setCursorOnParent(side, false)
+        scrollToCursor(result.fileIdx, showParent)
+      }
+      return
+    }
+
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
@@ -398,18 +413,6 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         }
         break
       default:
-        // Shift+a-z/0-9: 해당 글자로 시작하는 파일로 커서 이동 (반복 입력 시 순차 이동)
-        if (e.shiftKey && !e.ctrlKey && !e.altKey && /^[a-z0-9]$/i.test(e.key)) {
-          e.preventDefault()
-          const qj = quickJumpRef.current
-          const result = getQuickJumpTarget(files, e.key, qj.char, qj.matchPos)
-          if (result) {
-            quickJumpRef.current = { char: e.key.toLowerCase(), matchPos: result.matchPos }
-            store.setCursor(side, result.fileIdx)
-            store.setCursorOnParent(side, false)
-            scrollToCursor(result.fileIdx, showParent)
-          }
-        }
         break
     }
   }, [isActive, keyboardDisabled, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel])

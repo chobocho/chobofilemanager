@@ -52,6 +52,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const lineNumbersRef = useRef(null)
   const bodyRef        = useRef(null)
   const searchInputRef = useRef(null)
+  const saveConfirmRef = useRef(null)
 
   const { readFile, writeFile } = useFileStore.getState()
   const fileName = path?.split(/[/\\]/).pop() || 'file'
@@ -160,8 +161,14 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   useEffect(() => { handleRunRef.current  = handleRun  }, [handleRun])
   useEffect(() => { handleSaveRef.current = handleSave }, [handleSave])
 
+  // 미저장 확인창이 뜨면 버튼으로 포커스 — 뒤의 textarea에 계속 입력되지 않도록 (Todo #100)
+  useEffect(() => {
+    if (pendingLeave) saveConfirmRef.current?.focus()
+  }, [pendingLeave])
+
   useEffect(() => {
     const handler = (e) => {
+      if (e.isComposing) return // IME(한글) 조합 중인 키는 조합에 맡김 (Todo #100)
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault()
         e.stopPropagation()
@@ -327,7 +334,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
               <strong>{fileName}</strong>의 변경사항을 저장하시겠습니까?
             </div>
             <div className={styles.confirmActions}>
-              <button className={styles.btnSaveConfirm} onClick={handleSaveAndLeave}>저장</button>
+              <button ref={saveConfirmRef} className={styles.btnSaveConfirm} onClick={handleSaveAndLeave}>저장</button>
               <button className={styles.btnDiscard}     onClick={() => leave(pendingLeave)}>저장 안 함</button>
               <button className={styles.btnCancel}      onClick={() => setPendingLeave(null)}>취소</button>
             </div>

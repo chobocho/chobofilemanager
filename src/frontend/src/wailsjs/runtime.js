@@ -36,6 +36,17 @@ const createMockAPI = () => ({
   CreateStarlarkScratchFile: async () => '/tmp/chobofm-scratch-mock.star',
   WriteTextFile: async () => null,
   WriteTextFileWithEncoding: async () => null,
+  // 브라우저 개발 모드에서 init/F5/F6/북마크/셸이 예외 없이 동작하도록 (Todo #100)
+  LoadPanelPaths: async () => ({}),
+  CheckCopyConflicts: async () => [],
+  CopyItemsRename: async () => null,
+  CopyItemsSkipConflicts: async () => null,
+  MoveItemsOverwrite: async () => null,
+  MoveItemsRename: async () => null,
+  GetFileBookmarks: async () => [],
+  AddFileBookmark: async () => null,
+  DeleteFileBookmark: async () => null,
+  RunShellCommand: async (command) => `(mock) ${command}`,
   OpenFile: async () => null,
   GetPathParts: async (path) => {
     const parts = [{ name: '/', path: '/' }]

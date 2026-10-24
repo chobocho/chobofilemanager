@@ -757,6 +757,16 @@ export const useFileStore = create((set, get) => ({
     const s = get()[panel]
     if (s.tabs.length <= 1) return // last tab — can't close
 
+    // 비활성 탭을 닫으면 현재 탭은 그대로 유지 (Todo #100)
+    if (idx !== s.activeTabIdx) {
+      if (idx < 0 || idx >= s.tabs.length) return
+      const tabs = get()._saveCurrentTab(panel).filter((_, i) => i !== idx)
+      const activeTabIdx = idx < s.activeTabIdx ? s.activeTabIdx - 1 : s.activeTabIdx
+      set(st => ({ [panel]: { ...st[panel], tabs, activeTabIdx } }))
+      get()._saveSession()
+      return
+    }
+
     // Save current state first
     const updatedTabs = get()._saveCurrentTab(panel).filter((_, i) => i !== idx)
     const newIdx = Math.min(idx, updatedTabs.length - 1)

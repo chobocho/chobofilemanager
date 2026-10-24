@@ -292,7 +292,7 @@
 - `createFile`/`rename` 등 unhandled promise rejection
 - 브라우저 mock(`runtime.js`)에 바인딩 다수 누락
 
-## 101. GW-BASIC 인터프리터 문법 보완 (`examples/gwbasic.star`)
+## ~~101. GW-BASIC 인터프리터 문법 보완 (`examples/gwbasic.star`)~~ ✓ 완료 (2026-10-24)
 - `:` 다중 문장 미동작
 - AND/OR/NOT/MOD, `^`, `\` 연산자 미지원
 - `7/2` → 3 (정수 나눗셈), 참 값 1 (→ -1)

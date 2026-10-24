@@ -1,5 +1,27 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #101 — GW-BASIC 인터프리터 문법 보완)
+
+### 변경 (`examples/gwbasic.star` 코어 재작성, 그래픽/사운드 헬퍼와 데모 유지)
+- 줄 내 위치 추적으로 `:` 다중 문장 지원 (IF THEN/ELSE 분기 내 다중 문장, 중첩 IF의 ELSE 매칭)
+- 연산자 우선순위: `^` > 단항 `-`/`+` > `* /` > `\` > MOD > `+ -` > 관계 > NOT > AND > OR > XOR, AND/OR/NOT 비트 연산
+- `/`는 항상 실수 결과, `\` 정수 나눗셈, 관계 연산 참 = -1
+- FOR 0회 반복 시 매칭 NEXT 뒤로 이동, NEXT 스택 정리, `NEXT J,I`, 같은 변수 FOR 재진입
+- `READ A(I)`/`INPUT A(I)` 배열 원소 대입, 배열 자동 DIM(10), 배열/스칼라 이름 공간 분리, 다차원 배열
+- PRINT: 숫자 앞 부호 공백·뒤 공백, 7자리 유효숫자(`.3`, `1E+10`), `,` 14칸 존, 끝 `;`/`,` 줄바꿈 억제, TAB/SPC
+- 런타임 오류 시 이전 출력 유지 + "Division by zero in 20" 형식 메시지, 0으로 나누기/Type mismatch/Overflow 등은 BASIC 오류로 처리(호스트 크래시 없음)
+- REM/`'` 뒤 미토큰화, 미정의 문자열 변수 "", SIN/COS 범위 축소·정확도 개선, 괄호 없는 RND, RANDOMIZE
+- ON GOTO/GOSUB, `IF c GOTO n`, `=<` `=>` `><`, CHR$/STR$/VAL/ASC/CINT/FIX/SGN/EXP/LOG/ATN/SPACE$
+- DATA 원문 보존(대소문자·공백·빈 항목·키워드·부호), `RESTORE n`은 n 이상 첫 DATA 줄, 중복 줄 번호는 교체
+- `run_program(src, input_queue, max_steps)` 추가 (테스트용 단일 프로그램 실행)
+
+### 테스트
+- `src/gwbasic_test.go` 신규: 시맨틱 76건 + 호스트 크래시 방지 32건 (총 108 하위 테스트)
+- 기존 Stage1~6 기대 문자열 중 버그를 반영하던 부분만 수정 (숫자 앞뒤 공백, `EQ:1` → `EQ:-1` 등)
+
+### 한계
+- `\`·MOD·AND/OR의 16비트 범위 미검사, INPUT 한 줄을 여러 변수로 분할하지 않음, STOP은 END와 동일
+
 ## 2026-10-24 (Todo.md #102 — 버전 단일화 / 중복 헬퍼 정리)
 
 ### 변경

@@ -1757,10 +1757,10 @@ func TestRunStarlarkFile_GWBasicInterpreterStage1(t *testing.T) {
 
 	mustContain := []string{
 		"HELLO, GW-BASIC!",
-		"A * B =42",
-		"(A + B) * 2 =26",
-		"EQ:1",
-		"NEQ:0",
+		"A * B = 42 ",          // 숫자: 부호 자리 공백 + 뒤 공백
+		"(A + B) * 2 = 26 ",
+		"EQ:-1 ",                // GW-BASIC: 참 = -1
+		"NEQ: 0 ",
 		"=== 끝 ===",
 	}
 	for _, s := range mustContain {
@@ -1790,7 +1790,7 @@ func TestRunStarlarkFile_GWBasicInterpreterStage2(t *testing.T) {
 		"A > 3 OK",       // IF expr THEN <line> 분기
 		"INLINE THEN",    // IF expr THEN <stmt> 인라인
 		"INLINE ELSE",    // IF false THEN ... ELSE <stmt> 인라인
-		"SUM ODD9",       // FOR J=1 TO 5 STEP 2: 1+3+5=9
+		"SUM ODD 9 ",     // FOR J=1 TO 5 STEP 2: 1+3+5=9
 		"IN SUB",         // GOSUB 진입
 		"BACK",           // RETURN 후 복귀
 		"WEND DONE",      // WHILE 정상 종료
@@ -1802,13 +1802,13 @@ func TestRunStarlarkFile_GWBasicInterpreterStage2(t *testing.T) {
 	}
 
 	// FOR/NEXT의 본문이 정확한 횟수(3회) 실행됐는지 — 단순 카운트로 검증
-	forCount := strings.Count(out, "\n1\n2\n3\n")
+	forCount := strings.Count(out, "\n 1 \n 2 \n 3 \n")
 	if forCount < 1 {
 		t.Errorf("FOR 1 TO 3 본문(1,2,3)이 연속 출력되지 않음. 실제 출력:\n%s", out)
 	}
 
 	// WHILE 본문 (K < 4, 1,2,3)
-	whileCount := strings.Count(out, "\n1\n2\n3\nWEND DONE")
+	whileCount := strings.Count(out, "\n 1 \n 2 \n 3 \nWEND DONE")
 	if whileCount < 1 {
 		t.Errorf("WHILE 본문이 1,2,3 → WEND DONE 순으로 출력되지 않음. 실제 출력:\n%s", out)
 	}
@@ -1831,18 +1831,18 @@ func TestRunStarlarkFile_GWBasicInterpreterStage3(t *testing.T) {
 	}
 
 	mustContain := []string{
-		"PI:3.14",              // 부동소수점 리터럴
-		"HEX:31",               // &H1F = 31
-		"OCT:15",               // &O17 = 15
-		"LEN:11",               // LEN("HELLO WORLD") = 11
+		"PI: 3.14 ",             // 부동소수점 리터럴
+		"HEX: 31 ",              // &H1F = 31
+		"OCT: 15 ",              // &O17 = 15
+		"LEN: 11 ",              // LEN("HELLO WORLD") = 11
 		"LEFT:HELLO",           // LEFT$
 		"RIGHT:WORLD",          // RIGHT$
 		"MID:WORLD",            // MID$(s, 7, 5)
-		"INSTR:7",              // INSTR — 1-based
-		"INT:3",                // INT(3.7) = 3
-		"INTNEG:-4",            // INT(-3.2) = -4 (floor)
-		"ABS:5",                // ABS(-5)
-		"SQUARES:0149",         // PRINT A(0); A(1); A(2); A(3); A(4) → "0149" with " 16" 미포함 검사 필요
+		"INSTR: 7 ",             // INSTR — 1-based
+		"INT: 3 ",               // INT(3.7) = 3
+		"INTNEG:-4 ",           // INT(-3.2) = -4 (floor)
+		"ABS: 5 ",               // ABS(-5)
+		"SQUARES: 0  1  4  9  16 ", // PRINT A(0); A(1); A(2); A(3); A(4)
 	}
 	for _, s := range mustContain {
 		if !strings.Contains(out, s) {
@@ -1871,14 +1871,14 @@ func TestRunStarlarkFile_GWBasicInterpreterStage4(t *testing.T) {
 	}
 
 	mustContain := []string{
-		"READ:102030",   // PRINT A; B; C — 세미콜론은 빈 결합
+		"READ: 10  20  30 ", // PRINT A; B; C — 숫자마다 앞뒤 공백
 		"NAME:ALICE",    // 문자열 DATA
-		"RESTORED:10",   // RESTORE 후 다시 처음부터
+		"RESTORED: 10 ",  // RESTORE 후 다시 처음부터
 		"ENTER:",        // INPUT prompt 출력
 		"GOT:WORLD",     // INPUT queue 첫 값
-		"SQ(7):49",      // DEF FNSQ
-		"DBL(11):22",    // DEF FNDBL
-		"NESTED:36",     // FNSQ(FNDBL(3)) = (3+3)^2 = 36
+		"SQ(7): 49 ",     // DEF FNSQ
+		"DBL(11): 22 ",   // DEF FNDBL
+		"NESTED: 36 ",    // FNSQ(FNDBL(3)) = (3+3)^2 = 36
 	}
 	for _, s := range mustContain {
 		if !strings.Contains(out, s) {
@@ -1946,7 +1946,8 @@ func TestRunStarlarkFile_GWBasicInterpreterStage6(t *testing.T) {
 	}
 
 	// Fibonacci: 0,1,1,2,3,5,8,13,21,34
-	fibSeq := []string{"\n0\n", "\n1\n", "\n2\n", "\n3\n", "\n5\n", "\n8\n", "\n13\n", "\n21\n", "\n34\n"}
+	// 숫자는 부호 자리 공백 + 뒤 공백으로 출력된다 (GW-BASIC)
+	fibSeq := []string{"\n 0 \n", "\n 1 \n", "\n 2 \n", "\n 3 \n", "\n 5 \n", "\n 8 \n", "\n 13 \n", "\n 21 \n", "\n 34 \n"}
 	for _, s := range fibSeq {
 		if !strings.Contains(out, s) {
 			t.Errorf("Fibonacci: %q 가 출력에 없음. 실제 출력:\n%s", s, out)
@@ -1956,7 +1957,7 @@ func TestRunStarlarkFile_GWBasicInterpreterStage6(t *testing.T) {
 	// Primes 2..20 — 모두 출력에 있어야 함
 	primes := []string{"2", "3", "5", "7", "11", "13", "17", "19"}
 	for _, p := range primes {
-		if !strings.Contains(out, "\n"+p+"\n") {
+		if !strings.Contains(out, "\n "+p+" \n") {
 			t.Errorf("Primes: %q 가 출력에 없음.", p)
 		}
 	}

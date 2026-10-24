@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #87 — 설정/북마크/에디터 저장을 원자적으로)
+
+### 원인
+`os.WriteFile`(truncate 후 write)를 직접 사용 → 저장 중 크래시/디스크 부족 시 원본 손상, 설정·북마크 JSON이 깨지면
+북마크 목록이 사라지고 이후 추가가 영구 실패. 파일 북마크 read-modify-write에 락이 없어 동시 추가 시 유실.
+
+### 변경
+- `settings.go`(세션), `filebookmarks.go`: `writeFileAtomic` 사용
+- `filebookmarks.go`: 손상 파일은 `backupCorrupt` 후 빈 목록으로 시작, `App.bookmarkMu`로 직렬화, id 충돌 방지
+- `fileutil.go`: `writeUserFile` — 에디터 저장 시 기존 권한 유지 + 원자적 교체, 다른 프로그램이 잠가 교체가 거부되면 제자리 저장으로 폴백
+- 테스트: `atomicsave_test.go` 6건 (임시 파일 미잔존, 권한 유지, 손상 북마크 복구, 동시 추가 20건)
+
 ## 2026-10-24 (Todo.md #86 — FTP 비밀번호 평문 저장 금지, 북마크 동시성/손상 처리)
 
 ### 원인

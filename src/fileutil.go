@@ -46,3 +46,16 @@ func backupCorrupt(path string) {
 	backup := fmt.Sprintf("%s.corrupt-%s", path, time.Now().Format("20060102-150405.000000000"))
 	os.Rename(path, backup)
 }
+
+// writeUserFile: 사용자 파일 저장 (에디터). 기존 권한을 유지하며 원자적으로 교체합니다.
+// 다른 프로그램이 파일을 열고 있어 교체(rename)가 거부되면 기존 방식(제자리 덮어쓰기)으로 저장합니다.
+func writeUserFile(path string, data []byte) error {
+	perm := os.FileMode(0644)
+	if info, err := os.Stat(path); err == nil {
+		perm = info.Mode().Perm()
+	}
+	if err := writeFileAtomic(path, data, perm); err == nil {
+		return nil
+	}
+	return os.WriteFile(path, data, perm)
+}

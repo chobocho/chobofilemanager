@@ -82,7 +82,7 @@ func (a *App) SaveSessionState(leftTabs []string, leftActiveIdx int, rightTabs [
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return writeFileAtomic(path, data, 0644)
 }
 
 // LoadPanelPaths는 저장된 세션 정보를 불러옵니다.

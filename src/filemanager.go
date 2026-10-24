@@ -432,7 +432,7 @@ func parseEncodingName(name string) (Encoding, bool) {
 }
 
 func (fm *FileManager) WriteTextFile(path string, content string) error {
-	return os.WriteFile(path, []byte(content), 0644)
+	return writeUserFile(path, []byte(content))
 }
 
 // WriteTextFileWithEncoding: 지정 인코딩으로 저장합니다 (Todo #74).
@@ -455,7 +455,7 @@ func (fm *FileManager) WriteTextFileWithEncoding(path string, content string, en
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return writeUserFile(path, data)
 }
 
 // imageMimeType: 파일 확장자를 보고 표준 MIME 타입을 결정.

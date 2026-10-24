@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"sync"
 )
 
 type App struct {
 	ctx         context.Context
 	fileManager *FileManager
 	ftpManager  *FTPManager
+	bookmarkMu  sync.Mutex // 파일 북마크 read-modify-write 직렬화 (Todo #87)
 	configDir   string // 빈 문자열이면 기본값(~/.chobocho-commander) 사용; 테스트에서 격리된 임시 디렉토리 주입용
 }
 

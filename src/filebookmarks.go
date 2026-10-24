@@ -41,7 +41,9 @@ func (a *App) loadFileBookmarks() ([]FileBookmark, error) {
 	}
 	var bms []FileBookmark
 	if err := json.Unmarshal(data, &bms); err != nil {
-		return nil, err
+		// 손상된 파일은 백업하고 빈 목록으로 시작 — 이후 추가가 영구 실패하지 않도록 (Todo #87)
+		backupCorrupt(p)
+		return []FileBookmark{}, nil
 	}
 	return bms, nil
 }
@@ -55,10 +57,12 @@ func (a *App) saveFileBookmarks(bms []FileBookmark) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, data, 0644)
+	return writeFileAtomic(p, data, 0644)
 }
 
 func (a *App) GetFileBookmarks() []FileBookmark {
+	a.bookmarkMu.Lock()
+	defer a.bookmarkMu.Unlock()
 	bms, _ := a.loadFileBookmarks()
 	return bms
 }
@@ -68,11 +72,13 @@ func (a *App) AddFileBookmark(name, path string) error {
 	if err != nil {
 		return fmt.Errorf("경로가 존재하지 않습니다: %s", path)
 	}
+	a.bookmarkMu.Lock()
+	defer a.bookmarkMu.Unlock()
 	bms, err := a.loadFileBookmarks()
 	if err != nil {
 		return err
 	}
-	id := fmt.Sprintf("bm_%d", time.Now().UnixNano())
+	id := fmt.Sprintf("bm_%d_%d", time.Now().UnixNano(), len(bms))
 	bms = append(bms, FileBookmark{
 		ID:      id,
 		Name:    name,
@@ -84,6 +90,8 @@ func (a *App) AddFileBookmark(name, path string) error {
 }
 
 func (a *App) DeleteFileBookmark(id string) error {
+	a.bookmarkMu.Lock()
+	defer a.bookmarkMu.Unlock()
 	bms, err := a.loadFileBookmarks()
 	if err != nil {
 		return err

@@ -229,7 +229,7 @@
 - DPAPI 또는 비밀번호 미저장 옵션
 - `SaveBookmark`/`DeleteBookmark` 락 없음, `json.Unmarshal` 실패 무시 후 덮어써서 전체 소실
 
-## 87. 설정/북마크/에디터 저장이 원자적이지 않음
+## ~~87. 설정/북마크/에디터 저장이 원자적이지 않음~~ ✓ 완료 (2026-10-24)
 - `os.WriteFile` 직접 사용 → 저장 중 크래시 시 원본 손상. temp + rename
 - 파일 북마크 read-modify-write에 락 없음
 

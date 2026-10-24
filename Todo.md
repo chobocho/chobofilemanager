@@ -233,7 +233,7 @@
 - `os.WriteFile` 직접 사용 → 저장 중 크래시 시 원본 손상. temp + rename
 - 파일 북마크 read-modify-write에 락 없음
 
-## 88. settings.json의 음수 activeIdx로 시작 시 panic
+## ~~88. settings.json의 음수 activeIdx로 시작 시 panic~~ ✓ 완료 (2026-10-24)
 - `settings.go` `idx < 0` 미검사. `filterValidPaths`가 경로 제거 후 ActiveIdx 미보정
 
 ## 89. 압축/압축 해제 에러 무시 + zip 형식 오류

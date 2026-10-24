@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #88 — settings.json 음수 activeIdx로 인한 panic 수정)
+
+### 원인
+`SaveSessionState`/`LoadPanelPaths`가 `idx >= len`만 검사하고 음수는 검사하지 않아
+`activeIdx: -1`이 저장/수정되면 시작할 때마다 index out of range panic. 존재하지 않는 탭 경로를 제거한 뒤에도
+`ActiveIdx`를 보정하지 않아 다른 탭이 활성화됨.
+
+### 변경
+- `settings.go`: `clampTabIdx`(음수·범위 밖 → 0), `normalizeTabs`(경로 필터 후 원래 활성 경로의 새 인덱스로 보정)
+- 테스트: `settings_idx_test.go` 3건 (저장 시 음수, 파일의 음수, 필터 후 활성 탭 유지)
+
 ## 2026-10-24 (Todo.md #87 — 설정/북마크/에디터 저장을 원자적으로)
 
 ### 원인

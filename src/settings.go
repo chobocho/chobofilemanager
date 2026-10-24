@@ -56,12 +56,8 @@ func (a *App) SaveSessionState(leftTabs []string, leftActiveIdx int, rightTabs [
 		return err
 	}
 
-	if leftActiveIdx >= len(leftTabs) {
-		leftActiveIdx = 0
-	}
-	if rightActiveIdx >= len(rightTabs) {
-		rightActiveIdx = 0
-	}
+	leftActiveIdx = clampTabIdx(leftActiveIdx, len(leftTabs))
+	rightActiveIdx = clampTabIdx(rightActiveIdx, len(rightTabs))
 
 	leftPath := ""
 	if len(leftTabs) > 0 {
@@ -103,10 +99,7 @@ func (a *App) LoadPanelPaths() AppSettings {
 
 	// 탭 정보가 있으면 각 경로 검증
 	if settings.LeftTabs != nil {
-		settings.LeftTabs.Paths = filterValidPaths(settings.LeftTabs.Paths)
-		if settings.LeftTabs.ActiveIdx >= len(settings.LeftTabs.Paths) {
-			settings.LeftTabs.ActiveIdx = 0
-		}
+		normalizeTabs(settings.LeftTabs)
 		// 이전 버전 호환: LeftPath도 검증된 활성 탭 경로로 갱신
 		if len(settings.LeftTabs.Paths) > 0 {
 			settings.LeftPath = settings.LeftTabs.Paths[settings.LeftTabs.ActiveIdx]
@@ -123,10 +116,7 @@ func (a *App) LoadPanelPaths() AppSettings {
 	}
 
 	if settings.RightTabs != nil {
-		settings.RightTabs.Paths = filterValidPaths(settings.RightTabs.Paths)
-		if settings.RightTabs.ActiveIdx >= len(settings.RightTabs.Paths) {
-			settings.RightTabs.ActiveIdx = 0
-		}
+		normalizeTabs(settings.RightTabs)
 		if len(settings.RightTabs.Paths) > 0 {
 			settings.RightPath = settings.RightTabs.Paths[settings.RightTabs.ActiveIdx]
 		} else {
@@ -153,4 +143,29 @@ func filterValidPaths(paths []string) []string {
 		}
 	}
 	return valid
+}
+
+// clampTabIdx: 범위 밖(음수 포함) 인덱스는 0으로 (Todo #88 — 손상된 settings.json으로 인한 panic 방지)
+func clampTabIdx(idx, n int) int {
+	if idx < 0 || idx >= n {
+		return 0
+	}
+	return idx
+}
+
+// normalizeTabs: 존재하지 않는 경로를 제거하면서 원래 활성 탭을 계속 가리키도록 인덱스를 보정합니다.
+func normalizeTabs(t *PanelTabsState) {
+	idx := clampTabIdx(t.ActiveIdx, len(t.Paths))
+	active := ""
+	if idx < len(t.Paths) {
+		active = t.Paths[idx]
+	}
+	t.Paths = filterValidPaths(t.Paths)
+	t.ActiveIdx = 0
+	for i, p := range t.Paths {
+		if p == active {
+			t.ActiveIdx = i
+			break
+		}
+	}
 }

@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261024_233705.md](history_20261024_233705.md) (2026-10-24 23:37 시점 전체 백업)
 
+## 2026-10-24 (Todo.md #104 — Go 테스트 커버리지 보완, 완료)
+
+### 변경
+- `*_cov_test.go` 5개 신규 (92개 테스트 함수): App 바인딩 전체를 임시 폴더/가짜 FTP 서버로 종단 검증, FTP 목록·업로드·MKD·삭제·히스토리,
+  복사/이동/replaceWith 복구 경로, 원자적 저장 실패, 인코딩 전 분기, 설정 구버전/손상/쓰기 불가, 파일 북마크, Windows 드라이브
+- 가짜 FTP 서버(`fakeftp_test.go`): LIST/NLST, STOR, MKD/RMD/DELE, PWD/CWD/CDUP 지원 추가
+- Go 커버리지: 71.8% → 87.5% (`-count=2` 반복 통과, Linux vet 통과)
+- 미커버: 앱/휴지통을 실제 실행하는 함수(OpenFile, OpenCmdWindow, trashItems, NewApp), 다른 볼륨 간 이동 폴백, 개발자 모드가 필요한 심볼릭 링크 테스트
+
 ## 2026-10-24 (Todo.md #105 — FTP 전송 실패 메시지가 가려지는 문제)
 
 ### 원인

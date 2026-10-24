@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
+	"path"
 	"strings"
 	"sync"
 	"testing"
@@ -20,6 +22,13 @@ type fakeFTPServer struct {
 	// RETR 시 데이터 채널로 보낼 내용과 전송 후 최종 응답 (기본 "226 done")
 	files     map[string][]byte
 	retrFinal string
+	// LIST 응답: 경로 → unix 형식 줄 목록 (없으면 550). MKD/RMD/STOR/DELE 결과 기록
+	listings map[string][]string
+	dirs     map[string]bool // CWD 가능한 폴더 (listings 키도 포함)
+	stored   map[string][]byte
+	made     []string
+	removed  []string
+	deleted  []string
 }
 
 func startFakeFTP(t *testing.T) *fakeFTPServer {
@@ -65,6 +74,7 @@ func (s *fakeFTPServer) handle(c net.Conn) {
 	reply("220 fake ready")
 	r := bufio.NewReader(c)
 	var dataLn net.Listener
+	cwd := "/"
 	defer func() {
 		if dataLn != nil {
 			dataLn.Close()
@@ -118,6 +128,83 @@ func (s *fakeFTPServer) handle(c net.Conn) {
 				final = "226 done"
 			}
 			reply(final)
+		case "LIST", "NLST":
+			// 클라이언트가 "LIST -a /path" 형태로 보낼 수도 있으므로 옵션 제거
+			p := strings.TrimSpace(strings.TrimPrefix(arg, "-a"))
+			if p == "" {
+				p = cwd
+			}
+			s.mu.Lock()
+			lines, ok := s.listings[p]
+			s.mu.Unlock()
+			if !ok || dataLn == nil {
+				reply("550 no such directory")
+				continue
+			}
+			reply("150 listing")
+			dc, err := dataLn.Accept()
+			if err != nil {
+				return
+			}
+			for _, l := range lines {
+				dc.Write([]byte(l + "\r\n"))
+			}
+			dc.Close()
+			reply("226 done")
+		case "STOR":
+			if dataLn == nil {
+				reply("425 no data connection")
+				continue
+			}
+			reply("150 ok to send")
+			dc, err := dataLn.Accept()
+			if err != nil {
+				return
+			}
+			data, _ := io.ReadAll(dc)
+			dc.Close()
+			s.mu.Lock()
+			if s.stored == nil {
+				s.stored = map[string][]byte{}
+			}
+			s.stored[arg] = data
+			s.mu.Unlock()
+			reply("226 stored")
+		case "MKD":
+			s.mu.Lock()
+			s.made = append(s.made, arg)
+			s.mu.Unlock()
+			reply(fmt.Sprintf("257 \"%s\" created", arg))
+		case "RMD":
+			s.mu.Lock()
+			s.removed = append(s.removed, arg)
+			s.mu.Unlock()
+			reply("250 removed")
+		case "DELE":
+			s.mu.Lock()
+			s.deleted = append(s.deleted, path.Join(cwd, arg))
+			s.mu.Unlock()
+			reply("250 deleted")
+		case "PWD":
+			reply(fmt.Sprintf("257 \"%s\" is current directory", cwd))
+		case "CWD":
+			target := arg
+			if !strings.HasPrefix(target, "/") {
+				target = path.Join(cwd, target)
+			}
+			s.mu.Lock()
+			_, listed := s.listings[target]
+			ok := listed || s.dirs[target] || target == "/"
+			s.mu.Unlock()
+			if !ok {
+				reply("550 no such directory")
+				continue
+			}
+			cwd = target
+			reply("250 ok")
+		case "CDUP":
+			cwd = path.Dir(cwd)
+			reply("250 ok")
 		case "USER":
 			reply("331 need password")
 		case "PASS":

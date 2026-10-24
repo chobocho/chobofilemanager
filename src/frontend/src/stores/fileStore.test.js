@@ -1306,3 +1306,17 @@ describe('Todo #79 — selectAll / toggleHidden 숨김 파일', () => {
     expect([...useFileStore.getState().left.selected]).toEqual(['/t/a.txt'])
   })
 })
+
+// ─── Todo #89 — 압축 해제 실패 표시 ─────────────────────────────────────────────
+describe('Todo #89 — extract 실패', () => {
+  it('ARC-01: ExtractArchive 실패 시 상태 표시줄에 실패 표시 (예외 전파 없음)', async () => {
+    vi.resetModules()
+    const useFileStore = (await import('./fileStore.js')).useFileStore
+    const api = (await import('../wailsjs/runtime')).default
+    api.ExtractArchive.mockRejectedValueOnce('checksum error')
+    api.ListDirectory.mockResolvedValue({ path: '/a', files: [] })
+    useFileStore.setState(s => ({ left: { ...s.left, path: '/a' } }))
+    await useFileStore.getState().extract('left', '/a/x.zip')
+    expect(useFileStore.getState().status).toContain('Extract failed: checksum error')
+  })
+})

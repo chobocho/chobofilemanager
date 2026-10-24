@@ -236,7 +236,7 @@
 ## ~~88. settings.json의 음수 activeIdx로 시작 시 panic~~ ✓ 완료 (2026-10-24)
 - `settings.go` `idx < 0` 미검사. `filterValidPaths`가 경로 제거 후 ActiveIdx 미보정
 
-## 89. 압축/압축 해제 에러 무시 + zip 형식 오류
+## ~~89. 압축/압축 해제 에러 무시 + zip 형식 오류~~ ✓ 완료 (2026-10-24)
 - `CompressItems`: Create/Open/io.Copy/Close 에러 무시, 엔트리 이름에 `\` 사용, 빈 폴더 누락, 루프 안 defer
 - `ExtractArchive`: 모든 실패를 건너뛰고 성공 반환
 

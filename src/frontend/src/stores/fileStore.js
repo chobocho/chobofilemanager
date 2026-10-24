@@ -563,11 +563,16 @@ export const useFileStore = create((set, get) => ({
     }
   },
 
+  // 백엔드가 실패(손상, 안전하지 않은 경로 등)를 보고하므로 상태 표시줄에 표시 (Todo #89)
   extract: async (panel, archivePath) => {
     const state = get()[panel]
-    await api.ExtractArchive(archivePath, state.path)
+    try {
+      await api.ExtractArchive(archivePath, state.path)
+      set({ status: 'Extracted successfully' })
+    } catch (err) {
+      set({ status: `Extract failed: ${err}` })
+    }
     await get().refresh(panel)
-    set({ status: 'Extracted successfully' })
   },
 
   openFile: async (path) => {

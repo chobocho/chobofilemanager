@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #89 — 압축/압축 해제 에러 무시 및 zip 형식 오류 수정)
+
+### 원인
+- `CompressItems`: WalkDir 콜백의 Create/Open/Copy 실패와 `w.Close()` 에러를 무시 → 잘린 zip이 성공 처리.
+  엔트리 이름에 `\` 사용(다른 OS에서 `dir\file` 파일 생성), 빈 폴더 누락, 압축 대상 폴더 안에 zip 생성 가능, 루프 안 defer
+- `ExtractArchive`: MkdirAll/Open/Create/Copy/Close 실패를 모두 건너뛰고 성공 반환
+
+### 변경
+- `CompressItems`: 임시 파일에 쓰고 성공 시 rename, `addZipEntry`(FileInfoHeader, '/' 이름, 폴더 엔트리, Deflate), 모든 에러 반환,
+  압축 대상 폴더 내부 경로 거부
+- `ExtractArchive`: 단계별 에러 반환(`extractZipFile`, 실패 시 부분 파일 삭제), zip slip 항목은 건너뛰고 개수를 에러로 보고
+- `fileStore.extract`: 실패 시 상태 표시줄에 표시
+- 테스트: `archive_test.go` 6건, 프론트 ARC-01
+
 ## 2026-10-24 (Todo.md #88 — settings.json 음수 activeIdx로 인한 panic 수정)
 
 ### 원인

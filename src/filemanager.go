@@ -679,57 +679,98 @@ func (fm *FileManager) GetFileSize(path string) (int64, error) {
 	return total, err
 }
 
+// CompressItems: 임시 파일에 압축한 뒤 성공 시에만 destPath로 교체합니다 (Todo #89).
+// 엔트리 이름은 zip 규격대로 '/'를 사용하고 빈 폴더도 포함합니다. 모든 에러를 보고합니다.
 func (fm *FileManager) CompressItems(sources []string, destPath string) error {
 	if !strings.HasSuffix(destPath, ".zip") {
 		destPath += ".zip"
 	}
-	zf, err := os.Create(destPath)
+	for _, src := range sources {
+		if isSubPath(src, destPath) {
+			return fmt.Errorf("압축 파일을 압축 대상 폴더 안에 만들 수 없습니다: %s", filepath.Base(src))
+		}
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(destPath), filepath.Base(destPath)+".*.tmp")
 	if err != nil {
 		return err
 	}
-	defer zf.Close()
+	tmpName := tmp.Name()
+	fail := func(err error) error {
+		tmp.Close()
+		os.Remove(tmpName)
+		return err
+	}
 
-	w := zip.NewWriter(zf)
-	defer w.Close()
-
+	w := zip.NewWriter(tmp)
 	for _, src := range sources {
 		info, err := os.Stat(src)
 		if err != nil {
-			return err
+			return fail(err)
 		}
-		if info.IsDir() {
-			base := filepath.Dir(src)
-			filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
-				if err != nil || d.IsDir() {
-					return nil
-				}
-				rel, _ := filepath.Rel(base, path)
-				fw, err := w.Create(rel)
-				if err != nil {
-					return nil
-				}
-				f, err := os.Open(path)
-				if err != nil {
-					return nil
-				}
-				defer f.Close()
-				io.Copy(fw, f)
-				return nil
-			})
-		} else {
-			fw, err := w.Create(filepath.Base(src))
+		if !info.IsDir() {
+			if err := addZipEntry(w, src, filepath.Base(src), info); err != nil {
+				return fail(err)
+			}
+			continue
+		}
+		base := filepath.Dir(src)
+		err = filepath.WalkDir(src, func(path string, d os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			rel, err := filepath.Rel(base, path)
 			if err != nil {
 				return err
 			}
-			f, err := os.Open(src)
+			fi, err := d.Info()
 			if err != nil {
 				return err
 			}
-			defer f.Close()
-			io.Copy(fw, f)
+			return addZipEntry(w, path, filepath.ToSlash(rel), fi)
+		})
+		if err != nil {
+			return fail(err)
 		}
 	}
+	if err := w.Close(); err != nil {
+		return fail(err)
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, destPath); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
 	return nil
+}
+
+// addZipEntry: 파일 또는 폴더(이름 끝 '/') 엔트리를 추가합니다.
+func addZipEntry(w *zip.Writer, path, name string, info os.FileInfo) error {
+	hdr, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+	hdr.Name = name
+	if info.IsDir() {
+		hdr.Name += "/"
+		_, err := w.CreateHeader(hdr)
+		return err
+	}
+	hdr.Method = zip.Deflate
+	fw, err := w.CreateHeader(hdr)
+	if err != nil {
+		return err
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(fw, f)
+	return err
 }
 
 func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
@@ -757,30 +798,49 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 	}
 	defer r.Close()
 
+	// Todo #89: 각 단계 에러를 보고. 디렉터리 밖으로 나가는 엔트리(zip slip)는 건너뛰고 마지막에 에러로 알림
+	skipped := 0
 	for _, f := range r.File {
 		destPath := filepath.Join(destDir, f.Name)
 		if !strings.HasPrefix(filepath.Clean(destPath), filepath.Clean(destDir)+string(os.PathSeparator)) {
+			skipped++
 			continue // zip slip protection
 		}
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(destPath, 0755)
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				return err
+			}
 			continue
 		}
-		os.MkdirAll(filepath.Dir(destPath), 0755)
-		rc, err := f.Open()
-		if err != nil {
-			continue
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return err
 		}
-		outFile, err := os.Create(destPath)
-		if err != nil {
-			rc.Close()
-			continue
+		if err := extractZipFile(f, destPath); err != nil {
+			return fmt.Errorf("%s 압축 해제 실패: %w", f.Name, err)
 		}
-		io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
+	}
+	if skipped > 0 {
+		return fmt.Errorf("안전하지 않은 경로의 항목 %d개를 건너뛰었습니다", skipped)
 	}
 	return nil
+}
+
+func extractZipFile(f *zip.File, destPath string) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+	out, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, rc); err != nil {
+		out.Close()
+		os.Remove(destPath)
+		return err
+	}
+	return out.Close()
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

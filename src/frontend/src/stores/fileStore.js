@@ -47,6 +47,13 @@ export function getCursorFile(panelState) {
   return visible[panelState.cursor] || null
 }
 
+// 패널별 목록 요청 순번 — 늦게 도착한 이전 응답이 최신 이동 결과를 덮어쓰지 않도록 (Todo #92)
+const navTokens = { left: 0, right: 0 }
+function beginNav(panel) {
+  const token = ++navTokens[panel]
+  return () => navTokens[panel] === token
+}
+
 export function cursorAfterDelete(minDeletedIdx, remainingCount) {
   if (minDeletedIdx < 0 || remainingCount === 0) return -1
   return Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)
@@ -142,12 +149,16 @@ export const useFileStore = create((set, get) => ({
     if (path) api.ChangeWorkingDirectory(path).catch(() => {})
   },
 
+  // 반환값: 결과가 적용되었으면 true (더 새로운 이동에 밀렸거나 실패하면 false)
   navigate: async (panel, path) => {
-    const state = get()[panel]
+    const isCurrent = beginNav(panel)
     set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
     try {
       const result = await api.ListDirectory(path)
+      if (!isCurrent()) return false
       const files = result.files || []
+      // 응답 시점의 history 기준 (await 전 상태를 쓰면 그 사이 변경이 사라짐)
+      const state = get()[panel]
       // 같은 경로 재조회(refresh)는 history에 중복 추가하지 않음 (Todo #103)
       const kept = state.history.slice(0, state.historyIndex + 1)
       const newHistory = kept[kept.length - 1] === result.path ? kept : [...kept, result.path]
@@ -164,13 +175,10 @@ export const useFileStore = create((set, get) => ({
           cursorOnParent: emptyCursorOnParent(result.path, files, s[panel].showHidden),
         }
       }))
-      // 세션 저장 (에러는 무시)
-      get()._saveSession()
-      // 활성 패널이 이동한 경우 프로세스 작업 폴더도 변경
-      if (get().activePanel === panel) {
-        api.ChangeWorkingDirectory(result.path).catch(() => {})
-      }
+      get()._afterNavigate(panel, result.path)
+      return true
     } catch (err) {
+      if (!isCurrent()) return false
       set(s => ({
         [panel]: {
           ...s[panel],
@@ -178,6 +186,46 @@ export const useFileStore = create((set, get) => ({
           error: err.message || String(err),
         }
       }))
+      return false
+    }
+  },
+
+  // 이동 후 공통 처리: 세션 저장, 활성 패널이면 프로세스 작업 폴더 변경
+  _afterNavigate: (panel, path) => {
+    get()._saveSession()
+    if (get().activePanel === panel) {
+      api.ChangeWorkingDirectory(path).catch(() => {})
+    }
+  },
+
+  // history의 다른 위치로 이동 (뒤로/앞으로 공통). 성공했을 때만 historyIndex를 바꿈 (Todo #92)
+  _navigateHistory: async (panel, newIndex) => {
+    const state = get()[panel]
+    const path = state.history[newIndex]
+    const isCurrent = beginNav(panel)
+    set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
+    try {
+      const result = await api.ListDirectory(path)
+      if (!isCurrent()) return false
+      const files = result.files || []
+      set(s => ({
+        [panel]: {
+          ...s[panel],
+          path: result.path,
+          files,
+          selected: new Set(),
+          loading: false,
+          historyIndex: newIndex,
+          cursor: 0,
+          cursorOnParent: emptyCursorOnParent(result.path, files, s[panel].showHidden),
+        }
+      }))
+      get()._afterNavigate(panel, result.path)
+      return true
+    } catch (err) {
+      if (!isCurrent()) return false
+      set(s => ({ [panel]: { ...s[panel], loading: false, error: err.message || String(err) } }))
+      return false
     }
   },
 
@@ -185,7 +233,7 @@ export const useFileStore = create((set, get) => ({
   // 커서를 둔다. FilePanel이 panel.cursor 변경에 반응해 scrollIntoView 처리.
   // navigateBack의 cursor 복원 로직과 동일 패턴(showHidden 필터링 후 인덱스 검색).
   navigateAndFocus: async (panel, dirPath, fileName) => {
-    await get().navigate(panel, dirPath)
+    if (!(await get().navigate(panel, dirPath))) return
     if (!fileName) return
     const st = get()[panel]
     const visible = st.showHidden ? st.files : st.files.filter(f => !f.isHidden)
@@ -197,50 +245,24 @@ export const useFileStore = create((set, get) => ({
 
   navigateBack: async (panel) => {
     const state = get()[panel]
-    if (state.historyIndex > 0) {
-      const prevPath = state.history[state.historyIndex]
-      const newIndex = state.historyIndex - 1
-      const path = state.history[newIndex]
-      set(s => ({ [panel]: { ...s[panel], historyIndex: newIndex } }))
-      const result = await api.ListDirectory(path)
-      set(s => ({
-        [panel]: {
-          ...s[panel],
-          path: result.path,
-          files: result.files || [],
-          selected: new Set(),
-          loading: false,
-        }
-      }))
-      // 직전에 있던 폴더명으로 커서 이동
-      const childName = getLastPathSegment(prevPath)
-      if (!childName) return
-      const newState = get()[panel]
-      const visible = newState.showHidden ? newState.files : newState.files.filter(f => !f.isHidden)
-      const idx = visible.findIndex(f => f.name === childName || f.name === childName + '/')
-      if (idx >= 0) {
-        set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
-      }
+    if (state.historyIndex <= 0) return
+    const prevPath = state.history[state.historyIndex]
+    if (!(await get()._navigateHistory(panel, state.historyIndex - 1))) return
+    // 직전에 있던 폴더명으로 커서 이동
+    const childName = getLastPathSegment(prevPath)
+    if (!childName) return
+    const newState = get()[panel]
+    const visible = newState.showHidden ? newState.files : newState.files.filter(f => !f.isHidden)
+    const idx = visible.findIndex(f => f.name === childName || f.name === childName + '/')
+    if (idx >= 0) {
+      set(s => ({ [panel]: { ...s[panel], cursor: idx, cursorOnParent: false } }))
     }
   },
 
   navigateForward: async (panel) => {
     const state = get()[panel]
-    if (state.historyIndex < state.history.length - 1) {
-      const newIndex = state.historyIndex + 1
-      const path = state.history[newIndex]
-      set(s => ({ [panel]: { ...s[panel], historyIndex: newIndex } }))
-      const result = await api.ListDirectory(path)
-      set(s => ({
-        [panel]: {
-          ...s[panel],
-          path: result.path,
-          files: result.files || [],
-          selected: new Set(),
-          loading: false,
-        }
-      }))
-    }
+    if (state.historyIndex >= state.history.length - 1) return
+    await get()._navigateHistory(panel, state.historyIndex + 1)
   },
 
   navigateUp: async (panel) => {
@@ -248,7 +270,7 @@ export const useFileStore = create((set, get) => ({
     const currentPath = state.path
     const parent = await api.GetParentPath(currentPath)
     if (parent === currentPath) return
-    await get().navigate(panel, parent)
+    if (!(await get().navigate(panel, parent))) return
     // 이전 폴더 위에 커서 위치
     const childName = getLastPathSegment(currentPath)
     if (!childName) return
@@ -740,13 +762,16 @@ export const useFileStore = create((set, get) => ({
       }
     }))
 
+    const isCurrent = beginNav(panel)
     try {
       const result = await api.ListDirectory(target.path)
+      if (!isCurrent()) return
       set(st => ({
         [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
       }))
       get()._saveSession()
     } catch (err) {
+      if (!isCurrent()) return
       set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
     }
   },
@@ -776,13 +801,16 @@ export const useFileStore = create((set, get) => ({
       }
     }))
 
+    const isCurrent = beginNav(panel)
     try {
       const result = await api.ListDirectory(target.path)
+      if (!isCurrent()) return
       set(st => ({
         [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
       }))
       get()._saveSession()
     } catch (err) {
+      if (!isCurrent()) return
       set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
     }
   },

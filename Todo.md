@@ -247,7 +247,7 @@
 - `fileStore.js` `parentDir('C:\foo')` → `'C:'`, `parentDir('/foo')` → `'/foo'`
 - `navigateToBookmark`가 `ListDirectory('C:')` 호출 (현재 작업 폴더 목록이 나옴)
 
-## 92. 폴더 이동 경합 및 뒤로/앞으로 상태 오류
+## ~~92. 폴더 이동 경합 및 뒤로/앞으로 상태 오류~~ ✓ 완료 (2026-10-24)
 - `navigate`/`switchTab`: 늦게 온 이전 응답이 현재 목록 덮어씀 (요청 ID 필요)
 - `navigateBack/Forward`: try/catch 없음, 커서 범위 초과, 세션/작업 폴더 미갱신
 

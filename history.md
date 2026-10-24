@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #92 — 폴더 이동 경합, 뒤로/앞으로 상태 오류 수정)
+
+### 원인
+- `navigate`/`switchTab`/`closeTab`에 요청 순번이 없어 늦게 도착한 이전 응답이 현재 목록을 덮어씀.
+  `navigate`가 await 전 history를 사용해 그 사이 이동이 history에서 사라짐
+- `navigateBack/Forward`: try/catch 없음, 목록 조회 전에 historyIndex 변경, 커서 미초기화(범위 초과),
+  세션 저장·작업 폴더 변경 누락
+
+### 변경
+- `fileStore.js`: 패널별 `beginNav` 토큰 — 최신 요청이 아니면 결과/에러 무시. `navigate`는 적용 여부(boolean) 반환
+- `_navigateHistory`: 뒤로/앞으로 공통 — 성공 시에만 historyIndex 변경, 커서 0(또는 빈 폴더면 [..]), `_afterNavigate`
+- `_afterNavigate`: 세션 저장 + 활성 패널이면 `ChangeWorkingDirectory`
+- `navigateAndFocus`/`navigateUp`: 밀린 이동이면 커서 설정 생략
+- 테스트: `fileStore.nav.test.js` NAV-01~06 (총 391건 통과)
+
 ## 2026-10-24 (Todo.md #91 — 드라이브 루트에서 작업 후 목록 갱신 안 됨)
 
 ### 원인

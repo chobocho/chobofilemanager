@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #71 — moveOne 복사 폴백을 cross-device로 한정)
+
+### 원인
+`moveOne`이 모든 Rename 실패를 다른 볼륨 이동으로 간주 → 같은 이름 폴더가 있으면 조용히 병합·덮어쓰기,
+파일 사용 중/접근 거부 시 복사 후 원본 삭제를 시도해 원본이 반쯤 지워질 수 있었음.
+
+### 변경
+- `transfer.go`: `isCrossDevice` (EXDEV, Windows ERROR_NOT_SAME_DEVICE=17)
+- `moveOne`: Rename 실패가 cross-device일 때만 copy+delete, 그 외에는 원래 에러 반환
+- 테스트: `transfer_test.go` 2건 추가 (에러 판별, 기존 폴더 병합 방지). Linux 빌드 vet 확인
+
 ## 2026-10-24 (Todo.md #70 — 폴더를 자기 하위로 복사·이동 시 무한 재귀 수정)
 
 ### 원인

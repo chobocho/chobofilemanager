@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -70,4 +72,20 @@ func isSubPath(parent, child string) bool {
 // errIntoSelf: 폴더를 자기 자신의 하위로 복사·이동하려 할 때 반환 (Todo #70 — 무한 재귀 방지)
 func errIntoSelf(src string) error {
 	return fmt.Errorf("폴더를 자기 자신의 하위 폴더로 복사·이동할 수 없습니다: %s", filepath.Base(src))
+}
+
+// Windows ERROR_NOT_SAME_DEVICE
+const errnoNotSameDevice = syscall.Errno(17)
+
+// isCrossDevice: Rename이 다른 볼륨 간 이동이라 실패했는지 확인합니다 (Todo #71).
+// 그 외 실패(대상 폴더 존재, 접근 거부, 사용 중 등)는 복사 폴백 대상이 아닙니다.
+func isCrossDevice(err error) bool {
+	var errno syscall.Errno
+	if !errors.As(err, &errno) {
+		return false
+	}
+	if errno == syscall.EXDEV {
+		return true
+	}
+	return runtime.GOOS == "windows" && errno == errnoNotSameDevice
 }

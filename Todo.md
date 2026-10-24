@@ -166,7 +166,7 @@
 - `copyDir`: `D:\a` → `D:\a\a\a\...` 생성. Windows는 대소문자 무시 비교 필요
 - 68~70 공통: 복사/이동 경로 검증 헬퍼(동일 경로, 하위 경로) 추가
 
-## 71. moveOne이 모든 Rename 실패를 cross-device로 간주
+## ~~71. moveOne이 모든 Rename 실패를 cross-device로 간주~~ ✓ 완료 (2026-10-24)
 - 같은 이름 폴더 존재 시 덮어쓰기 없이 조용히 병합, 사용 중 파일은 복사 후 원본 반쯤 삭제
 - `ERROR_NOT_SAME_DEVICE`/EXDEV일 때만 copy+delete 폴백
 

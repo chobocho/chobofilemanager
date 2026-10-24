@@ -233,8 +233,9 @@ func (fm *FileManager) moveOne(src, destPath string) error {
 	if isSubPath(src, destPath) {
 		return errIntoSelf(src)
 	}
-	if err := os.Rename(src, destPath); err == nil {
-		return nil
+	err := os.Rename(src, destPath)
+	if err == nil || !isCrossDevice(err) {
+		return err
 	}
 	// Cross-device: copy then delete
 	info, err := os.Stat(src)

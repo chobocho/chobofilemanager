@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -268,5 +269,42 @@ func TestMoveItems_IntoOwnSubdirRejected(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(sub, "a")); !os.IsNotExist(err) {
 		t.Error("no partial copy should be created")
+	}
+}
+
+// ─── Todo #71: moveOne은 cross-device일 때만 복사 폴백 ────────────────────────
+
+func TestIsCrossDevice(t *testing.T) {
+	if !isCrossDevice(&os.LinkError{Op: "rename", Err: syscall.EXDEV}) {
+		t.Error("EXDEV should be cross-device")
+	}
+	if runtime.GOOS == "windows" && !isCrossDevice(&os.LinkError{Op: "rename", Err: syscall.Errno(17)}) {
+		t.Error("ERROR_NOT_SAME_DEVICE should be cross-device")
+	}
+	if isCrossDevice(&os.LinkError{Op: "rename", Err: syscall.ENOENT}) {
+		t.Error("ENOENT must not be cross-device")
+	}
+	if isCrossDevice(nil) {
+		t.Error("nil is not cross-device")
+	}
+}
+
+func TestMoveItems_ExistingDirIsNotMerged(t *testing.T) {
+	base := t.TempDir()
+	src := filepath.Join(base, "src", "d")
+	dst := filepath.Join(base, "dst")
+	os.MkdirAll(src, 0755)
+	os.MkdirAll(filepath.Join(dst, "d"), 0755)
+	os.WriteFile(filepath.Join(src, "same.txt"), []byte("new"), 0644)
+	os.WriteFile(filepath.Join(dst, "d", "same.txt"), []byte("old"), 0644)
+
+	if err := newTestFM().MoveItems([]string{src}, dst); err == nil {
+		t.Error("plain move onto an existing dir should fail")
+	}
+	if data, _ := os.ReadFile(filepath.Join(dst, "d", "same.txt")); string(data) != "old" {
+		t.Errorf("existing dest file must not be overwritten, got %q", data)
+	}
+	if _, err := os.Stat(filepath.Join(src, "same.txt")); err != nil {
+		t.Error("source must remain intact")
 	}
 }

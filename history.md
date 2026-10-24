@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261024_233705.md](history_20261024_233705.md) (2026-10-24 23:37 시점 전체 백업)
 
+## 2026-10-24 (Todo.md #104 — 프론트엔드 테스트 커버리지 보완)
+
+### 변경
+- `@vitest/coverage-v8` 개발 의존성 추가 (`npx vitest run --coverage`)
+- `*.cov.test.js` 12개 신규 (303건): App 단축키 흐름(F8/Shift+Del/F5/F6 충돌/F7/Ctrl+N/F2/F3/F4/Tab/FTP 전환),
+  fileStore/ftpStore 액션, FTPManager 접속~다운로드/업로드/삭제, FilePanel/FileViewer/TextEditor 조작,
+  ConfirmDialog/BookmarkDialog/소형 컴포넌트, wailsjs mock
+- 프론트 커버리지: 구문 37.0% → 96.6%, 분기 36.4% → 90.1% (총 716건 통과)
+- 발견된 버그 4건은 skip 테스트로 남기고 Todo #105~#107로 등록
+
 ## 2026-10-24 (Todo.md #101 — GW-BASIC 인터프리터 문법 보완)
 
 ### 변경 (`examples/gwbasic.star` 코어 재작성, 그래픽/사운드 헬퍼와 데모 유지)

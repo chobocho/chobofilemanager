@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, FolderPlus, FilePlus, Edit3, Search as SearchIcon, X, Terminal, Play, Eye, FileEdit } from 'lucide-react'
-import { useFileStore } from '../stores/fileStore'
+import { useFileStore, getCursorFile } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import styles from '../styles/Dialogs.module.css'
 
@@ -156,8 +156,7 @@ export function NewItemDialog({ type, onConfirm, onClose }) {
 export function RenameDialog({ onConfirm, onClose }) {
   const store = useFileStore()
   const panel = store[store.activePanel]
-  const visibleFiles = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-  const currentFile = visibleFiles[panel.cursor]
+  const currentFile = getCursorFile(panel)
   const [name, setName] = useState(currentFile?.name || '')
   const inputRef = useRef(null)
 

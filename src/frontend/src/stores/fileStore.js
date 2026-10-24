@@ -35,6 +35,13 @@ function emptyCursorOnParent(path, files, showHidden) {
   return visibleCount === 0 && !isRootPath(path)
 }
 
+// 패널의 "현재 커서 파일" — 숨김 필터를 적용한 visible 목록 기준, [..]에 있으면 null (Todo #78)
+export function getCursorFile(panelState) {
+  if (!panelState || panelState.cursorOnParent) return null
+  const visible = panelState.showHidden ? panelState.files : panelState.files.filter(f => !f.isHidden)
+  return visible[panelState.cursor] || null
+}
+
 export function cursorAfterDelete(minDeletedIdx, remainingCount) {
   if (minDeletedIdx < 0 || remainingCount === 0) return -1
   return Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)
@@ -313,8 +320,7 @@ export const useFileStore = create((set, get) => ({
     const other = panel === 'left' ? 'right' : 'left'
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
-      const cursor = visibleFiles[state[panel].cursor]
+      const cursor = getCursorFile(state[panel])
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
@@ -361,8 +367,7 @@ export const useFileStore = create((set, get) => ({
     const other = panel === 'left' ? 'right' : 'left'
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
-      const cursor = visibleFiles[state[panel].cursor]
+      const cursor = getCursorFile(state[panel])
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
@@ -408,8 +413,7 @@ export const useFileStore = create((set, get) => ({
     const panel = state.activePanel
     const selected = [...state[panel].selected]
     if (!selected.length) {
-      const visibleFiles = state[panel].showHidden ? state[panel].files : state[panel].files.filter(f => !f.isHidden)
-      const cursor = visibleFiles[state[panel].cursor]
+      const cursor = getCursorFile(state[panel])
       if (cursor) selected.push(cursor.path)
     }
     if (!selected.length) {

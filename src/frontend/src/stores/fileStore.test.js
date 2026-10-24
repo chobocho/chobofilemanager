@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy, isRootPath } from './fileStore.js'
+import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy, isRootPath, getCursorFile } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -1206,5 +1206,64 @@ describe('Todo #74 — writeFile 인코딩', () => {
   it('ENC-02: 인코딩 미지정 시 auto(기존 파일 인코딩 유지)', async () => {
     await useFileStore.getState().writeFile('/x/a.txt', 'abc')
     expect(api.WriteTextFileWithEncoding).toHaveBeenCalledWith('/x/a.txt', 'abc', 'auto')
+  })
+})
+
+// ─── Todo #78 — 커서가 [..]에 있으면 파일 작업 대상 없음 ──────────────────────
+describe('Todo #78 — [..] 커서', () => {
+  let useFileStore
+  let api
+  const file = (name, hidden = false) => ({ name, path: `/p/${name}`, isDir: false, isHidden: hidden, size: 1, modified: '', extension: '' })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    api.CopyItems.mockClear()
+    api.MoveItems.mockClear()
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: { ...s.left, path: '/p', files: [file('a'), file('b')], selected: new Set(), cursor: 0, cursorOnParent: true, showHidden: false },
+      right: { ...s.right, path: '/q', files: [] },
+    }))
+  })
+
+  it('PAR-01: getCursorFile — cursorOnParent면 null', () => {
+    expect(getCursorFile({ files: [file('a')], cursor: 0, cursorOnParent: true, showHidden: false })).toBeNull()
+  })
+
+  it('PAR-02: getCursorFile — 숨김 필터 적용한 visible 인덱스', () => {
+    const p = { files: [file('.h', true), file('a'), file('b')], cursor: 1, cursorOnParent: false, showHidden: false }
+    expect(getCursorFile(p).name).toBe('b')
+    expect(getCursorFile({ ...p, showHidden: true }).name).toBe('a')
+  })
+
+  it('PAR-03: getCursorFile — 범위 밖이면 null', () => {
+    expect(getCursorFile({ files: [file('a')], cursor: 5, cursorOnParent: false, showHidden: false })).toBeNull()
+  })
+
+  it('PAR-04: [..]에서 F8/Delete → 삭제 대상 없음', async () => {
+    const r = await useFileStore.getState().delete()
+    expect(r.count).toBe(0)
+  })
+
+  it('PAR-05: [..]에서 F5 → 복사하지 않음', async () => {
+    const r = await useFileStore.getState().copy()
+    expect(r.sources).toEqual([])
+    expect(api.CopyItems).not.toHaveBeenCalled()
+  })
+
+  it('PAR-06: [..]에서 F6 → 이동하지 않음', async () => {
+    const r = await useFileStore.getState().move()
+    expect(r.sources).toEqual([])
+    expect(api.MoveItems).not.toHaveBeenCalled()
+  })
+
+  it('PAR-07: [..]이어도 선택(Space)한 파일이 있으면 그 파일 대상', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(['/p/b']) } }))
+    const r = await useFileStore.getState().delete()
+    expect(r.paths).toEqual(['/p/b'])
   })
 })

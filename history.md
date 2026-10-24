@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #78 — 커서가 [..]일 때 첫 파일에 작업되는 문제 수정)
+
+### 원인
+FilePanel은 [..] 선택 시 `cursorOnParent=true`만 설정하고 `cursor`는 0으로 둠. copy/move/delete/RenameDialog가
+`cursorOnParent`를 보지 않아 첫 번째 파일을 대상으로 사용.
+
+### 변경
+- `fileStore.js`: `getCursorFile(panelState)` export — 숨김 필터 + [..] + 범위 처리 일원화, copy/move/delete에서 사용
+- `RenameDialog`, App의 F3/F4/압축 해제 핸들러도 `getCursorFile` 사용 (중복 로직 제거)
+- `App.jsx`: `handleRename` — 대상이 없으면 이름 변경 대화상자를 열지 않음
+  (보이지 않는 modal이 #77 단축키 차단 상태로 남는 문제 방지)
+- 테스트: PAR-01~07 추가 (총 368건 통과)
+
 ## 2026-10-24 (Todo.md #77 — 모달/뷰어/FTP 화면에서 파일 단축키 차단)
 
 ### 원인

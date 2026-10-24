@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useFileStore } from './stores/fileStore'
+import { useFileStore, getCursorFile } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
 import { useThemeStore } from './stores/themeStore'
 import Toolbar from './components/Toolbar'
@@ -151,10 +151,7 @@ export default function App() {
 
   const handleExtract = async () => {
     const store = useFileStore.getState()
-    const panel = store[store.activePanel]
-    if (panel.cursorOnParent) return
-    const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-    const cursor = visible[panel.cursor]
+    const cursor = getCursorFile(store[store.activePanel])
     if (cursor && !cursor.isDir) {
       await store.extract(store.activePanel, cursor.path)
     }
@@ -197,6 +194,13 @@ export default function App() {
     }
   }
 
+  // 이름 변경 대상이 없으면([..] 또는 빈 폴더) 대화상자를 열지 않음 — RenameDialog가 null을 렌더링해
+  // 보이지 않는 modal이 단축키를 막는 상태 방지 (Todo #78)
+  const handleRename = () => {
+    const s = useFileStore.getState()
+    if (getCursorFile(s[s.activePanel])) setModal('rename')
+  }
+
   const handleSwitchPanel = useCallback(() => {
     const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
     useFileStore.getState().setActivePanel(next)
@@ -214,21 +218,15 @@ export default function App() {
         onSearch={() => setModal('search')}
         onCompress={handleCompress}
         onExtract={handleExtract}
-        onRename={() => setModal('rename')}
+        onRename={handleRename}
         onView={() => {
           const s = useFileStore.getState()
-          const panel = s[s.activePanel]
-          if (panel.cursorOnParent) return
-          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-          const file = visible[panel.cursor]
+          const file = getCursorFile(s[s.activePanel])
           if (file && !file.isDir) tryOpenViewer(file)
         }}
         onEdit={() => {
           const s = useFileStore.getState()
-          const panel = s[s.activePanel]
-          if (panel.cursorOnParent) return
-          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-          const file = visible[panel.cursor]
+          const file = getCursorFile(s[s.activePanel])
           if (file && !file.isDir) tryOpenEditor(file)
         }}
         onCopy={handleCopy}
@@ -263,21 +261,15 @@ export default function App() {
       <StatusBar />
       <FKeyBar
         onHelp={() => setModal('help')}
-        onRename={() => setModal('rename')}
+        onRename={handleRename}
         onView={() => {
           const s = useFileStore.getState()
-          const panel = s[s.activePanel]
-          if (panel.cursorOnParent) return
-          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-          const file = visible[panel.cursor]
+          const file = getCursorFile(s[s.activePanel])
           if (file && !file.isDir) tryOpenViewer(file)
         }}
         onEdit={() => {
           const s = useFileStore.getState()
-          const panel = s[s.activePanel]
-          if (panel.cursorOnParent) return
-          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-          const file = visible[panel.cursor]
+          const file = getCursorFile(s[s.activePanel])
           if (file && !file.isDir) tryOpenEditor(file)
         }}
         onCopy={handleCopy}

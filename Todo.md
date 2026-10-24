@@ -194,7 +194,7 @@
 - 이미지 뷰어·충돌 대화상자가 포커스를 가져가지 않아 Enter/Backspace/화살표도 패널로 샘
 - 전역 "모달 열림" 상태 도입하여 키보드 소유권 일원화
 
-## 78. 커서가 [..]에 있을 때 F8/F5/F6/F2가 첫 번째 파일에 적용됨
+## ~~78. 커서가 [..]에 있을 때 F8/F5/F6/F2가 첫 번째 파일에 적용됨~~ ✓ 완료 (2026-10-24)
 - `fileStore.js` delete/copy/move, RenameDialog가 `cursorOnParent` 미확인
 - "현재 커서 파일" 계산 헬퍼(`getCursorFile`)로 통합
 

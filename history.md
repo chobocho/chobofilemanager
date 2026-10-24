@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261024_233705.md](history_20261024_233705.md) (2026-10-24 23:37 시점 전체 백업)
 
+## 2026-10-24 (Todo.md #105 — FTP 전송 실패 메시지가 가려지는 문제)
+
+### 원인
+다운로드/업로드 루프에서 실패 메시지를 표시한 직후 마지막에 `Downloaded 0 file(s)`로 덮어써 사용자가 원인을 볼 수 없었음.
+
+### 변경
+- `FTPManager.jsx`: 실패를 모아 `transferStatus`로 "Downloaded 1 file(s), 1 failed — a.txt: disk full" 형식 표시
+- 테스트: FM-50(다운로드, skip 해제), FM-51(업로드 신규) (총 720건 통과)
+
 ## 2026-10-24 (Todo.md #107 — 검색 Shift+Enter 역방향 순환 수정)
 
 ### 원인

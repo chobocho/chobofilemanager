@@ -202,6 +202,13 @@ function FileListPanel({
 }
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────────
+// 전송 결과 상태 메시지: 실패가 있으면 개수와 첫 원인을 포함
+export function transferStatus(verb, count, failures) {
+  if (!failures.length) return `${verb} ${count} file(s)`
+  const more = failures.length > 1 ? ` 외 ${failures.length - 1}건` : ''
+  return `${verb} ${count} file(s), ${failures.length} failed — ${failures[0]}${more}`
+}
+
 // 선택된 원격 경로 → 삭제 대상(폴더 여부 포함). 목록에 없으면 파일로 간주.
 export function ftpDeleteTargets(selectedPaths, files) {
   const byPath = new Map((files || []).map(f => [f.path, f]))
@@ -304,13 +311,15 @@ export default function FTPManager() {
     if (!activeConn || ftpSelected.size === 0) return
     const api = (await import('../wailsjs/runtime')).default
     let count = 0
+    const failures = []
     for (const path of ftpSelected) {
       setStatus(`Downloading ${path}...`)
       try { await api.FTPDownload(activeConn.id, path, localStore.path); count++ }
-      catch(e) { setStatus(`Download failed: ${e}`) }
+      catch(e) { failures.push(`${path.split('/').pop()}: ${e}`) }
     }
     await fileStore.refresh(localPanel)
-    setStatus(`Downloaded ${count} file(s)`)
+    // 실패가 있으면 성공 개수 메시지로 덮지 않고 원인을 함께 표시 (Todo #105)
+    setStatus(transferStatus('Downloaded', count, failures))
     setFtpSelected(new Set())
   }
 
@@ -320,16 +329,17 @@ export default function FTPManager() {
     if (!localSelected.length) return
     const api = (await import('../wailsjs/runtime')).default
     let count = 0
+    const failures = []
     for (const localPath of localSelected) {
       const fileName = localPath.split(/[/\\]/).pop()
       const remotePath = ftpPath.endsWith('/') ? ftpPath + fileName : ftpPath + '/' + fileName
       setStatus(`Uploading ${fileName}...`)
       try { await api.FTPUpload(activeConn.id, localPath, remotePath); count++ }
-      catch(e) { setStatus(`Upload failed: ${e}`) }
+      catch(e) { failures.push(`${fileName}: ${e}`) }
     }
     await navigateFTPDirect(activeConn.id, ftpPath)
     fileStore.clearSelection(localPanel)
-    setStatus(`Uploaded ${count} file(s)`)
+    setStatus(transferStatus('Uploaded', count, failures))
   }
 
   // Todo #85: 원격 삭제는 복구할 수 없으므로 확인 후 진행, 실패해도 목록을 새로고침

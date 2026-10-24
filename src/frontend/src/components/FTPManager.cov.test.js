@@ -548,7 +548,16 @@ describe('FTPManager 통합 흐름', () => {
     expect(within(panels(container).ftp).getByText('png')).toBeTruthy()
   })
 
-  it.skip('BUG: 다운로드 실패 메시지가 "Downloaded 0 file(s)"로 덮어써져 사용자에게 보이지 않음', async () => {
+  it('FM-51: 업로드 실패 시 실패 원인이 상태 메시지에 남음 (Todo #105)', async () => {
+    useFileStore.setState(st => ({ left: { ...st.left, selected: new Set(['C:\\work\\x.txt']) } }))
+    const { container } = await renderMgr()
+    await connect(container)
+    api.FTPUpload.mockRejectedValueOnce('permission denied')
+    await click(screen.getByText('Upload', { selector: 'button' }))
+    await waitFor(() => expect(screen.getByText(/permission denied/)).toBeTruthy())
+  })
+
+  it('FM-50: 다운로드 실패 시 실패 원인이 상태 메시지에 남음 (Todo #105)', async () => {
     const { container } = await renderMgr()
     await connect(container)
     await click(panels(container).ftp.querySelector('[title="/a.txt"]'), { ctrlKey: true })

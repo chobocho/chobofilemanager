@@ -1,5 +1,6 @@
 // 뷰어/에디터 성능 측정 실행기 (Todo #109)
-// 사용: npm run bench            (기본 1,5,10MB)
+// 사용: npm run bench            (기본 1,5,10MB, .txt)
+//       npm run bench -- 1,5 js  (.js — 구문 강조 포함)
 //       npm run bench -- 1,20    (크기 지정)
 // Vite 개발 서버로 bench/index.html을 띄우고 설치된 Edge(없으면 Chrome)를 헤드리스로 실행해 결과를 표로 출력합니다.
 import { createServer } from 'vite'
@@ -10,6 +11,7 @@ import { dirname, resolve } from 'node:path'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sizes = process.argv[2] || '1,5,10'
+const ext = process.argv[3] || 'txt'  // 예: npm run bench -- 1,5 js
 
 const candidates = [
   process.env.BENCH_BROWSER,
@@ -27,7 +29,7 @@ if (!executablePath) {
 
 const server = await createServer({ root, configFile: resolve(root, 'vite.config.js'), server: { port: 0 }, logLevel: 'error' })
 await server.listen()
-const url = `${server.resolvedUrls.local[0]}bench/index.html?sizes=${sizes}`
+const url = `${server.resolvedUrls.local[0]}bench/index.html?sizes=${sizes}&ext=${ext}`
 
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--window-size=1280,800'] })
 try {

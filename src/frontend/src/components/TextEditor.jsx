@@ -4,6 +4,7 @@ import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye, Play, Terminal 
 import { useFileStore } from '../stores/fileStore'
 import { ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
 import CodeSurface from './CodeSurface.jsx'
+import { languageKeyForPath } from './codeLanguages.js'
 import styles from '../styles/TextEditor.module.css'
 
 export function isStarlarkFile(ext) {
@@ -67,6 +68,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const fileName = path?.split(/[/\\]/).pop() || 'file'
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isStarlark = isStarlarkFile(ext)
+  const languageKey = languageKeyForPath(path)
 
   useEffect(() => {
     let cancelled = false  // Todo #97: 늦게 끝난 이전 파일 로드 결과는 무시
@@ -412,6 +414,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
           ) : (
             <CodeSurface
               ref={surfaceRef}
+              language={languageKey}
               text={loadedText}
               onDocChange={handleDocChange}
               onSelectionChange={handleSelectionChange}
@@ -440,6 +443,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
           <span>Ln {cursor.line}, Col {cursor.col}</span>
           <span>{stats.length} chars</span>
           <span>{ENCODING_LABELS[encoding]}</span>
+          {languageKey && <span>{languageKey}</span>}
           {isDirty && <span className={styles.unsaved}>Unsaved changes</span>}
           {saveError && <span className={styles.unsaved}>저장 실패: {saveError}</span>}
           {isStarlark && <span className={styles.starlarkBadge}>Starlark</span>}

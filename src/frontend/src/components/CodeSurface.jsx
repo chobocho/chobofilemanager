@@ -2,6 +2,9 @@ import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react
 import { EditorState, EditorSelection, Compartment } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection } from '@codemirror/view'
 import { history, historyKeymap, defaultKeymap } from '@codemirror/commands'
+import { syntaxHighlighting } from '@codemirror/language'
+import { classHighlighter } from '@lezer/highlight'
+import { loadLanguage, MAX_HIGHLIGHT_LENGTH } from './codeLanguages.js'
 
 // CodeMirror 6 기반 텍스트 영역 (Todo #110).
 // 화면에 보이는 줄만 DOM으로 그리고 문서를 트리 구조로 관리해, 큰 파일에서도 키 입력 비용이 파일 크기에 비례하지 않음.
@@ -30,13 +33,15 @@ function baseTheme(fontSize) {
 }
 
 const CodeSurface = forwardRef(function CodeSurface(
-  { text, readOnly = false, fontSize = 13, wordWrap = false, onDocChange, onSelectionChange, className },
+  { text, readOnly = false, fontSize = 13, wordWrap = false, language = null, onDocChange, onSelectionChange, className },
   ref,
 ) {
   const hostRef = useRef(null)
   const viewRef = useRef(null)
   const themeComp = useRef(new Compartment())
   const wrapComp = useRef(new Compartment())
+  const langComp = useRef(new Compartment())
+  const langExtRef = useRef([]) // 현재 적용된 언어 확장 (문서 교체 시 유지)
   const callbacks = useRef({ onDocChange, onSelectionChange })
   callbacks.current = { onDocChange, onSelectionChange }
 
@@ -53,6 +58,9 @@ const CodeSurface = forwardRef(function CodeSurface(
       EditorState.readOnly.of(readOnly),
       themeComp.current.of(baseTheme(fontSize)),
       wrapComp.current.of(wordWrap ? EditorView.lineWrapping : []),
+      // Todo #113: 구문 강조 — 토큰에 tok-* 클래스를 붙이고 색은 테마 CSS 변수로 지정
+      langComp.current.of(langExtRef.current),
+      syntaxHighlighting(classHighlighter),
       EditorView.updateListener.of(update => {
         if (update.docChanged) callbacks.current.onDocChange?.(update.state.doc)
         if (update.selectionSet || update.docChanged) callbacks.current.onSelectionChange?.(update.state)
@@ -81,6 +89,23 @@ const CodeSurface = forwardRef(function CodeSurface(
   useEffect(() => {
     viewRef.current?.dispatch({ effects: themeComp.current.reconfigure(baseTheme(fontSize)) })
   }, [fontSize])
+
+  // 언어 확장을 필요할 때 불러와 적용. 너무 큰 문서는 구문 분석 생략
+  useEffect(() => {
+    let cancelled = false
+    const apply = (ext) => {
+      langExtRef.current = ext
+      viewRef.current?.dispatch({ effects: langComp.current.reconfigure(ext) })
+    }
+    if (!language || text.length > MAX_HIGHLIGHT_LENGTH) {
+      apply([])
+      return
+    }
+    loadLanguage(language)
+      .then(ext => { if (!cancelled) apply(ext || []) })
+      .catch(() => { if (!cancelled) apply([]) })
+    return () => { cancelled = true }
+  }, [language, text])
 
   useEffect(() => {
     viewRef.current?.dispatch({ effects: wrapComp.current.reconfigure(wordWrap ? EditorView.lineWrapping : []) })

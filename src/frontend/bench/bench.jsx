@@ -9,6 +9,9 @@ import { useFileStore } from '../src/stores/fileStore'
 import '../src/styles/global.css'
 import { getSurface, textLength, typeCharAt, scrollToRatio } from './surfaceOps.js'
 
+// ?ext=js 로 구문 강조가 켜진 상태도 측정 (기본 txt = 강조 없음)
+const BENCH_EXT = new URLSearchParams(location.search).get('ext') || 'txt'
+
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)))
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)] }
 
@@ -35,7 +38,7 @@ async function measureOpen(Component, text) {
   const root = createRoot(host)
   useFileStore.setState({ readFile: async () => text, writeFile: async () => {} })
   const t0 = performance.now()
-  flushSync(() => root.render(React.createElement(Component, { path: '/bench/a.txt', onClose: () => {}, onSwitchToViewer: () => {}, onSwitchToEditor: () => {} })))
+  flushSync(() => root.render(React.createElement(Component, { path: `/bench/a.${BENCH_EXT}`, onClose: () => {}, onSwitchToViewer: () => {}, onSwitchToEditor: () => {} })))
   const el = await waitSurface(text.length)
   el.getBoundingClientRect()
   await nextFrame()

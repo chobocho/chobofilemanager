@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify'
 import { useFileStore } from '../stores/fileStore'
 import { isImageFile } from '../utils/fileTypes.js'
 import CodeSurface from './CodeSurface.jsx'
+import { languageKeyForPath } from './codeLanguages.js'
 import styles from '../styles/FileViewer.module.css'
 
 // Todo #73: 마크다운의 원시 HTML이 Wails 웹뷰에서 실행되면 Go 바인딩(셸 실행·삭제)을 호출할 수 있으므로
@@ -151,6 +152,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
   const isMarkdown = isMarkdownFile(ext)
   const isImage    = isImageFile(ext)
+  const languageKey = isImage ? null : languageKeyForPath(path)
   const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
 
   const surfaceRef        = useRef(null)  // Todo #111: 텍스트 모드는 CodeMirror(읽기 전용)
@@ -493,6 +495,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
           ) : (
             <CodeSurface
               ref={surfaceRef}
+              language={languageKey}
               text={content}
               readOnly
               fontSize={fontSize}
@@ -520,6 +523,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
               <span>{content.length} chars</span>
               <span>{fontSize}px</span>
               <span>{ENCODING_LABELS[encoding]}</span>
+              {languageKey && <span>{languageKey}</span>}
               {wordWrap && <span>WRAP</span>}
               <span className={styles.viewMode}>View Mode — F3 / Esc to close</span>
             </>

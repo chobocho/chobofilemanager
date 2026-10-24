@@ -2,6 +2,19 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #113 — 뷰어/에디터 구문 강조)
+
+### 변경
+- 의존성: `@codemirror/language`, `@lezer/highlight`, `@codemirror/lang-*`(javascript/python/go/rust/cpp/html/css/json/xml/yaml/markdown/sql),
+  `@codemirror/legacy-modes`(shell/powershell/toml/properties/dockerfile). state/view는 단일 사본으로 정리(6.7.6/6.43.15)
+- `codeLanguages.js` 신규: 확장자/파일명 → 언어 키(`.star/.bzl`은 Python, `Dockerfile` 포함), 언어 패키지를 동적 import로 지연 로딩
+- `CodeSurface.jsx`: `language` prop, 언어 Compartment + `classHighlighter`(tok-* 클래스), 5MB 초과 문서는 구문 분석 생략
+- `global.css`: 다크/라이트 테마별 `--syn-*` 색 변수와 tok-* 스타일
+- 에디터/뷰어 상태 표시줄에 언어 표시
+- 벤치: `npm run bench -- 1,5 js`로 강조 포함 측정 → 키 입력 17ms, 열기 22~61ms (강조 없음과 동일 수준)
+- 번들: 기본 615KB → 649KB, 언어 패키지는 별도 지연 로딩 조각(약 20개)
+- 테스트: `syntaxHighlight.test.js` 41건 (확장자 매핑, 모든 로더, 강조 표시, txt 미강조, 내용/저장 불변, 뷰어, 큰 문서 생략, 상태 표시) — 총 783건 통과
+
 ## 2026-10-25 (Todo.md #111 — 뷰어(F3) 텍스트 모드 CodeMirror 6 전환)
 
 ### 변경

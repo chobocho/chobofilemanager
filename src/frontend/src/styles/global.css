@@ -53,6 +53,19 @@
   --text-accent-hover: #7ab8ff;
   --scrollbar-thumb:       #252540;
   --scrollbar-thumb-hover: #303058;
+
+  /* 구문 강조 (Todo #113) */
+  --syn-keyword:  #c792ea;
+  --syn-string:   #c3e88d;
+  --syn-number:   #f78c6c;
+  --syn-comment:  #6a7394;
+  --syn-type:     #ffcb6b;
+  --syn-function: #82aaff;
+  --syn-property: #89ddff;
+  --syn-operator: #89ddff;
+  --syn-meta:     #f07178;
+  --syn-heading:  #82aaff;
+  --syn-invalid:  #ff5370;
 }
 
 [data-theme="light"] {
@@ -95,6 +108,18 @@
   --text-accent-hover: #1050c0;
   --scrollbar-thumb:       #c0c4d0;
   --scrollbar-thumb-hover: #a0a8bc;
+
+  --syn-keyword:  #7c3aed;
+  --syn-string:   #2f7d32;
+  --syn-number:   #b45309;
+  --syn-comment:  #8a90a2;
+  --syn-type:     #a16207;
+  --syn-function: #1d4ed8;
+  --syn-property: #0e7490;
+  --syn-operator: #0e7490;
+  --syn-meta:     #b91c1c;
+  --syn-heading:  #1d4ed8;
+  --syn-invalid:  #dc2626;
 }
 
 html, body, #root {
@@ -183,3 +208,19 @@ select option {
 
 .animate-fade { animation: fadeIn 0.15s ease-out; }
 .animate-pulse { animation: pulse 1.5s infinite; }
+
+/* ─── 구문 강조 토큰 (@lezer/highlight classHighlighter, Todo #113) ─── */
+.tok-keyword, .tok-bool, .tok-atom, .tok-modifier { color: var(--syn-keyword); }
+.tok-string, .tok-string2, .tok-inserted, .tok-url { color: var(--syn-string); }
+.tok-number, .tok-literal { color: var(--syn-number); }
+.tok-comment { color: var(--syn-comment); font-style: italic; }
+.tok-typeName, .tok-className, .tok-namespace { color: var(--syn-type); }
+.tok-variableName.tok-definition, .tok-macroName, .tok-labelName { color: var(--syn-function); }
+.tok-propertyName { color: var(--syn-property); }
+.tok-operator, .tok-punctuation { color: var(--syn-operator); }
+.tok-meta, .tok-deleted { color: var(--syn-meta); }
+.tok-heading { color: var(--syn-heading); font-weight: 600; }
+.tok-strong { font-weight: 600; }
+.tok-emphasis { font-style: italic; }
+.tok-link { text-decoration: underline; }
+.tok-invalid { color: var(--syn-invalid); }

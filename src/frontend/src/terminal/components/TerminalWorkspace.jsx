@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { Plus, X, TerminalSquare } from 'lucide-react'
@@ -8,6 +8,9 @@ import { isWorkspaceKey } from '../core/look'
 import { useTermStore } from '../store/termStore'
 import TerminalPane from './TerminalPane.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
+import AuthPrompt from './AuthPrompt.jsx'
+import { CloseConfirm, PasteConfirm } from './TerminalModals.jsx'
+import SearchBar from './SearchBar.jsx'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
@@ -18,6 +21,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const tabs = useTermStore(s => s.tabs)
   const activeId = useTermStore(s => s.activeId)
   const active = tabs.find(t => t.id === activeId)
+  const [pasteRequest, setPasteRequest] = useState(null)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     startEventRouter()
@@ -31,7 +36,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     e.stopPropagation()
     const st = useTermStore.getState()
     const k = e.key.length === 1 ? e.key.toUpperCase() : e.key
-    if (k === 'T') st.newTab()
+    if (k === 'S') setSearchOpen(true)
+    else if (k === 'T') st.newTab()
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
     else if (k === 'PageUp') st.cycle(-1)
@@ -54,7 +60,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
         <button type="button" className={styles.newTab} title="새 탭 (Ctrl+Shift+T)" onClick={() => useTermStore.getState().newTab()}><Plus size={13} /></button>
       </div>
       <div className={styles.panes}>
-        {tabs.map(t => <TerminalPane key={t.id} id={t.id} active={t.id === activeId} createTerminal={createTerminal} addons={addons} />)}
+        {tabs.map(t => <TerminalPane key={t.id} id={t.id} active={t.id === activeId} createTerminal={createTerminal} addons={addons}
+          onPasteRequest={setPasteRequest} />)}
         {tabs.length === 0 && (
           <div className={styles.empty}>
             <TerminalSquare size={28} />
@@ -62,7 +69,11 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
           </div>
         )}
         {active?.dialog && <ConnectDialog key={active.id} tab={active} />}
+        {searchOpen && active && <SearchBar tabId={active.id} onClose={() => setSearchOpen(false)} />}
       </div>
+      <AuthPrompt describeTab={id => useTermStore.getState().tabs.find(t => t.id === id)?.tooltip ?? ''} />
+      <CloseConfirm />
+      <PasteConfirm request={pasteRequest} onAnswer={ok => { if (ok) pasteRequest?.paste(); setPasteRequest(null) }} />
     </div>
   )
 }

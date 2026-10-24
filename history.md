@@ -2,6 +2,22 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #120 — T4 완료: 로그인 질문, 닫기 확인, 재접속, 붙여넣기 확인, 검색)
+
+### 변경
+- `core/reconnect.ts`: choboTerm 자동 재접속 이식 — 끊김(lost) 시 3/5/10/20/30초 간격 최대 10회, 화면 유지 재연결,
+  대기 중 Enter 즉시 연결·Esc 취소, 정상 종료면 "Enter: 다시 접속" 안내, 탭 닫으면 예약 취소
+- `AuthPrompt.jsx`: auth:prompt/auth:promptDone (키 암호·OTP·keyboard-interactive), 차례 대기, Enter 다음 칸/응답, Esc 취소, 버튼 이름 지정
+- `TerminalModals.jsx`: app:close → "모두 끊고 종료" 확인(Quit), 여러 줄 붙여넣기 확인(미리보기, 다시 묻지 않기 → 설정 저장)
+  — 모두 document.body에 그려 터미널 보기가 숨겨져 있어도 표시
+- `SearchBar.jsx` + 세션 `find/clearSearch`: Ctrl+Shift+S, Enter/Shift+Enter, 대소문자·정규식, 없음 표시
+- 연결 대화상자: 다시 접속할 때 이 탭의 마지막 연결 정보로 채움
+- Go 이벤트 계약: auth:prompt, auth:promptDone, app:close를 보류 목록에서 제거 (계약 테스트가 먼저 제거를 요구함 확인)
+
+### 테스트
+- reconnect 6건, TerminalPrompts 9건, 실제 xterm SearchAddon 검색 1건 — 프론트 882건, typecheck, Go 전체 통과
+- `wails dev` + 헤드리스 Edge 종단 점검 재통과 (실제 cmd 연결·명령 실행)
+
 ## 2026-10-25 (Todo.md #120 — T4 1차: Terminal 보기, 탭, 연결 대화상자)
 
 ### 변경

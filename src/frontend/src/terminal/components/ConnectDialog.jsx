@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Plug, X } from 'lucide-react'
 import { termApi } from '../core/termApi'
+import { sessionById } from '../core/session'
 import { buildEntries, filterEntries, protocolLabel, isLocal, isSerial, DEFAULT_BAUD, ENCODINGS } from '../core/connect'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
@@ -23,7 +24,10 @@ export default function ConnectDialog({ tab }) {
         if (cancelled) return
         const list = buildEntries(history, sessions, config, shells, ports)
         setEntries(list)
-        if (history?.length) apply(history[0])
+        // 다시 접속할 때는 이 탭의 마지막 연결 정보, 아니면 최근 접속
+        const last = sessionById(tab.id)?.req
+        if (last) apply(last)
+        else if (history?.length) apply(history[0])
       })
     hostRef.current?.focus()
     return () => { cancelled = true }

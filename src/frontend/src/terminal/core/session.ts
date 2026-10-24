@@ -77,6 +77,7 @@ export class TermSession {
     private fresh = false;
     private disposed = false;
     private fitAddon: {fit(): void} | null = null;
+    private searchAddon: {findNext(q: string, o?: any): boolean; findPrevious(q: string, o?: any): boolean; clearDecorations(): void} | null = null;
     private stateListeners = new Set<Listener<[TermState]>>();
     private titleListeners = new Set<Listener<[string]>>();
     private closedListeners = new Set<Listener<[string, boolean]>>();
@@ -147,7 +148,9 @@ export class TermSession {
         const fit = new FitAddon();
         this.term.loadAddon(fit);
         this.term.loadAddon(new WebLinksAddon());
-        this.term.loadAddon(new SearchAddon());
+        const search = new SearchAddon();
+        this.term.loadAddon(search);
+        this.searchAddon = search;
         cjk.loadUnicodeWidths(this.term);
         this.fitAddon = fit;
         this.fit();
@@ -163,6 +166,18 @@ export class TermSession {
 
     focus() {
         this.term.focus();
+    }
+
+    /** Selects the next (or previous) match of query; false when there is none. */
+    find(query: string, backwards = false, opts: {caseSensitive?: boolean; regex?: boolean} = {}): boolean {
+        if (!this.searchAddon || !query) return false;
+        const o = {caseSensitive: !!opts.caseSensitive, regex: !!opts.regex};
+        return backwards ? this.searchAddon.findPrevious(query, o) : this.searchAddon.findNext(query, o);
+    }
+
+    clearSearch() {
+        this.searchAddon?.clearDecorations();
+        this.term.clearSelection?.();
     }
 
     private setState(s: TermState) {

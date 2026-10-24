@@ -21,7 +21,7 @@ export function lookOptions(s: TermSettings, wide = false): ITerminalOptions {
 // Keys the terminal workspace handles itself; xterm must not turn them into input.
 export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>): boolean {
     const k = ev.key.length === 1 ? ev.key.toUpperCase() : ev.key;
-    if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W')) return true;
+    if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S')) return true;
     if (ev.ctrlKey && (k === 'Tab' || k === 'PageUp' || k === 'PageDown')) return true;
     return false;
 }

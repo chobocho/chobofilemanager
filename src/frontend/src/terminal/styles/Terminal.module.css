@@ -38,3 +38,14 @@
 .dialogActions button { padding: 5px 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-primary); cursor: pointer; }
 .dialogActions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .dialogActions .primary:disabled { opacity: 0.6; cursor: default; }
+
+.modalOverlay { position: fixed; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; background: rgba(0, 0, 0, 0.45); z-index: 1000; }
+.message { margin: 6px 0 10px; color: var(--text-secondary); white-space: pre-wrap; }
+.preview { max-height: 200px; overflow: auto; margin: 0 0 8px; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; }
+.check { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+
+.searchBar { position: absolute; top: 6px; right: 14px; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: var(--bg-modal); border: 1px solid var(--border-active); border-radius: 6px; z-index: 5; font-size: 12px; color: var(--text-primary); }
+.searchBar input { width: 200px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); padding: 3px 6px; font-family: var(--font-mono); font-size: 12px; }
+.searchBar input:focus { outline: none; border-color: var(--border-focus); }
+.searchBar label { display: inline-flex; align-items: center; gap: 2px; color: var(--text-secondary); }
+.noMatch { color: var(--text-red); }

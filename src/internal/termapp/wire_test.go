@@ -248,21 +248,18 @@ var (
 // ported from choboTerm's TypeScript page into Chobocho Commander (React), with the
 // Todo item that ports them. The list may only shrink.
 var pendingPageEvents = map[string]string{
-	"auth:prompt":     "Todo #120",
-	"auth:promptDone": "Todo #120",
-	"app:close":       "Todo #120",
-	"log:changed":     "Todo #121",
-	"xfer:progress":   "Todo #123",
-	"xfer:end":        "Todo #123",
-	"fwd:changed":     "Todo #124",
-	"script:start":    "Todo #124",
-	"script:print":    "Todo #124",
-	"script:result":   "Todo #124",
-	"script:open":     "Todo #124",
-	"script:screen":   "Todo #124",
-	"script:end":      "Todo #124",
-	"app:closeWeb":    "Todo #124",
-	"web:status":      "Todo #124",
+	"log:changed":   "Todo #121",
+	"xfer:progress": "Todo #123",
+	"xfer:end":      "Todo #123",
+	"fwd:changed":   "Todo #124",
+	"script:start":  "Todo #124",
+	"script:print":  "Todo #124",
+	"script:result": "Todo #124",
+	"script:open":   "Todo #124",
+	"script:screen": "Todo #124",
+	"script:end":    "Todo #124",
+	"app:closeWeb":  "Todo #124",
+	"web:status":    "Todo #124",
 }
 
 func TestEventsMatchThePage(t *testing.T) {

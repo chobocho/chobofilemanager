@@ -42,6 +42,8 @@ type FTPConnectionInfo struct {
 }
 
 type ftpConnection struct {
+	// FTP 제어 채널은 한 번에 하나의 명령만 처리 가능 — 연결별로 직렬화 (Todo #83)
+	mu          sync.Mutex
 	id          string
 	seq         uint64 // 접속 순서 (Windows 시계 해상도로 connectedAt이 같을 수 있음)
 	client      *ftp.ServerConn
@@ -137,18 +139,32 @@ func (fm *FTPManager) Connect(config FTPConfig) (string, error) {
 	return id, nil
 }
 
+// Disconnect: 목록에서 먼저 제거한 뒤 전역 락 밖에서 Quit — 응답 없는 서버가 다른 연결을 막지 않도록 (Todo #83)
 func (fm *FTPManager) Disconnect(id string) error {
 	fm.mu.Lock()
-	defer fm.mu.Unlock()
-
 	conn, ok := fm.connections[id]
+	if ok {
+		delete(fm.connections, id)
+	}
+	fm.mu.Unlock()
 	if !ok {
 		return fmt.Errorf("connection not found: %s", id)
 	}
 
-	err := conn.client.Quit()
-	delete(fm.connections, id)
-	return err
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+	return conn.client.Quit()
+}
+
+// withConn: 연결을 찾아 해당 연결의 락을 잡은 상태로 fn을 실행합니다.
+func (fm *FTPManager) withConn(id string, fn func(c *ftp.ServerConn) error) error {
+	conn, err := fm.getConn(id)
+	if err != nil {
+		return err
+	}
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+	return fn(conn.client)
 }
 
 func (fm *FTPManager) getConn(id string) (*ftpConnection, error) {
@@ -162,17 +178,16 @@ func (fm *FTPManager) getConn(id string) (*ftpConnection, error) {
 }
 
 func (fm *FTPManager) ListDirectory(id, path string) (*DirectoryListing, error) {
-	conn, err := fm.getConn(id)
-	if err != nil {
-		return nil, err
-	}
-
 	if path == "" {
 		path = "/"
 	}
 
-	entries, err := conn.client.List(path)
-	if err != nil {
+	var entries []*ftp.Entry
+	if err := fm.withConn(id, func(c *ftp.ServerConn) error {
+		var lerr error
+		entries, lerr = c.List(path)
+		return lerr
+	}); err != nil {
 		return nil, fmt.Errorf("list failed: %w", err)
 	}
 
@@ -207,39 +222,31 @@ func (fm *FTPManager) ListDirectory(id, path string) (*DirectoryListing, error) 
 }
 
 func (fm *FTPManager) Download(id, remotePath, localPath string) error {
-	conn, err := fm.getConn(id)
-	if err != nil {
+	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		r, err := c.Retr(remotePath)
+		if err != nil {
+			return fmt.Errorf("retrieve failed: %w", err)
+		}
+		defer r.Close()
+
+		// If localPath is a directory, use remote filename
+		localInfo, err := os.Stat(localPath)
+		if err == nil && localInfo.IsDir() {
+			localPath = filepath.Join(localPath, filepath.Base(remotePath))
+		}
+
+		out, err := os.Create(localPath)
+		if err != nil {
+			return fmt.Errorf("create local file failed: %w", err)
+		}
+		defer out.Close()
+
+		_, err = io.Copy(out, r)
 		return err
-	}
-
-	r, err := conn.client.Retr(remotePath)
-	if err != nil {
-		return fmt.Errorf("retrieve failed: %w", err)
-	}
-	defer r.Close()
-
-	// If localPath is a directory, use remote filename
-	localInfo, err := os.Stat(localPath)
-	if err == nil && localInfo.IsDir() {
-		localPath = filepath.Join(localPath, filepath.Base(remotePath))
-	}
-
-	out, err := os.Create(localPath)
-	if err != nil {
-		return fmt.Errorf("create local file failed: %w", err)
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, r)
-	return err
+	})
 }
 
 func (fm *FTPManager) Upload(id, localPath, remotePath string) error {
-	conn, err := fm.getConn(id)
-	if err != nil {
-		return err
-	}
-
 	f, err := os.Open(localPath)
 	if err != nil {
 		return fmt.Errorf("open local file failed: %w", err)
@@ -251,36 +258,31 @@ func (fm *FTPManager) Upload(id, localPath, remotePath string) error {
 		remotePath += filepath.Base(localPath)
 	}
 
-	return conn.client.Stor(remotePath, f)
+	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		return c.Stor(remotePath, f)
+	})
 }
 
 func (fm *FTPManager) DeleteItem(id, path string) error {
-	conn, err := fm.getConn(id)
-	if err != nil {
-		return err
-	}
-
-	// Try as file first, then as directory
-	if err := conn.client.Delete(path); err != nil {
-		return conn.client.RemoveDirRecur(path)
-	}
-	return nil
+	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		// Try as file first, then as directory
+		if err := c.Delete(path); err != nil {
+			return c.RemoveDirRecur(path)
+		}
+		return nil
+	})
 }
 
 func (fm *FTPManager) CreateDirectory(id, path string) error {
-	conn, err := fm.getConn(id)
-	if err != nil {
-		return err
-	}
-	return conn.client.MakeDir(path)
+	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		return c.MakeDir(path)
+	})
 }
 
 func (fm *FTPManager) RenameItem(id, oldPath, newPath string) error {
-	conn, err := fm.getConn(id)
-	if err != nil {
-		return err
-	}
-	return conn.client.Rename(oldPath, newPath)
+	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		return c.Rename(oldPath, newPath)
+	})
 }
 
 func (fm *FTPManager) GetConnections() []FTPConnectionInfo {

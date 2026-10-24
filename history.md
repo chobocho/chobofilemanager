@@ -1,5 +1,18 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #83 — FTP 연결 동시 사용 경합 수정)
+
+### 원인
+하나의 `*ftp.ServerConn`을 락 없이 여러 Wails 호출이 동시에 사용 → 제어 채널의 명령/응답이 섞여
+엉뚱한 응답, 무한 대기, 전송 중단 발생. `Disconnect`는 전역 락을 잡은 채 `Quit()` 네트워크 I/O 수행.
+
+### 변경
+- `ftpConnection.mu` 추가, `withConn` 헬퍼로 모든 FTP 작업(List/Retr/Stor/Delete/MakeDir/Rename)을 연결별 직렬화
+- `Disconnect`: 목록에서 먼저 제거 후 전역 락 밖에서 `Quit`
+- 테스트: 동시 Rename 20건이 RNFR/RNTO 쌍을 섞지 않는지, 응답 없는 서버 Disconnect가 다른 연결을 막지 않는지
+  (수정 전에는 동시 Rename 테스트가 교착 상태로 멈춤)
+- 남은 한계: 읽기/쓰기 타임아웃은 미적용 (jlaffaye/ftp에서 dialFunc 지정 시 데이터 채널 TLS가 빠지는 제약)
+
 ## 2026-10-24 (Todo.md #82 — 휴지통 없는 드라이브에서 경고 없이 영구 삭제되는 문제)
 
 ### 원인

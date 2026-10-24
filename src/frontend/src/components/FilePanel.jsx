@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
-import { useFileStore } from '../stores/fileStore'
+import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
 import { isViewableFile } from './FileViewer.jsx'
 import styles from '../styles/FilePanel.module.css'
@@ -154,7 +154,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     : panel.files.filter(f => !f.isHidden)
 
   // 루트 경로 여부 (더 이상 올라갈 수 없음)
-  const isAtRoot = panel.path === '/' || /^[A-Za-z]:[\\/]?$/.test(panel.path)
+  const isAtRoot = isRootPath(panel.path)
   const showParent = !isAtRoot
 
   const handleActivate = useCallback(() => {

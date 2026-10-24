@@ -24,6 +24,17 @@ export function getLastPathSegment(path) {
 // minDeletedIdx: 삭제 전 visible 목록에서 삭제된 항목들의 최소 인덱스 (-1이면 못 찾음)
 // remainingCount: 삭제 후 visible 목록 길이
 // 반환: 새 커서 인덱스, 또는 -1(변경하지 않음 — 못 찾았거나 빈 목록)
+// 루트 경로 여부 ('/' 또는 'C:', 'C:\', 'C:/') — [..] 표시 여부 판단에 사용
+export function isRootPath(path) {
+  return path === '/' || /^[A-Za-z]:[\\/]?$/.test(path)
+}
+
+// 보이는 항목이 없고 [..]가 표시되는 폴더면 커서를 [..]에 둡니다 (Todo #103).
+function emptyCursorOnParent(path, files, showHidden) {
+  const visibleCount = showHidden ? files.length : files.filter(f => !f.isHidden).length
+  return visibleCount === 0 && !isRootPath(path)
+}
+
 export function cursorAfterDelete(minDeletedIdx, remainingCount) {
   if (minDeletedIdx < 0 || remainingCount === 0) return -1
   return Math.min(Math.max(0, minDeletedIdx - 1), remainingCount - 1)
@@ -124,18 +135,21 @@ export const useFileStore = create((set, get) => ({
     set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
     try {
       const result = await api.ListDirectory(path)
-      const newHistory = [...state.history.slice(0, state.historyIndex + 1), result.path]
+      const files = result.files || []
+      // 같은 경로 재조회(refresh)는 history에 중복 추가하지 않음 (Todo #103)
+      const kept = state.history.slice(0, state.historyIndex + 1)
+      const newHistory = kept[kept.length - 1] === result.path ? kept : [...kept, result.path]
       set(s => ({
         [panel]: {
           ...s[panel],
           path: result.path,
-          files: result.files || [],
+          files,
           selected: new Set(),
           loading: false,
           history: newHistory,
           historyIndex: newHistory.length - 1,
           cursor: 0,
-          cursorOnParent: false,
+          cursorOnParent: emptyCursorOnParent(result.path, files, s[panel].showHidden),
         }
       }))
       // 세션 저장 (에러는 무시)
@@ -452,6 +466,8 @@ export const useFileStore = create((set, get) => ({
       const newCursor = cursorAfterDelete(minDeletedIdx, visibleAfter.length)
       if (newCursor >= 0) {
         set(s => ({ [panel]: { ...s[panel], cursor: newCursor, cursorOnParent: false } }))
+      } else if (emptyCursorOnParent(after.path, after.files, after.showHidden)) {
+        set(s => ({ [panel]: { ...s[panel], cursor: 0, cursorOnParent: true } }))
       }
     } catch (err) {
       const failVerb = mode === 'trash' ? 'Trash' : 'Delete'

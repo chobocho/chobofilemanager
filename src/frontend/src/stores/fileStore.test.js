@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy } from './fileStore.js'
+import { joinPath, getLastPathSegment, cursorAfterDelete, cursorAfterCopy, isRootPath } from './fileStore.js'
 
 // wailsjs/runtime mock (store 동기 테스트에 필요)
 vi.mock('../wailsjs/runtime', () => ({
@@ -22,6 +22,7 @@ vi.mock('../wailsjs/runtime', () => ({
     WriteTextFile: vi.fn(),
     ChangeWorkingDirectory: vi.fn().mockResolvedValue(undefined),
     RunStarlarkFile: vi.fn().mockResolvedValue(''),
+    SaveSessionState: vi.fn().mockResolvedValue(undefined),
   }
 }))
 
@@ -1069,5 +1070,113 @@ describe('Todo.md #66 — navigateAndFocus', () => {
     await useFileStore.getState().navigateAndFocus('left', '/dir', '')
     expect(useFileStore.getState().left.path).toBe('/dir')
     expect(useFileStore.getState().left.cursor).toBe(0)
+  })
+})
+
+// ─── Todo #103 — 마지막 항목 삭제/빈 폴더 진입 시 커서를 [..]로 ─────────────────
+describe('Todo #103 — 빈 폴더 커서 위치', () => {
+  let useFileStore
+  let api
+
+  const file = (name, dir = '/test/sub') => ({
+    name,
+    path: `${dir}/${name}`,
+    isDir: false,
+    isHidden: name.startsWith('.'),
+    size: 1,
+    modified: '2026-01-01T00:00:00Z',
+    extension: '',
+  })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    const mod = await import('./fileStore.js')
+    const apiMod = await import('../wailsjs/runtime')
+    useFileStore = mod.useFileStore
+    api = apiMod.default
+    api.ListDirectory.mockReset()
+    api.DeleteItems.mockResolvedValue(undefined)
+    api.TrashItems.mockResolvedValue(undefined)
+    api.ChangeWorkingDirectory.mockResolvedValue(undefined)
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: {
+        ...s.left,
+        path: '/test/sub',
+        files: [file('only')],
+        selected: new Set(),
+        cursor: 0,
+        cursorOnParent: false,
+        showHidden: false,
+        history: ['/test/sub'],
+        historyIndex: 0,
+      },
+    }))
+  })
+
+  it('EMP-01: isRootPath — 드라이브 루트와 / 는 루트', () => {
+    expect(isRootPath('/')).toBe(true)
+    expect(isRootPath('C:\\')).toBe(true)
+    expect(isRootPath('C:')).toBe(true)
+    expect(isRootPath('C:/')).toBe(true)
+    expect(isRootPath('C:\\foo')).toBe(false)
+    expect(isRootPath('/home')).toBe(false)
+  })
+
+  it('EMP-02: 유일한 항목을 휴지통으로 보내면 커서가 [..]로 이동', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/sub', files: [] })
+    await useFileStore.getState().confirmTrash(['/test/sub/only'])
+    const left = useFileStore.getState().left
+    expect(left.files).toEqual([])
+    expect(left.cursorOnParent).toBe(true)
+  })
+
+  it('EMP-03: 유일한 항목을 영구 삭제해도 커서가 [..]로 이동', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/sub', files: [] })
+    await useFileStore.getState().confirmDelete(['/test/sub/only'])
+    expect(useFileStore.getState().left.cursorOnParent).toBe(true)
+  })
+
+  it('EMP-04: 숨김 파일만 남아도(보이는 항목 0개) 커서가 [..]로 이동', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/sub', files: [file('.hidden')] })
+    await useFileStore.getState().confirmTrash(['/test/sub/only'])
+    expect(useFileStore.getState().left.cursorOnParent).toBe(true)
+  })
+
+  it('EMP-05: 빈 폴더로 이동하면 커서가 [..]에 위치', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/empty', files: [] })
+    await useFileStore.getState().navigate('left', '/test/empty')
+    expect(useFileStore.getState().left.cursorOnParent).toBe(true)
+  })
+
+  it('EMP-06: 루트의 빈 목록에서는 [..]가 없으므로 cursorOnParent=false', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/', files: [] })
+    await useFileStore.getState().navigate('left', '/')
+    expect(useFileStore.getState().left.cursorOnParent).toBe(false)
+  })
+
+  it('EMP-07: 항목이 있는 폴더로 이동하면 기존대로 첫 항목(cursor 0)', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/full', files: [file('a', '/test/full')] })
+    await useFileStore.getState().navigate('left', '/test/full')
+    const left = useFileStore.getState().left
+    expect(left.cursor).toBe(0)
+    expect(left.cursorOnParent).toBe(false)
+  })
+
+  it('EMP-08: refresh(같은 경로 재조회)는 history에 중복 항목을 추가하지 않음', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/sub', files: [file('only')] })
+    await useFileStore.getState().refresh('left')
+    await useFileStore.getState().refresh('left')
+    const left = useFileStore.getState().left
+    expect(left.history).toEqual(['/test/sub'])
+    expect(left.historyIndex).toBe(0)
+  })
+
+  it('EMP-09: 다른 경로로 이동하면 history에 추가', async () => {
+    api.ListDirectory.mockResolvedValue({ path: '/test/other', files: [] })
+    await useFileStore.getState().navigate('left', '/test/other')
+    const left = useFileStore.getState().left
+    expect(left.history).toEqual(['/test/sub', '/test/other'])
+    expect(left.historyIndex).toBe(1)
   })
 })

@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #103 — 마지막 항목 삭제 시 커서 소실 수정)
+
+### 원인
+- 남은 항목이 0개면 `cursorAfterDelete`가 -1을 반환해 커서 갱신을 건너뜀
+- `navigate`가 항상 `cursor: 0, cursorOnParent: false`로 초기화 → 존재하지 않는 행을 가리켜 하이라이트 없음
+- `refresh`가 같은 경로를 history에 매번 추가
+
+### 변경
+- `fileStore.js`: `isRootPath` export, `emptyCursorOnParent` 헬퍼 추가
+  - `navigate`: 보이는 항목이 없고 루트가 아니면 `cursorOnParent: true`
+  - `_removePaths`: 남은 항목 0개면 커서를 [..]로
+  - `navigate`: 직전 history와 같은 경로면 중복 추가하지 않음
+- `FilePanel.jsx`: 루트 판정을 `isRootPath`로 통일
+- 테스트: `fileStore.test.js` EMP-01~09 추가 (총 335건 통과)
+
 ## 2026-10-24 (전체 코드 리뷰 → Todo.md #68~#102 등록)
 
 ### 배경

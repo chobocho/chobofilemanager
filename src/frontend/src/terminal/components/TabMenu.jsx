@@ -40,6 +40,7 @@ export default function TabMenu({ id, x, y, onClose }) {
       case 'splitDown': return st.splitPane(id, 'col')
       case 'encoding': return st.toggleEncoding(id)
       case 'break': return st.sendBreak(id)
+      case 'saveSession': return st.saveTabSession(id)
       case 'disconnect': return st.disconnect(id)
       case 'close': return st.closeTab(id)
     }

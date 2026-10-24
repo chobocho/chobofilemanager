@@ -114,7 +114,7 @@ describe('tabMenuItems (TA)', () => {
 
     it('TA-20: 연결된 SSH 탭 메뉴', () => {
         const items = tabMenuItems({state: 'on', proto: 'ssh', hasReq: true, encoding: 'UTF-8'}, 1);
-        expect(acts(items)).toEqual(['reconnect', 'duplicate', 'splitRight', 'splitDown', 'theme', 'encoding', 'disconnect', 'sep', 'close']);
+        expect(acts(items)).toEqual(['reconnect', 'duplicate', 'splitRight', 'splitDown', 'theme', 'encoding', 'saveSession', 'disconnect', 'sep', 'close']);
         expect(items.find(i => i.act === 'encoding')!.label).toBe('인코딩: EUC-KR로 전환');
         expect(items.find(i => i.act === 'close')!.label).toBe('탭 닫기');
     });
@@ -124,6 +124,7 @@ describe('tabMenuItems (TA)', () => {
         expect(fresh.find(i => i.act === 'reconnect')!.disabled).toBe(true);
         expect(fresh.find(i => i.act === 'duplicate')!.disabled).toBe(true);
         expect(fresh.find(i => i.act === 'disconnect')!.disabled).toBe(true);
+        expect(fresh.find(i => i.act === 'saveSession')!.disabled).toBe(true);
     });
 
     it('TA-22: 시리얼은 Break, 로컬 셸은 인코딩 전환 비활성, 분할 창은 "분할 창 닫기"', () => {

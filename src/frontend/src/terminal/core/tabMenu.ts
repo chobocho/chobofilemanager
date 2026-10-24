@@ -27,6 +27,7 @@ export function tabMenuItems(t: MenuTab, paneCount: number): MenuItem[] {
         {act: 'theme', label: '색 테마 (이 서버)', submenu: true},
         {act: 'encoding', label: `인코딩: ${t.encoding === 'EUC-KR' ? 'UTF-8' : 'EUC-KR'}로 전환`, disabled: t.proto === 'local' && on},
         {act: 'break', label: 'Break 신호 보내기', hidden: !(t.proto === 'serial' && on)},
+        {act: 'saveSession', label: '세션으로 저장', disabled: !t.hasReq},
         {act: 'disconnect', label: '연결 끊기', disabled: !on},
         {act: 'sep', label: ''},
         {act: 'close', label: paneCount > 1 ? '분할 창 닫기' : '탭 닫기'},

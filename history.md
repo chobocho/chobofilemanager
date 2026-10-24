@@ -2,6 +2,18 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #121 — T5 3차: 세션 저장 · 세션 관리자)
+
+### 변경
+- `core/sessions.ts` 신규: 세션 찾기(낱말 모두 일치), 그룹별 목록 줄, 연결 설명, 가져오기 결과 문구, 입력값 → 저장 형식
+- `SaveSessionDialog.jsx` 신규: 접속 창 `☆ 저장`(Alt+S)·탭 메뉴 "세션으로 저장" — 이름/그룹/비밀번호 저장, 고른 세션이면 그 세션을 고침
+- `SessionManager.jsx` 신규 (Ctrl+Shift+H, 탭 막대 ☆ 버튼): 찾기, 그룹별 목록, 고치면 자동 저장(0.6초/다른 세션 선택/닫기),
+  Host 비면 저장 안 하고 그 세션에 머묾, 추가·복제·삭제(확인), 접속(더블클릭/Enter), 그룹 전체 열기, PuTTY·파일 가져오기, 파일로 내보내기
+- `termStore`: openSaveSession(Promise), saveTabSession(같은 세션 탭 이름 갱신), openSessions(첫 세션은 지금 칸, 나머지 새 탭), 탭에 연결한 세션(`saved`) 기억
+
+### 테스트
+- `sessions.test.ts`(SS-01~08), `SessionManager.test.jsx`(SM-01~11, SV-10~13), TA-20/21 세션 저장 항목 — 프론트 943개, Go 통과
+
 ## 2026-10-25 (Todo.md #121 — T5 2차: 탭 우클릭 메뉴)
 
 ### 변경

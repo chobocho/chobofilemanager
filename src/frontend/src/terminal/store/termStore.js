@@ -26,7 +26,10 @@ const newTabState = (id, temp = false) => ({
   temp,              // 분할로 만든 칸: 연결 전에 대화상자를 닫으면 칸도 닫힘
 })
 
-const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1 })
+// saveRequest: 열려 있는 "세션으로 저장" 창의 내용, sessionManager: 세션 관리자 열림
+const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false })
+
+let saveResolve = null // "세션으로 저장" 창의 결과를 기다리는 쪽
 
 export const useTermStore = create((set, get) => ({
   ...initial(),
@@ -137,7 +140,8 @@ export const useTermStore = create((set, get) => ({
     return () => offs.forEach(off => off())
   },
 
-  connect: async (id, fields, sessionName) => {
+  // saved: 연결한 저장된 세션 (세션으로 저장하면 그 세션을 고쳐 씀)
+  connect: async (id, fields, sessionName, saved) => {
     const tab = get().tabs.find(t => t.id === id)
     const session = sessionById(id)
     if (!tab || !session || tab.connecting) return
@@ -146,7 +150,7 @@ export const useTermStore = create((set, get) => ({
     try {
       const proto = await session.connect(req)
       get().updateTab(id, {
-        connecting: false, dialog: false, state: session.state, proto, temp: false, sessionName,
+        connecting: false, dialog: false, state: session.state, proto, temp: false, sessionName, saved,
         label: tabLabel(req, proto, sessionName), tooltip: tabTooltip(req, proto),
       })
       // 인코딩별 글자 폭·글꼴, 이 서버에 저장된 색 테마
@@ -162,22 +166,24 @@ export const useTermStore = create((set, get) => ({
     const s = sessionById(id)
     if (!s?.req) return get().openDialog(id)
     if (s.state !== 'idle') await disconnectSession(s, s.reconnector)
-    await get().connect(id, fieldsOf(s.req), get().tabs.find(t => t.id === id)?.sessionName)
+    const t = get().tabs.find(x => x.id === id)
+    await get().connect(id, fieldsOf(s.req), t?.sessionName, t?.saved)
   },
 
   duplicate: (id) => {
     const s = sessionById(id)
     if (!s?.req) return null
-    return get().newTab({ fields: fieldsOf(s.req), sessionName: get().tabs.find(t => t.id === id)?.sessionName })
+    const t = get().tabs.find(x => x.id === id)
+    return get().newTab({ fields: fieldsOf(s.req), sessionName: t?.sessionName, saved: t?.saved })
   },
 
   // 칸이 만들어진 뒤 호출 — 복제처럼 미리 정해 둔 연결 실행
   startPendingConnect: (id) => {
     const t = get().tabs.find(x => x.id === id)
     if (!t?.pendingConnect) return
-    const { fields, sessionName } = t.pendingConnect
+    const { fields, sessionName, saved } = t.pendingConnect
     get().updateTab(id, { pendingConnect: null })
-    return get().connect(id, fields, sessionName)
+    return get().connect(id, fields, sessionName, saved)
   },
 
   disconnect: async (id) => {
@@ -189,5 +195,52 @@ export const useTermStore = create((set, get) => ({
   chooseTheme: async (id, name) => { const s = sessionById(id); if (s) await chooseTheme(s, name) },
   sendBreak: async (id) => { const s = sessionById(id); if (s) await sendBreak(s) },
 
-  resetForTest: () => set(initial()),
+  // ── 저장된 세션 (Todo #121) ──
+  // "세션으로 저장" 창을 열고 저장된 세션(취소면 null)을 돌려줌
+  openSaveSession: (draft) => new Promise(resolve => {
+    saveResolve?.(null)
+    saveResolve = resolve
+    set({ saveRequest: draft })
+  }),
+
+  finishSaveSession: (saved) => {
+    const r = saveResolve
+    saveResolve = null
+    set({ saveRequest: null })
+    r?.(saved)
+  },
+
+  // 탭 메뉴 "세션으로 저장": 저장하면 이 탭과 같은 세션의 탭 이름을 바꿈
+  saveTabSession: async (id) => {
+    const s = sessionById(id)
+    const t = get().tabs.find(x => x.id === id)
+    if (!s?.req || !t) return
+    const r = s.req
+    const saved = await get().openSaveSession({ host: r.host, port: r.port, login: r.login, encoding: r.encoding, pass: r.pass, jump: r.jump, session: t.saved })
+    if (!saved) return
+    for (const o of get().tabs) {
+      if (o.id !== id && o.saved?.id !== saved.id) continue
+      const req = sessionById(o.id)?.req
+      get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
+    }
+  },
+
+  openSessionManager: () => set({ sessionManager: true }),
+  closeSessionManager: () => {
+    set({ sessionManager: false })
+    sessionById(get().activeId)?.focus()
+  },
+
+  // 세션들을 엽니다: 첫 세션은 연결 안 된 지금 칸에서, 나머지는 새 탭
+  openSessions: (list) => {
+    list.forEach((x, i) => {
+      const st = get()
+      const a = st.tabs.find(t => t.id === st.activeId)
+      const fields = fieldsOf(x)
+      if (i === 0 && a && a.state === 'idle' && !a.connecting) st.connect(a.id, fields, x.name, x)
+      else st.newTab({ fields, sessionName: x.name, saved: x })
+    })
+  },
+
+  resetForTest: () => { saveResolve = null; set(initial()) },
 }))

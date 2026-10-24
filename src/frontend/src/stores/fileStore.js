@@ -47,6 +47,19 @@ export function getCursorFile(panelState) {
   return visible[panelState.cursor] || null
 }
 
+// 폴더 우선 + sortBy/sortDir 정렬 (Todo #93 — 새로고침/이동 후에도 선택한 정렬 유지)
+export function sortFiles(files, sortBy = 'name', sortDir = 'asc') {
+  return [...files].sort((a, b) => {
+    if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
+    let va = a[sortBy], vb = b[sortBy]
+    if (typeof va === 'string') va = va.toLowerCase()
+    if (typeof vb === 'string') vb = vb.toLowerCase()
+    if (va < vb) return sortDir === 'asc' ? -1 : 1
+    if (va > vb) return sortDir === 'asc' ? 1 : -1
+    return 0
+  })
+}
+
 // 패널별 목록 요청 순번 — 늦게 도착한 이전 응답이 최신 이동 결과를 덮어쓰지 않도록 (Todo #92)
 const navTokens = { left: 0, right: 0 }
 function beginNav(panel) {
@@ -156,7 +169,8 @@ export const useFileStore = create((set, get) => ({
     try {
       const result = await api.ListDirectory(path)
       if (!isCurrent()) return false
-      const files = result.files || []
+      const { sortBy, sortDir } = get()[panel]
+      const files = sortFiles(result.files || [], sortBy, sortDir)
       // 응답 시점의 history 기준 (await 전 상태를 쓰면 그 사이 변경이 사라짐)
       const state = get()[panel]
       // 같은 경로 재조회(refresh)는 history에 중복 추가하지 않음 (Todo #103)
@@ -207,7 +221,8 @@ export const useFileStore = create((set, get) => ({
     try {
       const result = await api.ListDirectory(path)
       if (!isCurrent()) return false
-      const files = result.files || []
+      const { sortBy, sortDir } = get()[panel]
+      const files = sortFiles(result.files || [], sortBy, sortDir)
       set(s => ({
         [panel]: {
           ...s[panel],
@@ -321,22 +336,23 @@ export const useFileStore = create((set, get) => ({
     set(s => ({ [panel]: { ...s[panel], cursorOnParent: val } }))
   },
 
+  // 정렬 후에도 커서가 같은 파일을 가리키도록 인덱스 보정 (Todo #93)
   setSort: (panel, sortBy) => {
     set(s => {
       const current = s[panel]
       const sortDir = current.sortBy === sortBy && current.sortDir === 'asc' ? 'desc' : 'asc'
-      const files = [...current.files].sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
-        let va = a[sortBy], vb = b[sortBy]
-        if (typeof va === 'string') va = va.toLowerCase()
-        if (typeof vb === 'string') vb = vb.toLowerCase()
-        if (va < vb) return sortDir === 'asc' ? -1 : 1
-        if (va > vb) return sortDir === 'asc' ? 1 : -1
-        return 0
-      })
-      return { [panel]: { ...current, sortBy, sortDir, files } }
+      const cursorFile = getCursorFile(current)
+      const files = sortFiles(current.files, sortBy, sortDir)
+      let cursor = current.cursor
+      if (cursorFile) {
+        const visible = current.showHidden ? files : files.filter(f => !f.isHidden)
+        const idx = visible.findIndex(f => f.path === cursorFile.path)
+        if (idx >= 0) cursor = idx
+      }
+      return { [panel]: { ...current, sortBy, sortDir, files, cursor } }
     })
   },
+
 
   // 숨김 표시를 끄면 숨겨지는 항목의 선택도 해제 (Todo #79)
   toggleHidden: (panel) => {
@@ -767,7 +783,7 @@ export const useFileStore = create((set, get) => ({
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return
       set(st => ({
-        [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
+        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), loading: false }
       }))
       get()._saveSession()
     } catch (err) {
@@ -806,7 +822,7 @@ export const useFileStore = create((set, get) => ({
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return
       set(st => ({
-        [panel]: { ...st[panel], path: result.path, files: result.files || [], loading: false }
+        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), loading: false }
       }))
       get()._saveSession()
     } catch (err) {

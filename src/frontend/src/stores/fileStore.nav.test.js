@@ -105,3 +105,42 @@ describe('Todo #92 — navigation', () => {
     expect(left.path).toBe('/t2')
   })
 })
+
+// ─── Todo #93: 정렬 유지 + 정렬 시 커서 파일 유지 ─────────────────────────────
+describe('Todo #93 — sort', () => {
+  let useFileStore, api
+  const file = (name, size) => ({ name, path: `/d/${name}`, isDir: false, isHidden: false, size, modified: '', extension: '' })
+
+  beforeEach(async () => {
+    vi.resetModules()
+    useFileStore = (await import('./fileStore.js')).useFileStore
+    api = (await import('../wailsjs/runtime')).default
+    api.ListDirectory.mockReset()
+    useFileStore.setState(s => ({
+      activePanel: 'left',
+      left: { ...s.left, path: '/d', files: [file('a', 30), file('b', 10), file('c', 20)], history: ['/d'], historyIndex: 0,
+              cursor: 0, cursorOnParent: false, showHidden: false, sortBy: 'name', sortDir: 'asc' },
+    }))
+  })
+
+  it('SORT-01: 크기순 정렬 후 refresh해도 크기순 유지', async () => {
+    useFileStore.getState().setSort('left', 'size')
+    api.ListDirectory.mockResolvedValue({ path: '/d', files: [file('a', 30), file('b', 10), file('c', 20)] })
+    await useFileStore.getState().refresh('left')
+    expect(useFileStore.getState().left.files.map(f => f.name)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('SORT-02: 정렬해도 커서는 같은 파일을 가리킴', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursor: 0 } })) // 'a'
+    useFileStore.getState().setSort('left', 'size') // b, c, a
+    const left = useFileStore.getState().left
+    const visible = left.files
+    expect(visible[left.cursor].name).toBe('a')
+  })
+
+  it('SORT-03: 폴더는 항상 먼저', () => {
+    useFileStore.setState(s => ({ left: { ...s.left, files: [file('z', 1), { ...file('dir', 0), isDir: true }] } }))
+    useFileStore.getState().setSort('left', 'size')
+    expect(useFileStore.getState().left.files[0].name).toBe('dir')
+  })
+})

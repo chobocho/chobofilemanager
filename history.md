@@ -1,5 +1,20 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #90 — copyFile Close 에러 무시, 링크/정션 폴더 처리)
+
+### 원인
+- `copyFile`이 `out.Close()` 에러를 무시 → 네트워크 드라이브 지연 쓰기 실패가 성공으로 보고되고, 이동 시 원본 삭제로 데이터 손실 가능.
+  실패 시 부분 파일도 남음
+- `copyDir`의 WalkDir는 링크를 따라가지 않아 폴더 링크/정션에 `copyFile`을 실행 → 복사 중간 실패
+- `ListDirectory`가 폴더 링크/정션을 파일로 표시 → Enter 시 폴더 진입 대신 파일 열기
+
+### 변경
+- `copyFile`: Copy/Close 에러 확인, 실패 시 부분 파일 삭제
+- `copyDir`: 심볼릭 링크·정션(ModeIrregular)은 `copyLinkTarget`으로 대상 내용 복사, 복사 루트나 상위를 가리키면 거부
+- `resolveLink`: Go 1.23+ `EvalSymlinks`가 정션을 해석하지 않아 `Readlink`로 직접 해석
+- `ListDirectory`: 폴더를 가리키는 링크/정션은 `IsDir=true`
+- 테스트: `links_test.go` 4건 (Windows는 `mklink /J` 정션으로 검증)
+
 ## 2026-10-24 (Todo.md #89 — 압축/압축 해제 에러 무시 및 zip 형식 오류 수정)
 
 ### 원인

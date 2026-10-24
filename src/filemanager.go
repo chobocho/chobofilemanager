@@ -92,11 +92,15 @@ func (fm *FileManager) ListDirectory(path string) (*DirectoryListing, error) {
 			Permissions: info.Mode().String(),
 		}
 
-		if entry.Type()&os.ModeSymlink != 0 {
+		if entry.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
 			fi.IsSymlink = true
 			target, err := os.Readlink(fullPath)
 			if err == nil {
 				fi.LinkTarget = target
+			}
+			// 폴더를 가리키는 링크/정션은 폴더로 표시 (Enter로 진입 가능, Todo #90)
+			if ti, err := os.Stat(fullPath); err == nil && ti.IsDir() {
+				fi.IsDir = true
 			}
 		}
 
@@ -868,15 +872,19 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
+	// Todo #90: 쓰기/닫기(네트워크 드라이브의 지연 쓰기 실패 등) 에러를 확인하고 부분 파일은 삭제.
+	// 이동(moveOne)은 이 결과를 보고 원본을 지우므로 실패를 성공으로 보고하면 데이터가 사라짐.
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		os.Remove(dst)
+		return err
+	}
+	if err := out.Close(); err != nil {
+		os.Remove(dst)
 		return err
 	}
 
-	info, err := os.Stat(src)
-	if err == nil {
+	if info, err := os.Stat(src); err == nil {
 		os.Chmod(dst, info.Mode())
 	}
 	return nil
@@ -901,8 +909,48 @@ func copyDir(src, dst string) error {
 		if d.IsDir() {
 			return os.MkdirAll(target, 0755)
 		}
+		// 심볼릭 링크 / Windows 정션(ModeIrregular)은 WalkDir가 따라가지 않으므로 직접 처리 (Todo #90)
+		if d.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			return copyLinkTarget(path, target, src)
+		}
 		return copyFile(path, target)
 	})
+}
+
+// resolveLink: 링크가 가리키는 실제 경로. Go 1.23+에서 EvalSymlinks는 Windows 정션을 해석하지 않으므로
+// Readlink로 직접 따라갑니다.
+func resolveLink(link string) (string, error) {
+	t, err := os.Readlink(link)
+	if err != nil {
+		return "", err
+	}
+	if !filepath.IsAbs(t) {
+		t = filepath.Join(filepath.Dir(link), t)
+	}
+	if r, err := filepath.EvalSymlinks(t); err == nil {
+		t = r
+	}
+	return filepath.Clean(t), nil
+}
+
+// copyLinkTarget: 링크가 가리키는 내용을 복사합니다. 복사 루트 자신이나 상위 폴더를 가리키면
+// 무한 복사가 되므로 거부합니다.
+func copyLinkTarget(link, target, root string) error {
+	info, err := os.Stat(link)
+	if err != nil {
+		return fmt.Errorf("링크 대상을 찾을 수 없습니다: %s", filepath.Base(link))
+	}
+	if !info.IsDir() {
+		return copyFile(link, target)
+	}
+	resolved, err := resolveLink(link)
+	if err != nil {
+		return err
+	}
+	if samePath(resolved, root) || isSubPath(resolved, root) {
+		return fmt.Errorf("상위 폴더를 가리키는 링크는 복사할 수 없습니다: %s", filepath.Base(link))
+	}
+	return copyDir(resolved, target)
 }
 
 // ─── RunStarlarkFile ──────────────────────────────────────────────────────────

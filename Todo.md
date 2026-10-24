@@ -174,7 +174,7 @@
 - `buildOpenCmd`: `cmd /c start "" path` → 파일명의 `&`, `|`, `^`, `%`가 cmd 구문으로 해석
 - `readme&evil.bat` 열면 evil.bat 실행. ShellExecuteW 또는 `rundll32 url.dll,FileProtocolHandler` 사용
 
-## 73. 마크다운 뷰어 XSS → 임의 명령 실행
+## ~~73. 마크다운 뷰어 XSS → 임의 명령 실행~~ ✓ 완료 (2026-10-24)
 - `FileViewer.jsx` `marked.parse` → `dangerouslySetInnerHTML` sanitize 없음
 - `<img onerror>`로 Go 바인딩(RunShellCommand 등) 호출 가능. DOMPurify 적용 + 링크 클릭 시 외부 브라우저로
 

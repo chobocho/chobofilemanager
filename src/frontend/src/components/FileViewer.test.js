@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut, imageScrollDelta, IMAGE_SCROLL_STEP, getImageStyle } from './FileViewer.jsx'
+import { isViewableFile, clampFontSize, isMarkdownFile, MIN_FONT, MAX_FONT, getWordWrapStyle, ENCODINGS, ENCODING_LABELS, nextEncoding, isImageFile, IMAGE_EXTS, siblingImagePath, isSwitchToEditorShortcut, multiplyImageScale, MIN_IMAGE_SCALE, MAX_IMAGE_SCALE, DEFAULT_IMAGE_SCALE, IMAGE_SCALE_STEP, isImageZoomInShortcut, isImageZoomOutShortcut, isImageZoomResetShortcut, imageScrollDelta, IMAGE_SCROLL_STEP, getImageStyle, renderMarkdown, externalLinkUrl } from './FileViewer.jsx'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -582,5 +582,54 @@ describe('isSwitchToEditorShortcut (Todo #59)', () => {
 
   it('SE-06: F5는 에디터 전환 아님', () => {
     expect(isSwitchToEditorShortcut({ key: 'F5' })).toBe(false)
+  })
+})
+
+// ─── Todo #73: 마크다운 렌더링 XSS 차단 ───────────────────────────────────────
+
+describe('renderMarkdown / externalLinkUrl (Todo #73)', () => {
+  it('XSS-01: 일반 마크다운은 그대로 렌더링', () => {
+    const html = renderMarkdown('# Title\n\n**bold** `code`')
+    expect(html).toContain('<h1')
+    expect(html).toContain('<strong>bold</strong>')
+    expect(html).toContain('<code>code</code>')
+  })
+
+  it('XSS-02: <img onerror> 이벤트 핸들러 제거', () => {
+    const html = renderMarkdown('<img src=x onerror="alert(1)">')
+    expect(html).not.toMatch(/onerror/i)
+  })
+
+  it('XSS-03: <script> 태그 제거', () => {
+    const html = renderMarkdown('hi<script>window.go.main.App.RunShellCommand("calc")</script>')
+    expect(html).not.toMatch(/<script/i)
+    expect(html).not.toContain('RunShellCommand')
+  })
+
+  it('XSS-04: javascript: 링크 제거', () => {
+    const html = renderMarkdown('[x](javascript:alert(1))')
+    expect(html).not.toMatch(/javascript:/i)
+  })
+
+  it('XSS-05: iframe/object 제거', () => {
+    const html = renderMarkdown('<iframe src="https://evil"></iframe><object data="x"></object>')
+    expect(html).not.toMatch(/<iframe|<object/i)
+  })
+
+  it('XSS-06: 안전한 HTML(details, 이미지 배지)은 유지', () => {
+    const html = renderMarkdown('<details><summary>S</summary>body</details>\n\n![b](https://img.shields.io/x.svg)')
+    expect(html).toContain('<details>')
+    expect(html).toContain('src="https://img.shields.io/x.svg"')
+  })
+
+  it('XSS-07: externalLinkUrl — http(s)/mailto만 외부 열기 허용', () => {
+    expect(externalLinkUrl('https://example.com')).toBe('https://example.com')
+    expect(externalLinkUrl('http://example.com/a')).toBe('http://example.com/a')
+    expect(externalLinkUrl('mailto:a@b.c')).toBe('mailto:a@b.c')
+    expect(externalLinkUrl('javascript:alert(1)')).toBeNull()
+    expect(externalLinkUrl('file:///C:/x.exe')).toBeNull()
+    expect(externalLinkUrl('#section')).toBeNull()
+    expect(externalLinkUrl('')).toBeNull()
+    expect(externalLinkUrl(null)).toBeNull()
   })
 })

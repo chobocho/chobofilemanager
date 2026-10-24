@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #73 — 마크다운 뷰어 XSS 차단)
+
+### 원인
+`marked.parse` 결과를 정리 없이 `dangerouslySetInnerHTML`로 삽입 → `.md`의 `<img onerror>` 등이 웹뷰에서 실행되어
+Go 바인딩(RunShellCommand, DeleteItems 등) 호출 가능. 링크 클릭 시 앱 웹뷰 자체가 다른 페이지로 이동.
+
+### 변경
+- 의존성 추가: `dompurify@^3.2.6`
+- `FileViewer.jsx`: `renderMarkdown`(marked → DOMPurify, style/form 추가 금지), `externalLinkUrl`(http/https/mailto만 허용)
+- 마크다운 본문 링크 클릭을 가로채 허용된 URL만 `BrowserOpenURL`로 외부 브라우저에서 열기
+- 테스트: `FileViewer.test.js` XSS-01~07 (총 342건 통과), `vite build` 확인
+
 ## 2026-10-24 (Todo.md #72 — 파일 열기 명령 주입 수정)
 
 ### 원인

@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen, Pencil, WrapText } from 'lucide-react'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useFileStore } from '../stores/fileStore'
 import styles from '../styles/FileViewer.module.css'
+
+// Todo #73: 마크다운의 원시 HTML이 Wails 웹뷰에서 실행되면 Go 바인딩(셸 실행·삭제)을 호출할 수 있으므로
+// marked 출력을 DOMPurify로 정리합니다 (script, 이벤트 핸들러, javascript: URL, iframe 등 제거).
+export function renderMarkdown(content) {
+  if (!content) return ''
+  return DOMPurify.sanitize(marked.parse(content), { FORBID_TAGS: ['style', 'form'] })
+}
+
+// 마크다운 링크 클릭 시 외부 브라우저로 열 URL. 허용하지 않는 스킴/앵커는 null.
+export function externalLinkUrl(href) {
+  if (!href) return null
+  return /^(https?:|mailto:)/i.test(href) ? href : null
+}
 
 export const MIN_FONT = 10
 export const MAX_FONT = 28
@@ -382,8 +396,17 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
 
   const mdHtml = useMemo(() => {
     if (!isMarkdown || !content) return ''
-    return marked.parse(content)
+    return renderMarkdown(content)
   }, [isMarkdown, content])
+
+  // 링크 클릭이 앱 웹뷰 자체를 이동시키지 않도록 가로채고, http(s)/mailto만 외부 브라우저로 엽니다.
+  const handleMarkdownClick = useCallback((e) => {
+    const a = e.target.closest?.('a')
+    if (!a) return
+    e.preventDefault()
+    const url = externalLinkUrl(a.getAttribute('href'))
+    if (url) window.runtime?.BrowserOpenURL?.(url)
+  }, [])
 
   return (
     <div className={styles.overlay}>
@@ -517,6 +540,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
               ref={mdBodyRef}
               className={styles.markdownBody}
               tabIndex={0}
+              onClick={handleMarkdownClick}
               dangerouslySetInnerHTML={{ __html: mdHtml }}
             />
           ) : (

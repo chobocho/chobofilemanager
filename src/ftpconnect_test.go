@@ -68,3 +68,36 @@ func TestFTPGetConnections_SortedByConnectTime(t *testing.T) {
 		fm.Disconnect(id)
 	}
 }
+
+// ─── Todo #81: UseTLS면 AUTH TLS를 요구, 실패 시 평문으로 진행하지 않음 ──────────
+
+func TestFTPConnect_TLSRefusedDoesNotSendPassword(t *testing.T) {
+	srv := startFakeFTP(t) // AUTH → 502
+	cfg := srv.config()
+	cfg.UseTLS = true
+	fm := newTestFTPManager(t)
+	if id, err := fm.Connect(cfg); err == nil {
+		fm.Disconnect(id)
+		t.Fatal("Connect must fail when server refuses TLS")
+	}
+	cmds := srv.received()
+	if !hasCommandPrefix(cmds, "AUTH TLS") {
+		t.Errorf("client should request AUTH TLS, got %v", cmds)
+	}
+	if hasCommandPrefix(cmds, "PASS") || hasCommandPrefix(cmds, "USER") {
+		t.Errorf("credentials must not be sent in cleartext: %v", cmds)
+	}
+}
+
+func TestFTPConnect_PlainDoesNotRequestTLS(t *testing.T) {
+	srv := startFakeFTP(t)
+	fm := newTestFTPManager(t)
+	id, err := fm.Connect(srv.config())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fm.Disconnect(id)
+	if hasCommandPrefix(srv.received(), "AUTH") {
+		t.Error("plain FTP should not send AUTH")
+	}
+}

@@ -534,13 +534,14 @@ export default function FTPManager() {
   )
 }
 
-function ConnectModal({ onConnect, onClose, prefill }) {
+export function ConnectModal({ onConnect, onClose, prefill }) {
   const [config, setConfig] = useState({
     host: prefill?.host || '',
     port: prefill?.port || 21,
     username: prefill?.username || '',
     password: '',
-    passive: prefill?.passive ?? true,
+    passive: true,
+    useTls: prefill?.useTls ?? false,
   })
   const upd = (k, v) => setConfig(c => ({ ...c, [k]: v }))
 
@@ -571,7 +572,10 @@ function ConnectModal({ onConnect, onClose, prefill }) {
             <input type="password" placeholder="(leave blank for anonymous)" value={config.password} onChange={e => upd('password', e.target.value)} />
           </div>
           <div className={styles.fieldCheck}>
-            <label><input type="checkbox" checked={config.passive} onChange={e => upd('passive', e.target.checked)} /> Passive mode</label>
+            {/* Todo #81: explicit FTPS (AUTH TLS). 서버가 TLS를 거부하면 접속 실패 (평문 전송 안 함) */}
+            <label><input type="checkbox" checked={config.useTls} onChange={e => upd('useTls', e.target.checked)} /> Use TLS (FTPS)</label>
+            {/* 백엔드 라이브러리는 항상 passive 모드로 동작 — active 모드 미지원 */}
+            <label title="항상 passive 모드로 접속합니다"><input type="checkbox" checked disabled readOnly /> Passive mode</label>
           </div>
           <div className={styles.modalActions}>
             <button type="button" className={styles.btnCancel} onClick={onClose}>Cancel</button>

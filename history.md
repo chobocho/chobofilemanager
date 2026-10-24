@@ -1,5 +1,17 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #81 — FTP TLS 옵션 동작)
+
+### 원인
+`FTPConfig.UseTLS`를 읽지 않아 항상 평문 FTP로 접속 (비밀번호 평문 전송). UI에는 TLS 선택 항목도 없었음.
+`Passive` 체크박스도 라이브러리가 지원하지 않아 효과가 없었음.
+
+### 변경
+- `ftpmanager.go`: `UseTLS`면 `DialWithExplicitTLS`(AUTH TLS, TLS 1.2+, 인증서 검증). 서버 거부 시 USER/PASS 전송 없이 실패
+- `FTPManager.jsx` 접속 창: "Use TLS (FTPS)" 체크박스 추가, Passive는 항상 켜짐(비활성 표시)
+- 테스트: Go `ftpconnect_test.go` 2건(TLS 거부 시 자격 증명 미전송, 평문 접속 시 AUTH 미전송),
+  프론트 `FTPManager.connect.test.js` FT-01~02 (총 376건 통과)
+
 ## 2026-10-24 (Todo.md #80 — FTP 다중 연결 시 엉뚱한 서버로 명령 전송 수정)
 
 ### 원인

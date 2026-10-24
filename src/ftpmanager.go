@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -96,6 +97,11 @@ func (fm *FTPManager) Connect(config FTPConfig) (string, error) {
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	opts := []ftp.DialOption{
 		ftp.DialWithTimeout(30 * time.Second),
+	}
+	// Todo #81: TLS 사용 시 explicit FTPS(AUTH TLS). 서버가 거부하면 평문으로 진행하지 않고 실패.
+	// (Passive 옵션: jlaffaye/ftp는 항상 passive(EPSV/PASV) 모드로 동작 — active 모드 미지원)
+	if config.UseTLS {
+		opts = append(opts, ftp.DialWithExplicitTLS(&tls.Config{ServerName: config.Host, MinVersion: tls.VersionTLS12}))
 	}
 
 	client, err := ftp.Dial(addr, opts...)

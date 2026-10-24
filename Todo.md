@@ -205,7 +205,7 @@
 - `Connect`가 새 연결 id를 반환하지 않고, 프론트가 map 순회 결과의 마지막 요소를 사용
 - `Connect`가 id 반환하도록 변경 (`ftpStore.js`, `FTPManager.jsx` 둘 다)
 
-## 81. FTP "TLS 사용" 옵션 무시 → 비밀번호 평문 전송
+## ~~81. FTP "TLS 사용" 옵션 무시 → 비밀번호 평문 전송~~ ✓ 완료 (2026-10-24)
 - `UseTLS`, `Passive` 미사용. `DialWithExplicitTLS` 적용
 
 ## 82. 휴지통 없는 드라이브에서 F8이 경고 없이 영구 삭제

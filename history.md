@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261024_233705.md](history_20261024_233705.md) (2026-10-24 23:37 시점 전체 백업)
 
+## 2026-10-24 (Todo.md #107 — 검색 Shift+Enter 역방향 순환 수정)
+
+### 원인
+`findPrev`가 `lastIndexOf(q, max(0, selectionStart-1))`를 사용 → 선택이 첫 일치(위치 0)일 때 같은 위치를 다시 찾아 제자리.
+
+### 변경
+- `FileViewer.jsx`/`TextEditor.jsx`: 선택이 맨 앞이면 바로 끝에서부터 순환
+- 테스트: FVC-06b, TEC-07b skip 해제 (총 718건 통과)
+
 ## 2026-10-24 (Todo.md #104 — 프론트엔드 테스트 커버리지 보완)
 
 ### 변경

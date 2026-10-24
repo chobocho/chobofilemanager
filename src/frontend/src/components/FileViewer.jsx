@@ -348,8 +348,9 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     if (!ta || !searchQuery) return
     const lowerContent = ta.value.toLowerCase()
     const lowerQuery = searchQuery.toLowerCase()
-    const startIndex = Math.max(0, (ta.selectionStart ?? 1) - 1)
-    let matchIndex = lowerContent.lastIndexOf(lowerQuery, startIndex)
+    // 선택이 맨 앞(0)이면 lastIndexOf(q, 0)이 같은 위치를 다시 찾으므로 바로 끝에서부터 순환 (Todo #107)
+    const sel = ta.selectionStart ?? 0
+    let matchIndex = sel > 0 ? lowerContent.lastIndexOf(lowerQuery, sel - 1) : -1
     if (matchIndex === -1) {
       matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
     }

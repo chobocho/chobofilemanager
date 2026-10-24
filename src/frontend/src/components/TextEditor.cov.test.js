@@ -111,7 +111,7 @@ describe('TextEditor 커버리지 (TEC)', () => {
   })
 
   // findPrev: startIndex = selectionStart-1 이 0으로 clamp되어 lastIndexOf(q, 0)이 다시 0 위치를 찾음
-  it.skip('BUG: TEC-07b: 첫 번째 일치 위치에서 Shift+Enter 시 마지막 일치로 순환하지 않고 제자리', async () => {
+  it('TEC-07b: 첫 번째 일치 위치에서 Shift+Enter 시 마지막 일치로 순환 (Todo #107)', async () => {
     const { ta } = await open()
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)

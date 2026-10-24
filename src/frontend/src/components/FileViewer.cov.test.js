@@ -86,7 +86,7 @@ describe('FileViewer 커버리지 (FVC)', () => {
     expect(ta.selectionStart).toBe(0)
   })
 
-  it.skip('BUG: FVC-06b: 첫 번째 일치 위치에서 Shift+Enter 시 마지막 일치로 순환하지 않고 제자리', async () => {
+  it('FVC-06b: 첫 번째 일치 위치에서 Shift+Enter 시 마지막 일치로 순환 (Todo #107)', async () => {
     const { ta } = await open()
     fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
     const input = screen.getByPlaceholderText(/검색/)

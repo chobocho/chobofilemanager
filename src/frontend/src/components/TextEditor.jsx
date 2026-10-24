@@ -68,22 +68,27 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / LINE_HEIGHT) + LINE_BUFFER)
 
   useEffect(() => {
+    let cancelled = false  // Todo #97: 늦게 끝난 이전 파일 로드 결과는 무시
     const load = async () => {
       setLoading(true)
       setError(null)
       try {
         const text = await readFile(path, encoding)
+        if (cancelled) return
         setContent(text)
         setOriginal(text)
       } catch(e) {
-        setError(String(e))
+        if (!cancelled) setError(String(e))
       } finally {
-        setLoading(false)
-        // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
-        setTimeout(() => textareaRef.current?.focus(), 0)
+        if (!cancelled) {
+          setLoading(false)
+          // 로딩 완료 후 포커스 — Ctrl+F 등 단축키가 뷰어/에디터로 먼저 전달되게 함
+          setTimeout(() => textareaRef.current?.focus(), 0)
+        }
       }
     }
     load()
+    return () => { cancelled = true }
   }, [path, encoding])
 
   // 인코딩 변경: 미저장 변경분이 있으면 확인 — 사용자 실수로 편집 내용 잃는 걸 방지

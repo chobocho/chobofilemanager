@@ -191,25 +191,26 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const firstVisible = Math.max(0, Math.floor(scrollTop / lineHeight) - LINE_BUFFER)
   const lastVisible  = Math.min(lineCount - 1, Math.ceil((scrollTop + viewHeight) / lineHeight) + LINE_BUFFER)
 
+  // Todo #97: 새 파일을 읽을 때 이전 오류를 지우고, 더 늦게 끝난 이전 로드 결과는 버림
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       setLoading(true)
+      setError(null)
       try {
-        if (isImage) {
-          const dataUrl = await readImage(path)
-          setContent(dataUrl)
-        } else {
-          const text = await readFile(path, encoding)
-          setContent(text)
-        }
+        const data = isImage ? await readImage(path) : await readFile(path, encoding)
+        if (!cancelled) setContent(data)
       } catch (e) {
-        setError(String(e))
+        if (!cancelled) setError(String(e))
       } finally {
-        setLoading(false)
-        setTimeout(() => (isMarkdown && mdRendered ? mdBodyRef.current : textareaRef.current)?.focus(), 0)
+        if (!cancelled) {
+          setLoading(false)
+          setTimeout(() => (isMarkdown && mdRendered ? mdBodyRef.current : textareaRef.current)?.focus(), 0)
+        }
       }
     }
     load()
+    return () => { cancelled = true }
   }, [path, encoding, isImage])
 
   useEffect(() => {

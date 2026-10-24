@@ -1,5 +1,15 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #97 — 뷰어/에디터 로드 상태 미초기화 및 경합)
+
+### 원인
+FileViewer 로드 effect가 `error`를 초기화하지 않아 이미지 하나가 실패하면 ←/→로 넘겨도 계속 ⚠ 표시.
+로드 취소가 없어 빠르게 넘기면 늦게 끝난 이전 파일 내용이 새 경로 아래 표시됨 (에디터도 동일).
+
+### 변경
+- `FileViewer.jsx`/`TextEditor.jsx`: 로드 시작 시 `setError(null)`, effect cleanup의 `cancelled` 플래그로 이전 결과 무시
+- 테스트: `FileViewer.load.test.js` LD-01~03 (총 401건 통과)
+
 ## 2026-10-24 (Todo.md #96 — 확인창 비동기 에러가 다음 대화상자에 표시되는 문제)
 
 ### 원인

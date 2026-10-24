@@ -100,3 +100,36 @@ func assertNoTempLeft(t *testing.T, dir string) {
 		}
 	}
 }
+
+// ─── Todo #85: 파일 삭제 실패 시 실제 원인을 반환, 폴더 재귀 삭제로 넘어가지 않음 ──
+
+func TestFTPDeleteItem_FileErrorIsReported(t *testing.T) {
+	srv := startFakeFTP(t)
+	srv.handler = func(cmd, arg string) string {
+		if cmd == "DELE" {
+			return "550 Permission denied"
+		}
+		return ""
+	}
+	fm, id := connectFake(t, srv)
+	err := fm.DeleteItem(id, "/ro.txt", false)
+	if err == nil || !strings.Contains(err.Error(), "Permission denied") {
+		t.Errorf("want DELE error, got %v", err)
+	}
+	if hasCommandPrefix(srv.received(), "CWD") {
+		t.Error("file delete must not fall back to recursive directory removal")
+	}
+}
+
+func TestFTPDeleteItem_DirUsesRecursiveRemove(t *testing.T) {
+	srv := startFakeFTP(t)
+	fm, id := connectFake(t, srv)
+	fm.DeleteItem(id, "/somedir", true)
+	cmds := srv.received()
+	if hasCommandPrefix(cmds, "DELE") {
+		t.Error("directory delete should not try DELE")
+	}
+	if !hasCommandPrefix(cmds, "CWD /somedir") {
+		t.Errorf("directory delete should use recursive removal, got %v", cmds)
+	}
+}

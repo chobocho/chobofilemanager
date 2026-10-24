@@ -290,13 +290,13 @@ func (fm *FTPManager) Upload(id, localPath, remotePath string) error {
 	})
 }
 
-func (fm *FTPManager) DeleteItem(id, path string) error {
+// DeleteItem: 파일은 DELE, 폴더는 재귀 삭제 (Todo #85 — 파일 삭제 실패 원인을 폴더 삭제 에러로 덮지 않음)
+func (fm *FTPManager) DeleteItem(id, path string, isDir bool) error {
 	return fm.withConn(id, func(c *ftp.ServerConn) error {
-		// Try as file first, then as directory
-		if err := c.Delete(path); err != nil {
+		if isDir {
 			return c.RemoveDirRecur(path)
 		}
-		return nil
+		return c.Delete(path)
 	})
 }
 

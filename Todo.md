@@ -222,7 +222,7 @@
 - 기존 로컬 파일을 먼저 truncate. 임시 파일 다운로드 후 rename
 - 원격 경로에 `filepath.Base` 사용 (`\`, `:` 처리 문제)
 
-## 85. FTP 원격 삭제 확인창 없음, Delete 실패 원인 은폐
+## ~~85. FTP 원격 삭제 확인창 없음, Delete 실패 원인 은폐~~ ✓ 완료 (2026-10-24)
 - `DeleteItem`이 Delete 실패 시 무조건 `RemoveDirRecur` 폴백 → 실제 에러 숨김
 
 ## 86. FTP 비밀번호 평문(0644) 저장, 북마크 동시성/손상 처리

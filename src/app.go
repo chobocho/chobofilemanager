@@ -185,8 +185,8 @@ func (a *App) FTPUpload(id, localPath, remotePath string) error {
 	return a.ftpManager.Upload(id, localPath, remotePath)
 }
 
-func (a *App) FTPDeleteItem(id, path string) error {
-	return a.ftpManager.DeleteItem(id, path)
+func (a *App) FTPDeleteItem(id, path string, isDir bool) error {
+	return a.ftpManager.DeleteItem(id, path, isDir)
 }
 
 func (a *App) FTPCreateDirectory(id, path string) error {

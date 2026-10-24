@@ -135,7 +135,7 @@ func (s *fakeFTPServer) handle(c net.Conn) {
 
 func hasCommandPrefix(cmds []string, prefix string) bool {
 	for _, c := range cmds {
-		if strings.HasPrefix(strings.ToUpper(c), prefix) {
+		if strings.HasPrefix(strings.ToUpper(c), strings.ToUpper(prefix)) {
 			return true
 		}
 	}

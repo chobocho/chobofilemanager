@@ -215,6 +215,24 @@ function FileListPanel({
 }
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────────
+// 선택된 원격 경로 → 삭제 대상(폴더 여부 포함). 목록에 없으면 파일로 간주.
+export function ftpDeleteTargets(selectedPaths, files) {
+  const byPath = new Map((files || []).map(f => [f.path, f]))
+  return [...selectedPaths].map(p => {
+    const f = byPath.get(p)
+    return { path: p, name: f?.name || p.split('/').pop(), isDir: !!f?.isDir }
+  })
+}
+
+export function ftpDeleteMessage(targets) {
+  const dirs = targets.filter(t => t.isDir).length
+  const names = targets.slice(0, 5).map(t => t.name).join(', ') + (targets.length > 5 ? ' ...' : '')
+  return `원격 서버에서 ${targets.length}개 항목을 영구 삭제합니다${dirs ? ` (폴더 ${dirs}개는 내용 포함)` : ''}.
+${names}
+
+계속하시겠습니까?`
+}
+
 export default function FTPManager() {
   const ftpStore  = useFTPStore()
   const fileStore = useFileStore()
@@ -327,15 +345,20 @@ export default function FTPManager() {
     setStatus(`Uploaded ${count} file(s)`)
   }
 
+  // Todo #85: 원격 삭제는 복구할 수 없으므로 확인 후 진행, 실패해도 목록을 새로고침
   const handleFTPDelete = async () => {
     if (!activeConn || ftpSelected.size === 0) return
+    const targets = ftpDeleteTargets(ftpSelected, ftpFiles)
+    if (!window.confirm(ftpDeleteMessage(targets))) return
     const api = (await import('../wailsjs/runtime')).default
-    for (const path of ftpSelected) {
-      try { await api.FTPDeleteItem(activeConn.id, path) }
-      catch(e) { setStatus(`Delete failed: ${e}`); return }
+    let deleted = 0
+    let failure = null
+    for (const t of targets) {
+      try { await api.FTPDeleteItem(activeConn.id, t.path, t.isDir); deleted++ }
+      catch(e) { failure = `Delete failed (${t.name}): ${e}`; break }
     }
     await navigateFTPDirect(activeConn.id, ftpPath)
-    setStatus(`Deleted ${ftpSelected.size} item(s)`)
+    setStatus(failure || `Deleted ${deleted} item(s)`)
     setFtpSelected(new Set())
   }
 

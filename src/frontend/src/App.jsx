@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { useFileStore, getCursorFile } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
 import { useThemeStore } from './stores/themeStore'
@@ -7,14 +7,25 @@ import FilePanel from './components/FilePanel'
 import StatusBar from './components/StatusBar'
 import FKeyBar from './components/FKeyBar'
 import FTPManager from './components/FTPManager'
-import TextEditor from './components/TextEditor'
-import FileViewer, { isImageFile } from './components/FileViewer'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
-import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit } from './utils/fileTypes.js'
+import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
+
+// Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
+const loadTextEditor = () => import('./components/TextEditor')
+const loadFileViewer = () => import('./components/FileViewer')
+const TextEditor = lazy(loadTextEditor)
+const FileViewer = lazy(loadFileViewer)
+
+// 시작 후 여유 시간에 미리 받아 두어 첫 F3/F4도 바로 열리게 함
+export function prefetchViewerChunks() {
+  const run = () => { loadFileViewer().catch(() => {}); loadTextEditor().catch(() => {}) }
+  if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 3000 })
+  else setTimeout(run, 1500)
+}
 import styles from './styles/App.module.css'
 
 // Todo #55: Starlark 스크래치 단축키 — Ctrl+M (이전 Ctrl+Enter는 TextEditor 내부 Run으로만 사용)
@@ -68,7 +79,10 @@ export default function App() {
   useEffect(() => {
     Promise.all([init(), loadBkmarks()])
       .catch(err => console.error('초기화 실패:', err))
-      .finally(() => requestAnimationFrame(() => leftPanelRef.current?.focus()))
+      .finally(() => {
+        requestAnimationFrame(() => leftPanelRef.current?.focus())
+        prefetchViewerChunks()
+      })
   }, [])
 
   // Ctrl+M: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기. (Todo #55, 이전 Ctrl+Enter)
@@ -348,6 +362,7 @@ export default function App() {
           onClose={() => { setFileSizeError(null); focusActivePanel() }}
         />
       )}
+      <Suspense fallback={null}>
       {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }}
         onSwitchToEditor={() => { const p = viewerFile; setViewerFile(null); setEditorFile(p) }}
         siblingImages={(() => {
@@ -361,6 +376,7 @@ export default function App() {
         onChangePath={(p) => setViewerFile(p)} />}
       {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }}
         onSwitchToViewer={() => { const p = editorFile; setEditorFile(null); setViewerFile(p) }} />}
+      </Suspense>
     </div>
   )
 }

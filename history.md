@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #115 — 뷰어/에디터 지연 로딩)
+
+### 변경
+- `App.jsx`: `TextEditor`/`FileViewer`를 `React.lazy` + `Suspense`로 처음 열 때 로드, `isImageFile`은 `utils/fileTypes.js`에서 사용
+- 시작 직후 유휴 시간에 두 조각을 미리 받아 두는 `prefetchViewerChunks` (첫 F3/F4도 지연 없이 열림)
+- `components/index.js`: 묶음 export에서 TextEditor 제거 (묶음 import 시 CodeMirror가 초기 번들로 끌려오는 것 방지)
+- 번들: 초기 조각 649KB → 253KB (gzip 195KB → 77KB). CodeMirror·marked·DOMPurify는 FileViewer 조각(388KB), 에디터 조각 11KB, 언어 패키지는 기존처럼 개별 조각
+- 테스트: `lazyLoad.test.js` LZ-01~03 — `main.jsx`부터 정적 import 그래프를 따라가 뷰어/에디터/CodeMirror/marked/DOMPurify가 없는지 검사. 총 788건 통과
+
 ## 2026-10-25 (Todo.md #114 — 뷰어/에디터 파일 크기 제한 10MB → 32MB)
 
 ### 근거 (측정)

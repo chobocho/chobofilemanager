@@ -1,5 +1,21 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #94 — 인코딩 감지/디코딩 오류 수정)
+
+### 원인
+- x/text EUC-KR 디코더는 잘못된 바이트를 에러 없이 U+FFFD로 바꿔 `cp949StrictValid`가 항상 true → Johab 판정 경로가 죽은 코드
+- Johab 채움(fill) 코드를 무효로 처리 → 단독 자모(ㅋㅋㅋ, ㅠㅠ) 디코딩 실패 후 저장 시 영구 손실
+- 잘못된 Johab lead 뒤 ASCII(개행 등)까지 2바이트로 삼킴
+- UTF-8 읽기 시 전체 NFC 정규화 → CJK 호환 한자 등이 열고 저장만 해도 바뀜
+- `utf8ValidityScore`가 서로게이트/overlong을 통과시킴
+
+### 변경
+- `cp949StrictValid`: 디코드 결과의 U+FFFD로 판정, 감지 창 끝의 잘린 lead 무시
+- `validUTF8IgnoringTail`: 고신뢰 UTF-8 판정에 `utf8.Valid` 병행 (창 끝 잘림 허용)
+- `composeHangulJamo`: NFD 한글 자모(L+V+T)만 완성형으로 합성 — 기존 NFD 한글 표시 기능 유지, 다른 문자는 그대로
+- `johab.go`: 단독 자모/채움 문자 디코딩(`johabDecodeJamo`) + 인코딩(`johabJamoCode`), trail < 0x41이면 1바이트만 소비
+- 테스트: `encoding_fix_test.go` 7건
+
 ## 2026-10-24 (Todo.md #93 — 정렬이 새로고침 후 초기화, 정렬 시 커서 이동 문제)
 
 ### 원인

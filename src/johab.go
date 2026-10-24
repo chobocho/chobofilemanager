@@ -39,6 +39,37 @@ var johabJong = [32]byte{
 	22, 23, 24, 25, 26, 27, 0xFF, 0xFF,
 }
 
+// 비트값 1(초성), 2(중성)는 "채움(fill)" 코드 — 단독 자모 표현에 사용 (Todo #94)
+const (
+	johabChoFill  = 1
+	johabJungFill = 2
+	johabJongFill = 1
+)
+
+// 초성/중성/종성 인덱스 → 호환용 자모(U+3131~)
+var choCompat = [19]rune{0x3131, 0x3132, 0x3134, 0x3137, 0x3138, 0x3139, 0x3141, 0x3142, 0x3143,
+	0x3145, 0x3146, 0x3147, 0x3148, 0x3149, 0x314A, 0x314B, 0x314C, 0x314D, 0x314E}
+var jongCompat = [28]rune{0, 0x3131, 0x3132, 0x3133, 0x3134, 0x3135, 0x3136, 0x3137, 0x3139, 0x313A,
+	0x313B, 0x313C, 0x313D, 0x313E, 0x313F, 0x3140, 0x3141, 0x3142, 0x3144, 0x3145, 0x3146, 0x3147,
+	0x3148, 0x314A, 0x314B, 0x314C, 0x314D, 0x314E}
+
+// johabDecodeJamo: 채움 코드를 포함한 단독 자모(ㅋ, ㅠ, ㄳ 등). 해당 없으면 0.
+func johabDecodeJamo(choBits, jungBits, jongBits uint16) rune {
+	choFill, jungFill, jongFill := choBits == johabChoFill, jungBits == johabJungFill, jongBits == johabJongFill
+	cho, jung, jong := johabCho[choBits], johabJung[jungBits], johabJong[jongBits]
+	switch {
+	case choFill && jungFill && jongFill:
+		return 0x3164 // 한글 채움 문자
+	case !choFill && jungFill && jongFill && cho != 0xFF:
+		return choCompat[cho]
+	case choFill && !jungFill && jongFill && jung != 0xFF:
+		return rune(0x314F + uint32(jung))
+	case choFill && jungFill && !jongFill && jong != 0xFF && jong != 0:
+		return jongCompat[jong]
+	}
+	return 0
+}
+
 // johabDecodeSyllable: 2바이트(big-endian) 코드 한 음절을 유니코드로.
 // 실패 시 0 반환 (MSB=0 또는 invalid 비트값).
 func johabDecodeSyllable(code uint16) rune {
@@ -53,7 +84,7 @@ func johabDecodeSyllable(code uint16) rune {
 	jung := johabJung[jungBits]
 	jong := johabJong[jongBits]
 	if cho == 0xFF || jung == 0xFF || jong == 0xFF {
-		return 0
+		return johabDecodeJamo(choBits, jungBits, jongBits)
 	}
 	return rune(0xAC00 + (uint32(cho)*21+uint32(jung))*28 + uint32(jong))
 }
@@ -75,7 +106,14 @@ func johabToString(src []byte) string {
 			i++
 			continue
 		}
-		code := uint16(b0)<<8 | uint16(src[i+1])
+		b1 := src[i+1]
+		// Johab trail은 0x41 이상 — 그보다 작은(제어문자/숫자 등) 바이트는 삼키지 않음 (Todo #94)
+		if b1 < 0x41 {
+			out = append(out, johabReplacement)
+			i++
+			continue
+		}
+		code := uint16(b0)<<8 | uint16(b1)
 		uc := johabDecodeSyllable(code)
 		if uc == 0 {
 			out = append(out, johabReplacement)
@@ -160,9 +198,37 @@ func johabEncode(s string) ([]byte, error) {
 			n := uint16(r - 0xAC00)
 			code := 0x8000 | choBits[n/(21*28)]<<10 | jungBits[(n%(21*28))/28]<<5 | jongBits[n%28]
 			out = append(out, byte(code>>8), byte(code))
+		case r >= 0x3131 && r <= 0x3164:
+			code, ok := johabJamoCode(r, choBits, jungBits, jongBits)
+			if !ok {
+				return nil, fmt.Errorf("조합형으로 저장할 수 없는 문자: %q", r)
+			}
+			out = append(out, byte(code>>8), byte(code))
 		default:
 			return nil, fmt.Errorf("조합형으로 저장할 수 없는 문자: %q", r)
 		}
 	}
 	return out, nil
+}
+
+// johabJamoCode: 호환용 자모 → 채움 코드를 사용한 Johab 코드
+func johabJamoCode(r rune, choBits, jungBits, jongBits [32]uint16) (uint16, bool) {
+	const hi = 0x8000
+	if r == 0x3164 {
+		return hi | johabChoFill<<10 | johabJungFill<<5 | johabJongFill, true
+	}
+	for i, c := range choCompat {
+		if c == r {
+			return hi | choBits[i]<<10 | johabJungFill<<5 | johabJongFill, true
+		}
+	}
+	if r >= 0x314F && r <= 0x3163 {
+		return hi | johabChoFill<<10 | jungBits[r-0x314F]<<5 | johabJongFill, true
+	}
+	for i, c := range jongCompat {
+		if i > 0 && c == r {
+			return hi | johabChoFill<<10 | johabJungFill<<5 | jongBits[i], true
+		}
+	}
+	return 0, false
 }

@@ -14,11 +14,11 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding/korean"
-	"golang.org/x/text/unicode/norm"
 )
 
 type Encoding int
@@ -158,9 +158,68 @@ func cp949ExtensionRatio(buf []byte) int {
 
 // cp949StrictValid: EUCKR 디코더가 에러 없이 통과하는지.
 // hviewer의 MultiByteToWideChar(MB_ERR_INVALID_CHARS) 대응.
+// x/text의 EUCKR 디코더는 잘못된 바이트를 에러 없이 U+FFFD로 바꾸므로 결과에 U+FFFD가 있는지로 판정 (Todo #94).
+// 감지 창 끝에서 잘린 lead 바이트 하나는 무시합니다.
 func cp949StrictValid(buf []byte) bool {
-	_, err := korean.EUCKR.NewDecoder().Bytes(buf)
-	return err == nil
+	end := 0
+	for i := 0; i < len(buf); {
+		if buf[i] < 0x80 {
+			i++
+			end = i
+			continue
+		}
+		if i+1 >= len(buf) {
+			break // 잘린 마지막 lead 바이트
+		}
+		i += 2
+		end = i
+	}
+	decoded, err := korean.EUCKR.NewDecoder().Bytes(buf[:end])
+	return err == nil && !strings.ContainsRune(string(decoded), utf8.RuneError)
+}
+
+// validUTF8IgnoringTail: 감지 창 끝에서 잘린 멀티바이트 시퀀스를 제외하고 utf8.Valid 검사.
+// utf8ValidityScore는 서로게이트(ED A0..)·overlong(E0 80..)·범위 초과(F4 90..)를 거르지 못하므로 함께 사용.
+func validUTF8IgnoringTail(buf []byte) bool {
+	for cut := 0; cut <= 3 && cut <= len(buf); cut++ {
+		head := buf[:len(buf)-cut]
+		if utf8.Valid(head) {
+			return cut == 0 || !utf8.FullRune(buf[len(buf)-cut:])
+		}
+	}
+	return false
+}
+
+// composeHangulJamo: 조합형(NFD) 한글 자모 L+V(+T) 시퀀스만 완성형 음절로 합칩니다.
+// 전체 NFC는 CJK 호환 한자 등 다른 문자도 바꿔 "열고 저장만 해도 내용이 바뀌는" 문제가 있어 한글만 처리 (Todo #94).
+func composeHangulJamo(s string) string {
+	hasJamo := false
+	for _, r := range s {
+		if r >= 0x1100 && r <= 0x11FF {
+			hasJamo = true
+			break
+		}
+	}
+	if !hasJamo {
+		return s
+	}
+	rs := []rune(s)
+	out := make([]rune, 0, len(rs))
+	for i := 0; i < len(rs); i++ {
+		l := rs[i]
+		if l >= 0x1100 && l <= 0x1112 && i+1 < len(rs) && rs[i+1] >= 0x1161 && rs[i+1] <= 0x1175 {
+			syl := 0xAC00 + ((l-0x1100)*21+(rs[i+1]-0x1161))*28
+			i++
+			if i+1 < len(rs) && rs[i+1] >= 0x11A8 && rs[i+1] <= 0x11C2 {
+				syl += rs[i+1] - 0x11A7
+				i++
+			}
+			out = append(out, syl)
+			continue
+		}
+		out = append(out, l)
+	}
+	return string(out)
 }
 
 // DetectEncoding: 휴리스틱 기반 인코딩 자동 판별.
@@ -181,7 +240,7 @@ func DetectEncoding(buf []byte) Encoding {
 	//  - 멀티바이트 시퀀스가 3개 이상 valid면 UTF-8 (높은 신뢰도)
 	//  - 1~2개라도 utf8.Valid 통과하면 UTF-8 (NFD 짧은 텍스트 등)
 	u8 := utf8ValidityScore(buf)
-	if u8 >= 3 {
+	if u8 >= 3 && validUTF8IgnoringTail(buf) {
 		return EncUTF8
 	}
 	if u8 >= 1 && utf8.Valid(buf) {
@@ -226,10 +285,10 @@ func DecodeToUTF8(buf []byte, enc Encoding) (string, error) {
 		if len(buf) >= 3 {
 			buf = buf[3:]
 		}
-		return norm.NFC.String(string(buf)), nil
+		return composeHangulJamo(string(buf)), nil
 
 	case EncUTF8:
-		return norm.NFC.String(string(buf)), nil
+		return composeHangulJamo(string(buf)), nil
 
 	case EncUTF16LE:
 		body := buf

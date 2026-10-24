@@ -18,7 +18,6 @@ import (
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 	"golang.org/x/text/encoding/korean"
-	"golang.org/x/text/unicode/norm"
 )
 
 type FileManager struct {
@@ -407,7 +406,7 @@ func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (st
 		return string(decoded), nil
 	}
 	if utf8.Valid(data) {
-		return norm.NFC.String(string(data)), nil
+		return composeHangulJamo(string(data)), nil
 	}
 	return string(data), nil
 }

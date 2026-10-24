@@ -635,6 +635,12 @@ export const useFileStore = create((set, get) => ({
   },
 
   // 이미지 파일을 base64 data URL로 읽는다 (Todo #52).
+  // 마크다운의 GitHub 이미지에 대응하는 로컬 저장소 파일(data URL), 없으면 '' (Todo #116)
+  resolveRepoImage: async (markdownPath, owner, repo, relPath) => {
+    if (!api.ResolveRepoImage) return ''
+    return await api.ResolveRepoImage(markdownPath, owner, repo, relPath)
+  },
+
   readImage: async (path) => {
     if (api.ReadImageFile) {
       return await api.ReadImageFile(path)

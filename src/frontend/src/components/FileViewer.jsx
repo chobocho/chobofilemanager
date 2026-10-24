@@ -15,6 +15,27 @@ export function renderMarkdown(content) {
   return DOMPurify.sanitize(marked.parse(content), { FORBID_TAGS: ['style', 'form'] })
 }
 
+// Todo #116: GitHub blob 페이지 주소(https://github.com/<owner>/<repo>/blob/<ref>/<path>)는 이미지가 아니라 HTML이므로
+// GitHub 웹처럼 raw 주소로 바꿉니다. 저장소 정보는 data-gh-* 속성에 남겨 로컬 사본 조회에 사용합니다.
+const GITHUB_BLOB_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/([^?#]+)/i
+
+export function githubBlobImage(url) {
+  const m = typeof url === 'string' ? url.match(GITHUB_BLOB_RE) : null
+  if (!m) return null
+  const [, owner, repo, ref, path] = m
+  return { owner, repo, ref, path, raw: `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}` }
+}
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.nodeName !== 'IMG') return
+  const gh = githubBlobImage(node.getAttribute('src'))
+  if (!gh) return
+  node.setAttribute('src', gh.raw)
+  node.setAttribute('data-gh-owner', gh.owner)
+  node.setAttribute('data-gh-repo', gh.repo)
+  node.setAttribute('data-gh-path', gh.path)
+})
+
 // 마크다운 링크 클릭 시 외부 브라우저로 열 URL. 허용하지 않는 스킴/앵커는 null.
 export function externalLinkUrl(href) {
   if (!href) return null
@@ -347,6 +368,22 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     if (!isMarkdown || !content) return ''
     return renderMarkdown(content)
   }, [isMarkdown, content])
+
+  // Todo #116: GitHub 이미지가 이 마크다운이 속한 로컬 저장소에 있으면 로컬 파일로 교체 (오프라인에서도 표시)
+  useEffect(() => {
+    if (!isMarkdown || !mdRendered || !mdHtml) return
+    const root = mdBodyRef.current
+    const { resolveRepoImage } = useFileStore.getState()
+    if (!root || !resolveRepoImage) return
+    let cancelled = false
+    root.querySelectorAll('img[data-gh-path]').forEach(img => {
+      const { ghOwner, ghRepo, ghPath } = img.dataset
+      Promise.resolve(resolveRepoImage(path, ghOwner, ghRepo, ghPath))
+        .then(local => { if (!cancelled && local) img.setAttribute('src', local) })
+        .catch(() => {})
+    })
+    return () => { cancelled = true }
+  }, [isMarkdown, mdRendered, mdHtml, path])
 
   // 링크 클릭이 앱 웹뷰 자체를 이동시키지 않도록 가로채고, http(s)/mailto만 외부 브라우저로 엽니다.
   const handleMarkdownClick = useCallback((e) => {

@@ -230,3 +230,8 @@ func (a *App) FTPClearHistory() error {
 func (a *App) FTPAddHistory(config FTPConfig) {
 	a.ftpManager.AddHistory(config)
 }
+
+// ResolveRepoImage: 마크다운의 GitHub 이미지에 대응하는 로컬 저장소 파일(data URL), 없으면 "" (Todo #116)
+func (a *App) ResolveRepoImage(markdownPath, owner, repo, relPath string) string {
+	return a.fileManager.ResolveRepoImage(markdownPath, owner, repo, relPath)
+}

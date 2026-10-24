@@ -2,6 +2,21 @@
 
 > 이전 이력: [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #116 — 마크다운 GitHub 이미지 표시)
+
+### 원인
+README의 `https://github.com/<owner>/<repo>/blob/<ref>/<path>`는 이미지가 아니라 HTML 페이지 주소.
+GitHub 웹은 렌더링 시 raw 주소로 바꾸지만 내장 뷰어는 그대로 사용해 이미지가 깨짐.
+
+### 변경
+- `repoimage.go` 신규 `ResolveRepoImage(md, owner, repo, path)`: 마크다운에서 위로 올라가 git 루트(.git 폴더/파일) 탐색,
+  `.git/config` remote가 같은 GitHub 저장소(대소문자 무시, https/ssh)일 때만 저장소 안 같은 경로 이미지를 data URL로 반환.
+  remote 없는 저장소는 경로만으로 허용, 저장소 밖/절대 경로/이미지가 아닌 파일 거부
+- `FileViewer.jsx`: `githubBlobImage` + DOMPurify 훅으로 blob 이미지 → raw 주소(+data-gh-*), 렌더 후 로컬 사본이 있으면 교체
+- `fileStore.resolveRepoImage`, App 바인딩, 브라우저 mock 추가
+- 실제 `C:\github2\freecell\README.md`의 이미지 4개 모두 로컬 파일로 해석 확인
+- 테스트: Go `repoimage_test.go` 9건, 프론트 `repoImage.test.js` 10건 (총 798건 통과)
+
 ## 2026-10-25 (Todo.md #115 — 뷰어/에디터 지연 로딩)
 
 ### 변경

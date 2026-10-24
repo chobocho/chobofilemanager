@@ -492,13 +492,11 @@ func (fm *FileManager) ReadImageFile(path string) (string, error) {
 	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
+// buildOpenCmd: Linux용 열기 명령. Windows는 셸 구문 해석을 피하기 위해 ShellExecuteW 사용 (Todo #72).
 func buildOpenCmd(path string) (*exec.Cmd, error) {
 	dir := filepath.Dir(path)
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
-	case "windows":
-		// cmd /c start로 실행 시 Dir을 설정하면 실행된 앱의 작업 폴더가 파일 위치로 지정됨
-		cmd = exec.Command("cmd", "/c", "start", "", path)
 	case "linux":
 		cmd = exec.Command("xdg-open", path)
 	default:
@@ -509,6 +507,9 @@ func buildOpenCmd(path string) (*exec.Cmd, error) {
 }
 
 func (fm *FileManager) OpenFile(path string) error {
+	if runtime.GOOS == "windows" {
+		return shellOpen(path, filepath.Dir(path))
+	}
 	cmd, err := buildOpenCmd(path)
 	if err != nil {
 		return err

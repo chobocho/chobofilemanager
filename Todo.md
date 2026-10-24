@@ -170,7 +170,7 @@
 - 같은 이름 폴더 존재 시 덮어쓰기 없이 조용히 병합, 사용 중 파일은 복사 후 원본 반쯤 삭제
 - `ERROR_NOT_SAME_DEVICE`/EXDEV일 때만 copy+delete 폴백
 
-## 72. 파일 열기(Enter) 시 명령 주입
+## ~~72. 파일 열기(Enter) 시 명령 주입~~ ✓ 완료 (2026-10-24)
 - `buildOpenCmd`: `cmd /c start "" path` → 파일명의 `&`, `|`, `^`, `%`가 cmd 구문으로 해석
 - `readme&evil.bat` 열면 evil.bat 실행. ShellExecuteW 또는 `rundll32 url.dll,FileProtocolHandler` 사용
 

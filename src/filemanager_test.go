@@ -1313,6 +1313,9 @@ func TestChangeWorkingDirectory_InvalidPath(t *testing.T) {
 // ─── buildOpenCmd ─────────────────────────────────────────────────────────────
 
 func TestBuildOpenCmd_DirIsFileDirectory(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("buildOpenCmd는 Linux 전용 (Windows는 ShellExecuteW, Todo #72)")
+	}
 	base := t.TempDir()
 	filePath := filepath.Join(base, "test.txt")
 	os.WriteFile(filePath, []byte("hello"), 0644)
@@ -1327,6 +1330,9 @@ func TestBuildOpenCmd_DirIsFileDirectory(t *testing.T) {
 }
 
 func TestBuildOpenCmd_UsesCorrectProgram(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("buildOpenCmd는 Linux 전용 (Windows는 ShellExecuteW, Todo #72)")
+	}
 	base := t.TempDir()
 	filePath := filepath.Join(base, "test.txt")
 	os.WriteFile(filePath, []byte("hello"), 0644)
@@ -1353,6 +1359,9 @@ func TestBuildOpenCmd_UsesCorrectProgram(t *testing.T) {
 }
 
 func TestBuildOpenCmd_NestedDir(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("buildOpenCmd는 Linux 전용 (Windows는 ShellExecuteW, Todo #72)")
+	}
 	base := t.TempDir()
 	sub := filepath.Join(base, "sub", "dir")
 	os.MkdirAll(sub, 0755)

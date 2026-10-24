@@ -1,5 +1,19 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #72 — 파일 열기 명령 주입 수정)
+
+### 원인
+Windows에서 `cmd /c start "" path`로 파일을 열어, 파일명의 `&`, `|`, `^`, `%VAR%`가 cmd 구문으로 해석됨
+(`readme&evil.bat` 열기 → 같은 폴더의 evil.bat 실행).
+
+### 변경
+- `src/open_windows.go` 신규: `ShellExecuteW`(기본 verb, lpDirectory=파일 폴더) 직접 호출
+- `src/open_other.go` 신규: 비-Windows stub
+- `OpenFile`: Windows는 `shellOpen`, Linux는 기존 `xdg-open`
+- `buildOpenCmd`: Windows 분기 제거 (Linux 전용)
+- 테스트: `src/open_test.go` 2건 (메타문자 파일명이 그대로 전달, Windows에서 셸 명령 미생성), 기존 buildOpenCmd 테스트는 Linux 전용으로 표시
+- 실제 앱 실행은 수동 확인 필요 (테스트에서는 ShellExecute를 대체)
+
 ## 2026-10-24 (Todo.md #71 — moveOne 복사 폴백을 cross-device로 한정)
 
 ### 원인

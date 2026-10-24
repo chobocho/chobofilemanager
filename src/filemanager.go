@@ -260,16 +260,18 @@ func (fm *FileManager) MoveItems(sources []string, destination string) error {
 	return nil
 }
 
-// MoveItemsOverwrite: 대상에 같은 이름 파일이 있으면 삭제 후 이동합니다.
+// MoveItemsOverwrite: 대상에 같은 이름 항목이 있으면 교체하며 이동합니다.
+// 원본과 대상이 같으면 거부하고, 이동 실패 시 기존 대상을 복원합니다 (Todo #68).
 func (fm *FileManager) MoveItemsOverwrite(sources []string, destination string) error {
 	for _, src := range sources {
 		destPath := filepath.Join(destination, filepath.Base(src))
-		if _, err := os.Stat(destPath); err == nil {
-			if err := os.RemoveAll(destPath); err != nil {
-				return err
-			}
+		if samePath(src, destPath) {
+			return fmt.Errorf("원본과 대상이 같습니다: %s", filepath.Base(src))
 		}
-		if err := fm.moveOne(src, destPath); err != nil {
+		if _, err := os.Lstat(src); err != nil {
+			return err
+		}
+		if err := replaceWith(destPath, func() error { return fm.moveOne(src, destPath) }); err != nil {
 			return err
 		}
 	}

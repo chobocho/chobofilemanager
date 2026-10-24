@@ -1,5 +1,16 @@
 # 변경 이력
 
+## 2026-10-24 (Todo.md #68 — 같은 폴더 이동+덮어쓰기 시 원본 삭제 수정)
+
+### 원인
+`MoveItemsOverwrite`가 원본과 대상이 같은지 확인하지 않고 `RemoveAll(dest)`를 먼저 실행 → 원본 영구 삭제.
+대상을 먼저 지우므로 이후 이동이 실패하면 기존 대상도 사라짐.
+
+### 변경
+- `src/transfer.go` 신규: `samePath`(os.SameFile, Windows 대소문자 무시), `replaceWith`(기존 대상을 백업 이름으로 옮긴 뒤 작업, 실패 시 복원)
+- `MoveItemsOverwrite`: 원본=대상이면 에러 반환, 원본 존재 확인 후 `replaceWith`로 교체 이동
+- 테스트: `src/transfer_test.go` 7건 (같은 폴더 파일/폴더/대소문자, 교체, 폴더 병합 방지, 실패 시 복원)
+
 ## 2026-10-24 (Todo.md #103 — 마지막 항목 삭제 시 커서 소실 수정)
 
 ### 원인

@@ -234,3 +234,44 @@ func TestFTPPanel_MoveAndRename(t *testing.T) {
 		t.Fatal("ftp → ftp copy: want error")
 	}
 }
+
+// Todo #134-1: 같은 FTP 연결 안 이동(F6)도 충돌 방식을 따름 — 이름 바꾸기는 "x (1)", 덮어쓰기는 지운 뒤 이동
+func TestFTPPanel_MoveWithinConnectionHonoursMode(t *testing.T) {
+	a, srv, id := ftpPanelFixture(t)
+	srv.listings["/sub"] = append(srv.listings["/sub"], "-rw-r--r-- 1 u g 5 Jan 01 10:00 a.txt")
+	var renamed []string
+	srv.handler = func(cmd, arg string) string {
+		switch cmd {
+		case "RNFR":
+			renamed = append(renamed, arg)
+			return "350 ready"
+		case "RNTO":
+			renamed = append(renamed, arg)
+			return "250 ok"
+		case "DELE": // 실제 서버처럼 목록에서도 사라짐 (기록은 기본 처리가)
+			srv.mu.Lock()
+			var keep []string
+			for _, l := range srv.listings["/sub"] {
+				if !strings.HasSuffix(l, " "+strings.TrimPrefix(arg, "/sub/")) {
+					keep = append(keep, l)
+				}
+			}
+			srv.listings["/sub"] = keep
+			srv.mu.Unlock()
+		}
+		return ""
+	}
+	if err := a.MoveItemsRename([]string{"ftp://" + id + "/a.txt"}, "ftp://"+id+"/sub"); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(renamed, ",") != "/a.txt,/sub/a (1).txt" {
+		t.Fatalf("rename mode: %v", renamed)
+	}
+	renamed = nil
+	if err := a.MoveItemsOverwrite([]string{"ftp://" + id + "/a.txt"}, "ftp://"+id+"/sub"); err != nil {
+		t.Fatal(err)
+	}
+	if !contains(srv.deleted, "/sub/a.txt") || strings.Join(renamed, ",") != "/a.txt,/sub/a.txt" {
+		t.Fatalf("overwrite mode: deleted=%v renamed=%v", srv.deleted, renamed)
+	}
+}

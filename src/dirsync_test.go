@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -160,5 +161,50 @@ func TestCopyFile_KeepsModTime(t *testing.T) {
 	fi, _ := os.Stat(filepath.Join(d, "out", "a.txt"))
 	if !fi.ModTime().Equal(tOld) {
 		t.Fatalf("mtime = %v, want %v", fi.ModTime(), tOld)
+	}
+}
+
+// Todo #134-1: 덮어쓰기 동기화가 실패해도 대상의 옛 파일은 남음 (임시 파일에 복사한 뒤 바꿔 넣음)
+func TestSyncDirs_FailedCopyKeepsOldTarget(t *testing.T) {
+	l, r := t.TempDir(), t.TempDir()
+	put(t, l, "doc.txt", "new", tNew)
+	put(t, r, "doc.txt", "old", tOld)
+	old := syncCopyHook
+	syncCopyHook = func() error { return errors.New("disk full") }
+	err := newTestFM().SyncDirs(l, r, []SyncAction{{Rel: "doc.txt", To: "right"}})
+	syncCopyHook = old
+	if err == nil {
+		t.Fatal("want copy error")
+	}
+	if b, _ := os.ReadFile(filepath.Join(r, "doc.txt")); string(b) != "old" {
+		t.Fatalf("old target must stay, got %q", b)
+	}
+	// 정상 덮어쓰기는 임시 파일을 남기지 않음
+	if err := newTestFM().SyncDirs(l, r, []SyncAction{{Rel: "doc.txt", To: "right"}}); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(r, "doc.txt")); string(b) != "new" {
+		t.Fatal("overwrite")
+	}
+	es, _ := os.ReadDir(r)
+	if len(es) != 1 {
+		t.Fatalf("leftover temp files: %v", es)
+	}
+}
+
+// Todo #134-3: 이름 안의 ".."(v1..2.txt)은 허용, 경로 조각 ".."만 거부
+func TestSyncDirs_DotsInNames(t *testing.T) {
+	l, r := t.TempDir(), t.TempDir()
+	put(t, l, "v1..2.txt", "x", tOld)
+	if err := newTestFM().SyncDirs(l, r, []SyncAction{{Rel: "v1..2.txt", To: "right"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(r, "v1..2.txt")); err != nil {
+		t.Fatal("copied")
+	}
+	for _, rel := range []string{"../x", "a/../../x", `..\x`} {
+		if err := newTestFM().SyncDirs(l, r, []SyncAction{{Rel: rel, To: "right"}}); err == nil {
+			t.Errorf("%s: want error", rel)
+		}
 	}
 }

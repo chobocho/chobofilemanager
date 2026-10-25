@@ -32,7 +32,8 @@ const hex = (n) => `0x${n.toString(16).toUpperCase()}`
 export default function DiffView({ leftPath, rightPath, onClose }) {
   const hostRef = useRef(null)
   const mvRef = useRef(null)
-  const origRef = useRef({ a: '', b: '' })
+  const origRef = useRef({ a: '', b: '' }) // 줄바꿈을 \n으로 맞춘 원래 내용 (CodeMirror 문서와 비교)
+  const crlfRef = useRef({ a: false, b: false }) // 원래 CRLF였으면 저장할 때 되살림 (Todo #134-1)
   const [info, setInfo] = useState(null)       // CompareFileBytes 결과
   const [error, setError] = useState('')
   const [dirty, setDirty] = useState({ a: false, b: false })
@@ -53,7 +54,9 @@ export default function DiffView({ leftPath, rightPath, onClose }) {
         const [a, b] = await Promise.all([api.ReadTextFile(leftPath), api.ReadTextFile(rightPath)])
         const [la, lb] = await Promise.all([languageFor(leftPath, a), languageFor(rightPath, b)])
         if (cancelled || !hostRef.current) return
-        origRef.current = { a, b }
+        const lf = (t) => t.replace(/\r\n/g, '\n')
+        crlfRef.current = { a: a.includes('\r\n'), b: b.includes('\r\n') }
+        origRef.current = { a: lf(a), b: lf(b) }
         const ext = (side, lang) => [
           lineNumbers(), drawSelection(), history(),
           keymap.of([...historyKeymap, ...defaultKeymap]),
@@ -65,8 +68,8 @@ export default function DiffView({ leftPath, rightPath, onClose }) {
           }),
         ]
         const mv = new MergeView({
-          a: { doc: a, extensions: ext('a', la) },
-          b: { doc: b, extensions: ext('b', lb) },
+          a: { doc: origRef.current.a, extensions: ext('a', la) },
+          b: { doc: origRef.current.b, extensions: ext('b', lb) },
           parent: hostRef.current,
           highlightChanges: true,
           gutter: true,
@@ -100,8 +103,8 @@ export default function DiffView({ leftPath, rightPath, onClose }) {
     try {
       for (const [side, view, p] of [['a', mv.a, leftPath], ['b', mv.b, rightPath]]) {
         const text = view.state.doc.toString()
-        if (text === origRef.current[side]) continue
-        await api.WriteTextFileWithEncoding(p, text, 'auto')
+        if (text === origRef.current[side]) continue // 고치지 않은 쪽은 쓰지 않음
+        await api.WriteTextFileWithEncoding(p, crlfRef.current[side] ? text.replace(/\n/g, '\r\n') : text, 'auto')
         origRef.current[side] = text
       }
       setDirty({ a: false, b: false })

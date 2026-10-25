@@ -200,8 +200,16 @@ func sameContent(a, b string) (bool, error) {
 // SyncDirs: 고른 항목을 정해진 방향으로 복사 (덮어씀, 수정 시각 유지). 폴더는 하위까지.
 func (fm *FileManager) SyncDirs(left, right string, actions []SyncAction) error {
 	for _, a := range actions {
-		rel := path.Clean("/" + strings.ReplaceAll(a.Rel, `\`, "/"))
-		if a.Rel == "" || rel == "/" || strings.Contains(a.Rel, "..") {
+		slash := strings.ReplaceAll(a.Rel, `\`, "/")
+		// 경로 조각 ".."만 거부 — 이름 안의 ".."(v1..2.txt)은 보통 이름 (Todo #134-3)
+		bad := a.Rel == ""
+		for _, seg := range strings.Split(slash, "/") {
+			if seg == ".." {
+				bad = true
+			}
+		}
+		rel := path.Clean("/" + slash)
+		if bad || rel == "/" {
 			return fmt.Errorf("잘못된 경로: %q", a.Rel)
 		}
 		var src, dst string
@@ -221,13 +229,66 @@ func (fm *FileManager) SyncDirs(left, right string, actions []SyncAction) error 
 			return err
 		}
 		if info.IsDir() {
-			err = copyDir(src, dst)
+			err = syncCopyTree(src, dst)
 		} else {
-			err = copyFile(src, dst)
+			err = replaceFileSafely(src, dst)
 		}
 		if err != nil {
 			return fmt.Errorf("%s: %w", a.Rel, err)
 		}
 	}
 	return nil
+}
+
+// syncCopyHook: 테스트에서 복사 중 실패를 흉내 냄
+var syncCopyHook func() error
+
+// replaceFileSafely: 같은 폴더의 임시 파일에 복사(수정 시각 포함)한 뒤 바꿔 넣음 —
+// 복사가 실패해도 대상의 옛 파일은 그대로 (Todo #134-1, 리뷰: 덮어쓰기 동기화 실패가 대상 파일을 지움)
+func replaceFileSafely(src, dst string) error {
+	tmp, err := os.CreateTemp(filepath.Dir(dst), "."+filepath.Base(dst)+".sync*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	tmp.Close()
+	if err := copyFile(src, tmpName); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+	if syncCopyHook != nil {
+		if err := syncCopyHook(); err != nil {
+			os.Remove(tmpName)
+			return err
+		}
+	}
+	if err := os.Rename(tmpName, dst); err != nil {
+		os.Remove(tmpName)
+		return err
+	}
+	return nil
+}
+
+// syncCopyTree: 폴더를 하위까지, 파일마다 replaceFileSafely
+func syncCopyTree(src, dst string) error {
+	if isSubPath(src, dst) || samePath(src, dst) {
+		return errIntoSelf(src)
+	}
+	return filepath.WalkDir(src, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, p)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		if d.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			return copyLinkTarget(p, target, src)
+		}
+		return replaceFileSafely(p, target)
+	})
 }

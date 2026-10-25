@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -26,7 +27,7 @@ func (fm *FileManager) RenameBatch(pairs []RenamePair) error {
 			return err
 		}
 	}
-	key := func(p string) string { return strings.ToLower(filepath.Clean(p)) }
+	key := nameKey
 	olds := map[string]bool{}
 	news := map[string]bool{}
 	for _, p := range pairs {
@@ -54,10 +55,15 @@ func (fm *FileManager) RenameBatch(pairs []RenamePair) error {
 
 	type step struct{ from, to string }
 	var done []step
-	rollback := func() {
+	// 되돌리기: 되돌리지 못한 항목(임시 이름으로 남은 것)을 오류에 함께 알림 (Todo #134-1)
+	fail := func(err error) error {
+		var left []string
 		for i := len(done) - 1; i >= 0; i-- {
-			os.Rename(done[i].to, done[i].from)
+			if rerr := os.Rename(done[i].to, done[i].from); rerr != nil {
+				left = append(left, done[i].to)
+			}
 		}
+		return rollbackError(err, left)
 	}
 	temps := make([]string, len(pairs))
 	for i, p := range pairs {
@@ -66,18 +72,36 @@ func (fm *FileManager) RenameBatch(pairs []RenamePair) error {
 			err = os.Rename(p.Old, tmp)
 		}
 		if err != nil {
-			rollback()
-			return err
+			return fail(err)
 		}
 		temps[i] = tmp
 		done = append(done, step{p.Old, tmp})
 	}
 	for i, p := range pairs {
+		// 묶음 밖의 항목이 그 사이 생겼거나 대소문자만 다른 이웃이면 덮어쓰지 않음 (os.Rename은 말없이 덮어씀)
+		if _, err := os.Lstat(p.New); err == nil {
+			return fail(fmt.Errorf("이미 있는 이름입니다: %s", filepath.Base(p.New)))
+		}
 		if err := os.Rename(temps[i], p.New); err != nil {
-			rollback()
-			return err
+			return fail(err)
 		}
 		done = append(done, step{temps[i], p.New})
 	}
 	return nil
+}
+
+// nameKey: 이름 비교 — Windows · macOS는 대소문자를 구분하지 않고, 그 밖(Linux)은 구분 (Todo #134-1)
+func nameKey(p string) string {
+	p = filepath.Clean(p)
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return strings.ToLower(p)
+	}
+	return p
+}
+
+func rollbackError(err error, leftovers []string) error {
+	if len(leftovers) == 0 {
+		return err
+	}
+	return fmt.Errorf("%w — 되돌리지 못해 임시 이름으로 남은 항목: %s", err, strings.Join(leftovers, ", "))
 }

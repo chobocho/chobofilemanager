@@ -245,14 +245,28 @@ func (a *App) ftpMove(sources []string, dest, mode string) (bool, error) {
 		return false, nil
 	}
 	if destFTP && anyFTP(sources...) {
+		// 같은 연결 안: RNFR/RNTO. 충돌 방식도 따름 — rename은 "x (1)", overwrite는 있던 것을 지운 뒤 (Todo #134-1)
+		existing, err := a.ftpEntries(destID, destRemote)
+		if err != nil {
+			return true, err
+		}
 		for _, src := range sources {
 			id, remote, _ := parseFTPPath(src)
 			if id != destID {
 				return true, errFTPToFTP
 			}
-			if err := a.ftpManager.RenameItem(id, remote, path.Join(destRemote, path.Base(remote))); err != nil {
+			name := path.Base(remote)
+			if isDir, ok := existing[name]; ok && path.Join(destRemote, name) != remote {
+				if mode == "rename" {
+					name = uniqueRemoteName(existing, name)
+				} else if err := a.ftpManager.DeleteItem(id, path.Join(destRemote, name), isDir); err != nil {
+					return true, err
+				}
+			}
+			if err := a.ftpManager.RenameItem(id, remote, path.Join(destRemote, name)); err != nil {
 				return true, err
 			}
+			existing[name] = false
 		}
 		return true, nil
 	}

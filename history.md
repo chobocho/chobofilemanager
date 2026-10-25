@@ -2,6 +2,14 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #134-1: 리뷰 수정 — 데이터 보호
+- 파일 내용 비교: CodeMirror는 줄바꿈을 \n으로 바꾸는데 원본(CRLF)과 그대로 비교해, Ctrl+S가 안 고친 쪽까지 LF로 다시 쓰던 문제 → 원본도 \n으로 맞춰 비교, 고친 쪽만 저장하고 원래 CRLF면 CRLF로
+- 폴더 동기화: 덮어쓰기가 대상 파일을 먼저 비우고 실패하면 지워 옛 사본이 사라지던 문제 → 같은 폴더 임시 파일에 복사한 뒤 바꿔 넣음(폴더는 파일마다). 이름 안의 ".."(v1..2.txt)를 거부하던 것도 경로 조각 ".."만 거부하게
+- 여러 이름 바꾸기: Linux처럼 대소문자를 구분하는 곳에서 묶음 밖의 `a`를 `A`의 빈자리로 잘못 보고 덮어쓸 수 있던 문제 → 이름 비교를 OS에 맞게, 두 번째 단계에서도 대상이 있으면 덮어쓰지 않고 되돌림. 되돌리기에 실패해 임시 이름으로 남은 항목은 오류에 함께 알림
+- FTP 같은 연결 안 이동(F6): 충돌 창에서 고른 방식을 무시하고 같은 이름 위로 옮기던 문제 → "이름 바꾸기"는 "x (1)", "덮어쓰기"는 있던 것을 지운 뒤
+- 테스트: DV-07, TestSyncDirs_FailedCopyKeepsOldTarget · DotsInNames, TestRenameBatch_CaseSensitiveNeighbour(대소문자 구분 FS에서만) · ReportsLeftoverOnRollbackFailure, TestFTPPanel_MoveWithinConnectionHonoursMode — Go 전체 · 프론트 1375개 통과
+- 참고(이번 변경 전부터): F4 에디터도 CRLF 파일을 고쳐 저장하면 LF로 저장됨
+
 ## 2026-10-26 Todo.md #133 마무리: README · 아키텍처 그림 갱신
 - README: TC 기능 소개 한 단락, 아키텍처 표에 압축 안 · ftp:// 가상 경로와 internal/archive, 기능 목록 · 단축키 표(Alt+글자, Num+/-/*, Ctrl+M, Shift/Alt+F2, Ctrl+Shift+D, Ctrl+Q, Ctrl+F8, Ctrl+F1/F2, Ctrl+Shift+X, 압축 파일 Enter), 프로젝트 구조, 기술 스택(merge, 압축 라이브러리, x/image), 설정 파일(buttonbar.json, plugins/)
 - docs/architecture.svg: 프론트(트리·썸네일·DiffView·QuickView·ButtonBar), package main(archivefs · ftppanel · dirsync · filecompare · renamebatch · thumbnail · userbuttons · plugins), internal/archive. Edge로 렌더링해 겹침 없음 확인

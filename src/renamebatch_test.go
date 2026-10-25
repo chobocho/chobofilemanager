@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -140,4 +141,41 @@ func TestRenameBatch_CaseOnly(t *testing.T) {
 	if got := dirNames(t, d); got != "README.md" {
 		t.Fatalf("dir = %s", got)
 	}
+}
+
+// Todo #134-1: 대소문자를 구분하는 파일 시스템에서 다른 파일(a)을 덮어쓰지 않음
+func TestRenameBatch_CaseSensitiveNeighbour(t *testing.T) {
+	d := t.TempDir()
+	if !caseSensitiveFS(d) {
+		t.Skip("case-insensitive file system")
+	}
+	writeNamed(t, d, "A", "a", "x")
+	err := newTestFM().RenameBatch([]RenamePair{
+		{Old: filepath.Join(d, "A"), New: filepath.Join(d, "b")},
+		{Old: filepath.Join(d, "x"), New: filepath.Join(d, "a")},
+	})
+	if err == nil {
+		t.Fatal("a exists outside the batch: want error")
+	}
+	if contentOf(t, filepath.Join(d, "a")) != "a" {
+		t.Fatal("a must not be overwritten")
+	}
+}
+
+func TestRenameBatch_ReportsLeftoverOnRollbackFailure(t *testing.T) {
+	err := rollbackError(errors.New("locked"), []string{"/d/.~rename0.x"})
+	if err == nil || !strings.Contains(err.Error(), ".~rename0.x") || !strings.Contains(err.Error(), "locked") {
+		t.Fatalf("got %v", err)
+	}
+	if rollbackError(errors.New("e"), nil).Error() != "e" {
+		t.Fatal("no leftovers: original error only")
+	}
+}
+
+func caseSensitiveFS(dir string) bool {
+	p := filepath.Join(dir, "CaseProbe")
+	os.WriteFile(p, nil, 0644)
+	_, err := os.Stat(filepath.Join(dir, "caseprobe"))
+	os.Remove(p)
+	return err != nil
 }

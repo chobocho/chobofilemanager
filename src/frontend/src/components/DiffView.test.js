@@ -92,6 +92,20 @@ describe('DiffView (DV)', () => {
     expect(api.WriteTextFileWithEncoding).toHaveBeenCalledWith('/r/b.txt', 'Xhello\nWORLD\nsame\n', 'auto')
   })
 
+  it('DV-07: CRLF 파일 — 아무것도 안 고치면 Ctrl+S가 쓰지 않음, 고친 쪽만 CRLF를 지켜 저장 (Todo #134-1)', async () => {
+    api.ReadTextFile.mockImplementation(async (p) => p.endsWith('a.txt') ? 'one\r\ntwo\r\n' : 'one\r\nTWO\r\n')
+    await mount()
+    expect(screen.queryByText(/저장 안 함/)).toBeNull()
+    await act(async () => { fireEvent.keyDown(window, { key: 's', ctrlKey: true }) })
+    expect(api.WriteTextFileWithEncoding).not.toHaveBeenCalled()
+    const { EditorView } = await import('@codemirror/view')
+    const left = EditorView.findFromDOM(document.querySelectorAll('.cm-editor')[0])
+    act(() => { left.dispatch({ changes: { from: 0, insert: 'X' } }) })
+    await act(async () => { fireEvent.keyDown(window, { key: 's', ctrlKey: true }) })
+    expect(api.WriteTextFileWithEncoding).toHaveBeenCalledTimes(1)
+    expect(api.WriteTextFileWithEncoding).toHaveBeenCalledWith('/l/a.txt', 'Xone\r\ntwo\r\n', 'auto')
+  })
+
   it('DV-05: Esc 닫기, 고친 게 있으면 한 번 더 눌러야 닫힘', async () => {
     const { onClose } = await mount()
     fireEvent.keyDown(window, { key: 'Escape' })

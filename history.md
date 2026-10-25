@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #128: 두 번째 실행 때 웹 서버)
+
+### 변경
+- 터미널 웹 서버를 켜 둔 상태에서 Chobocho Commander를 다시 실행하면, 이미 떠 있는 쪽에 창을 보이라고 하고(숨겨 둔 창 포함, `web.Handoff`) 새 실행은 끝냄 — `Host.HandoffToRunning`, main.go (전에는 두 번째가 같은 포트를 못 써 디버그 기록에만 남김)
+- 그래도 시작하지 못했으면(다른 프로그램이 포트를 씀 등) 시작할 때 상태 줄에 이유 표시 (`components/WebStartNotice.jsx`)
+
+### 테스트
+- Go `host_handoff_test.go`(서버 없음 → 그냥 시작, 떠 있는 쪽이 있으면 창 보이기), `WebStartNotice.test.jsx`(WN-01~02) — Go 전체·프론트 1203개 통과
+
 ## 2026-10-25 (Todo.md #127: 메모장·Lua 콘솔 입력 중에도 작업 공간 단축키)
 
 ### 변경

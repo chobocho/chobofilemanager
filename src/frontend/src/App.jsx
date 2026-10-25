@@ -17,6 +17,7 @@ import { isTerminalTarget } from './utils/keyboard.js'
 import { useDockStore } from './stores/dockStore'
 import { useEditorStore } from './stores/editorStore'
 import CloseGuard from './components/CloseGuard'
+import WebStartNotice from './components/WebStartNotice'
 
 // Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
 const loadTextEditor = () => import('./components/TextEditor')
@@ -297,6 +298,7 @@ function FileManagerApp() {
   return (
     <div className={styles.app} data-theme={theme} data-app-root>
       <CloseGuard />
+      <WebStartNotice />
       <Toolbar
         view={view} onViewChange={setView}
         shortcutsDisabled={overlayOpen}

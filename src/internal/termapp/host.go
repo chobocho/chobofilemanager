@@ -121,6 +121,14 @@ func NewHost() *Host {
 	return &Host{app: a}
 }
 
+// HandoffToRunning: with the web server turned on in Settings, a Chobocho
+// Commander already serving its port is asked to show its window (it may be
+// hidden, see WebHideWindow); true means it did, and this one should quit
+// instead of starting a second app that can't serve the same port.
+func (h *Host) HandoffToRunning() bool {
+	return h.app.webStart != nil && web.Handoff(*h.app.webStart)
+}
+
 // Bindings is the struct to add to the host window's Bind list.
 func (h *Host) Bindings() *App { return h.app }
 

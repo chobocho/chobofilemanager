@@ -27,6 +27,10 @@ func main() {
 
 	app := NewApp()
 	term := newTerminalHost(app)
+	// 터미널 웹 서버를 켜 둔 Chobocho Commander가 이미 떠 있으면 그 창을 보이고 끝 (같은 포트를 쓸 수 없음, Todo #128)
+	if term.HandoffToRunning() {
+		return
+	}
 
 	err := wails.Run(newAppOptions(app, term))
 	if err != nil {

@@ -40,6 +40,7 @@ export default function TabMenu({ id, x, y, onClose }) {
       case 'splitDown': return st.splitPane(id, 'col')
       case 'encoding': return st.toggleEncoding(id)
       case 'break': return st.sendBreak(id)
+      case 'files': return st.openFiles(id)
       case 'memo': return st.toggleMemo(id)
       case 'log': return st.toggleLog(id)
       case 'logs': return st.showLogs(id)

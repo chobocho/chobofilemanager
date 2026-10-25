@@ -19,6 +19,8 @@ import SaveSessionDialog from './SaveSessionDialog.jsx'
 import PrefsDialog from './PrefsDialog.jsx'
 import MacrosDialog from './MacrosDialog.jsx'
 import MemoPad from './MemoPad.jsx'
+import RemoteFiles from './RemoteFiles.jsx'
+import { useFilesStore, startTransferEvents, stopTransferEvents } from '../store/filesStore'
 import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
 
@@ -36,6 +38,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const prefsOpen = useTermStore(s => s.prefs)
   const macrosOpen = useTermStore(s => s.macros)
   const memos = useTermStore(s => s.memos)
+  const filesView = useFilesStore(s => (activeId != null ? s.views[activeId] : undefined))
   const active = tabs.find(t => t.id === activeId)
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
   const [pasteRequest, setPasteRequest] = useState(null)
@@ -45,8 +48,10 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
 
   useEffect(() => {
     startEventRouter()
+    startTransferEvents()
     loadSettings().then(loadRules)
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
+    return () => stopTransferEvents()
   }, [])
 
   function onKeyDown(e) {
@@ -78,6 +83,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'O') st.openPrefs()
     else if (k === 'M') st.openMacros()
     else if (k === 'B') st.toggleMemo(st.activeId)
+    else if (k === 'F') { if (st.activeId != null) st.openFiles(st.activeId) }
     else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
@@ -173,6 +179,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
           </div>
         )}
         {active?.dialog && <ConnectDialog key={active.id} tab={active} />}
+        {filesView && <RemoteFiles key={activeId} id={activeId} />}
         {searchOpen && active && <SearchBar tabId={active.id} onClose={() => setSearchOpen(false)} />}
       </div>
       <AuthPrompt describeTab={id => useTermStore.getState().tabs.find(t => t.id === id)?.tooltip ?? ''} />

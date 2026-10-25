@@ -3,6 +3,7 @@ import { sessionById, allSessions } from '../core/session'
 import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
 import { sendMacro } from '../core/macros'
+import { useFilesStore } from './filesStore'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
@@ -115,6 +116,7 @@ export const useTermStore = create((set, get) => ({
       else next = null
     }
     set(s => ({ tabs: tabs.filter(t => t.id !== id), groups: nextGroups, activeId: next, memos: s.memos.filter(m => m !== id) }))
+    useFilesStore.getState().forget(id)
     await sessionById(id)?.close()
   },
 
@@ -165,6 +167,8 @@ export const useTermStore = create((set, get) => ({
       // 인코딩별 글자 폭·글꼴, 이 서버에 저장된 색 테마
       applyEncoding(session, session.encoding)
       loadTabTheme(session)
+      // FTP는 터미널이 없으니 파일 창을 바로 엶
+      if (proto === 'ftp') get().openFiles(id)
     } catch (e) {
       get().updateTab(id, { connecting: false, dialog: true, state: 'idle', error: String(e?.message ?? e) })
     }
@@ -233,6 +237,18 @@ export const useTermStore = create((set, get) => ({
       if (o.id !== id && o.saved?.id !== saved.id) continue
       const req = sessionById(o.id)?.req
       get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
+    }
+  },
+
+  // 원격 파일 창 (Ctrl+Shift+F, Todo #123). 파일 접근이 안 되는 연결이면 터미널에 안내
+  openFiles: async (id) => {
+    const t = get().tabs.find(x => x.id === id)
+    const s = sessionById(id)
+    if (!t || !s) return
+    try {
+      await useFilesStore.getState().open(id, t.label)
+    } catch (e) {
+      s.notice(String(e?.message ?? e))
     }
   },
 

@@ -2,6 +2,20 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #123 — T7 1차: 원격 파일 창 + 파일 패널 연동)
+
+### 변경
+- Go: `FileDownloadTo`(대화상자 없이 지정 폴더로 받기) 추가, `FileDownloadMany`와 받기 로직을 `downloadEntries`로 묶음, wire.golden·바인딩 갱신
+- `core/remoteFiles.ts` 신규: 목록(.. 상위 줄)·선택(하나/Ctrl/Shift/전체)·최근 폴더·삭제 뒤 선택·진행 문구
+- `store/filesStore.js` 신규: 탭마다 원격 파일 창 상태, 받기/여러 개 받기/올리기/끌어 놓기 올리기/삭제/이름 바꾸기/새 폴더/새 파일, 서버별 즐겨찾기, 전송 진행(`xfer:progress`·`xfer:end`)
+- `RemoteFiles.jsx` 신규 (Ctrl+Shift+F, 탭 메뉴 "파일 전송"): 키보드(Enter·Backspace·Alt+↑·F2·F5·F7·Shift+F4·Delete·Ctrl+A/D/B/1~9), 우클릭 메뉴, 즐겨찾기 메뉴, 진행 막대·취소
+- 파일 관리자 연동: "⬇ 패널로"(활성 패널 폴더로 받고 패널 새로 고침), "⬆ 패널에서"(활성 패널의 선택 항목 올리기)
+- FTP 연결은 파일 창을 바로 엶, 터미널 현재 폴더(OSC 7)에서 시작, 탭을 닫으면 창 정리
+- Go `pendingPageEvents`에서 `xfer:progress`·`xfer:end` 제거
+
+### 테스트
+- Go `panelxfer_test.go`, `remoteFiles.test.ts`(RF-01~11), `RemoteFiles.test.jsx`(RFV-01~17), TA-20 — 프론트 1045개, Go 통과
+
 ## 2026-10-25 (Todo.md #122 — T6: 하단 터미널 도크 + 패널 연동)
 
 ### 변경

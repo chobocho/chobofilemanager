@@ -369,6 +369,28 @@ func (a *App) FileDownloadMany(tabID int, dir string, entries []transfer.FileEnt
 		localDir, finish = d, f
 	}
 
+	n, err := t.downloadEntries(dir, entries, localDir)
+	return DownloadResult{Dir: finish(n > 0 || err == nil), Count: n}, err
+}
+
+// FileDownloadTo downloads entries of dir into localDir without asking — the
+// remote file window passes the file panel's folder. Existing names get " (1)".
+func (a *App) FileDownloadTo(tabID int, dir string, entries []transfer.FileEntry, localDir string) (DownloadResult, error) {
+	t := a.findTab(tabID)
+	if t == nil {
+		return DownloadResult{}, errors.New("연결되어 있지 않습니다")
+	}
+	if st, err := os.Stat(localDir); localDir == "" || err != nil || !st.IsDir() {
+		return DownloadResult{}, fmt.Errorf("받을 폴더가 없습니다: %q", localDir)
+	}
+	localDir = filepath.Clean(localDir)
+	n, err := t.downloadEntries(dir, entries, localDir)
+	return DownloadResult{Dir: localDir, Count: n}, err
+}
+
+// downloadEntries downloads entries of dir into localDir, folders with all
+// their contents, and returns how many files arrived (they stay on an error).
+func (t *tab) downloadEntries(dir string, entries []transfer.FileEntry, localDir string) (int, error) {
 	// Collect the files first, so progress can say "(3/10)".
 	type downItem struct {
 		remote, local string
@@ -404,25 +426,20 @@ func (a *App) FileDownloadMany(tabID int, dir string, entries []transfer.FileEnt
 		return nil
 	})
 	if err != nil {
-		finish(false)
-		return DownloadResult{}, err
+		return 0, err
 	}
-
-	res := DownloadResult{Dir: localDir}
+	count := 0
 	for _, it := range items {
 		name := path.Base(it.remote)
 		if len(items) > 1 {
-			name = fmt.Sprintf("(%d/%d) %s", res.Count+1, len(items), name)
+			name = fmt.Sprintf("(%d/%d) %s", count+1, len(items), name)
 		}
 		if err := t.downloadFile(it.remote, it.local, it.size, name); err != nil {
-			// The files that did arrive stay, as in the folder of a native dialog.
-			res.Dir = finish(res.Count > 0)
-			return res, err
+			return count, err
 		}
-		res.Count++
+		count++
 	}
-	res.Dir = finish(true)
-	return res, nil
+	return count, nil
 }
 
 // withFS runs fn with the tab's remote file system, one operation at a time.

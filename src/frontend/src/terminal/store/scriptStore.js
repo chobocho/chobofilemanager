@@ -10,7 +10,6 @@ import { errText } from '../core/errText'
 
 const AUTO_CLOSE_MS = 5000
 const HISTORY_MAX = 100
-const errText = (e) => errText(e)
 const timers = new Map() // 끝난 상자를 닫는 타이머
 let evalSeq = 0
 

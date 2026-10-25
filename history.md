@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 6 보완: 빌드 오류 수정)
+
+### 변경
+- **버그 수정(리팩터링 6에서 생김)**: filesStore·scriptStore의 지역 `errText`를 지우는 치환이 순서가 꼬여 `const errText = (e) => errText(e)`가 남음 — 같은 이름 중복 선언으로 `vite build` 실패(자기 호출이라 실행되면 무한 재귀). vitest는 import를 바꿔 써서 통과했던 것
+- 앞으로 단계마다 `npm run build`도 확인 (CI는 이미 빌드함)
+
+### 테스트
+- `npm run build` 성공, 프론트 1195개 통과
+
 ## 2026-10-25 (Todo.md #126 리팩터링 10: 앱 대화상자 닫기 한 곳)
 
 ### 변경

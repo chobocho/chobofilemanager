@@ -20,7 +20,6 @@ const focusRemoteList = () => requestAnimationFrame(() => document.querySelector
 // 다른 탭의 창은 폴더·선택·진행 중인 전송을 그대로 둡니다.
 // views[tabId] = { ...RemoteView, heading, busy, status, statusOk, marks }
 
-const errText = (e) => errText(e)
 
 // 활성 파일 패널의 폴더 / 선택 항목(없으면 커서 항목)
 function panelFolder() {

@@ -683,7 +683,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
 
       <div className={styles.body}>
       {panel.showTree && (
-        <FolderTree path={panel.path} showHidden={panel.showHidden}
+        <FolderTree path={panel.path} files={panel.files} showHidden={panel.showHidden}
           onNavigate={(p) => { store.setActivePanel(side); store.navigate(side, p) }} />
       )}
       <div className={styles.listColumn}>
@@ -852,7 +852,7 @@ const FileCell = memo(function FileCell({ mode, file, index, highlighted, select
     >
       {thumbs ? (
         <div className={styles.thumbBox}>
-          {!file.isDir && isImageFile(file.extension || '') ? <Thumb file={file} /> : <Icon size={40} style={{ color }} />}
+          {!file.isDir && isImageFile(file.extension || '') ? <Thumb key={`${file.modified}|${file.size}`} file={file} /> : <Icon size={40} style={{ color }} />}
         </div>
       ) : <Icon size={14} style={{ color, flexShrink: 0 }} />}
       <span className={styles.fileName}>{file.name}</span>

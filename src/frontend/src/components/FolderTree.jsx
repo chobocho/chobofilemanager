@@ -26,7 +26,8 @@ export function ancestorsOf(path) {
 
 const nameOf = (p, isRoot) => isRoot ? p : p.split(/[/\\]/).filter(Boolean).pop()
 
-export default function FolderTree({ path, showHidden, onNavigate }) {
+// files: 패널 목록 — 새로 읽힐 때(F7 · 삭제 · 이름 바꾸기 · Ctrl+R) 지금 폴더의 하위 폴더도 다시 읽음 (Todo #134-3)
+export default function FolderTree({ path, files, showHidden, onNavigate }) {
   const [children, setChildren] = useState({}) // 폴더 → [{ name, path }] | 'loading' | { error }
   const [expanded, setExpanded] = useState(() => new Set())
   const [cursor, setCursor] = useState(path)
@@ -53,6 +54,13 @@ export default function FolderTree({ path, showHidden, onNavigate }) {
     chain.forEach(dir => { if (!children[dir]) load(dir) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
+
+  const firstFiles = useRef(true)
+  useEffect(() => {
+    if (firstFiles.current) { firstFiles.current = false; return }
+    if (path) load(path)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files])
 
   // 보이는 줄들 (깊이 우선). 지금 폴더로 가는 길은 목록에 없어도(압축 파일 등) 끼워 넣음
   const rows = useMemo(() => {

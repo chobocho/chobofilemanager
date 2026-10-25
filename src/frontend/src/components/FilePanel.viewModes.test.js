@@ -102,6 +102,18 @@ describe('보기 방식 (VM)', () => {
     expect(cursor()).toBe(5)
   })
 
+  it('VM-06: 같은 그림 파일이 바뀌면(시각 · 크기) 썸네일을 새로 읽음 (Todo #134-3)', async () => {
+    const list = mount()
+    act(() => { fireEvent.keyDown(list, { key: 'F1', ctrlKey: true, shiftKey: true }) })
+    await waitFor(() => expect(list.querySelectorAll('img[data-thumb]').length).toBe(2))
+    api.ReadThumbnail.mockClear()
+    act(() => {
+      useFileStore.setState(s => ({ left: { ...s.left, files: s.left.files.map(x => x.name === 'a.png' ? { ...x, modified: '2026-05-05T00:00:00Z', size: 99 } : x) } }))
+    })
+    await waitFor(() => expect(api.ReadThumbnail).toHaveBeenCalledWith('/d/a.png', 96))
+    expect(api.ReadThumbnail).toHaveBeenCalledTimes(1)
+  })
+
   it('VM-05: Toolbar — Ctrl+F1은 도움말 아님, Ctrl+F2는 이름 바꾸기 아님', () => {
     const hs = { onHelp: vi.fn(), onRename: vi.fn(), onCopy: vi.fn(), onMove: vi.fn(), onNewDir: vi.fn(), onDelete: vi.fn() }
     render(h(Toolbar, { view: 'files', onViewChange: () => {}, ...hs }))

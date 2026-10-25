@@ -88,6 +88,21 @@ describe('폴더 트리 (FT)', () => {
   })
 })
 
+describe('트리 새로 고침 (Todo #134-3)', () => {
+  afterEach(() => cleanup())
+
+  it('FT-06: 패널 목록이 새로 읽히면(F7 · 삭제 · Ctrl+R) 지금 폴더의 하위 폴더도 다시 읽음', async () => {
+    api.ListDirectory.mockReset().mockImplementation(async (p) => ({ path: p, files: fsTree[p] || [] }))
+    let r
+    const files1 = []
+    await act(async () => { r = render(h(FolderTree, { path: '/home/me', files: files1, showHidden: false, onNavigate: vi.fn() })) })
+    expect([...document.querySelectorAll('[role="treeitem"]')].map(n => n.getAttribute('data-path'))).not.toContain('/home/me/new')
+    api.ListDirectory.mockImplementation(async (p) => ({ path: p, files: p === '/home/me' ? [...fsTree[p], d('/home/me', 'new')] : (fsTree[p] || []) }))
+    await act(async () => { r.rerender(h(FolderTree, { path: '/home/me', files: [], showHidden: false, onNavigate: vi.fn() })) })
+    await waitFor(() => expect([...document.querySelectorAll('[role="treeitem"]')].map(n => n.getAttribute('data-path'))).toContain('/home/me/new'))
+  })
+})
+
 describe('패널 · 단축키 (FP)', () => {
   afterEach(() => cleanup())
   beforeEach(() => {

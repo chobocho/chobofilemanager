@@ -2,6 +2,10 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #133 마무리: README · 아키텍처 그림 갱신
+- README: TC 기능 소개 한 단락, 아키텍처 표에 압축 안 · ftp:// 가상 경로와 internal/archive, 기능 목록 · 단축키 표(Alt+글자, Num+/-/*, Ctrl+M, Shift/Alt+F2, Ctrl+Shift+D, Ctrl+Q, Ctrl+F8, Ctrl+F1/F2, Ctrl+Shift+X, 압축 파일 Enter), 프로젝트 구조, 기술 스택(merge, 압축 라이브러리, x/image), 설정 파일(buttonbar.json, plugins/)
+- docs/architecture.svg: 프론트(트리·썸네일·DiffView·QuickView·ButtonBar), package main(archivefs · ftppanel · dirsync · filecompare · renamebatch · thumbnail · userbuttons · plugins), internal/archive. Edge로 렌더링해 겹침 없음 확인
+
 ## 2026-10-26 Todo.md #133-13: 플러그인 (Ctrl+Shift+X, Starlark)
 - TC의 DLL 플러그인(WCX/WLX/WFX) 호환 대신, 이미 있는 Starlark 실행기로 사용자 스크립트 플러그인: `~/.chobocho-commander/plugins/*.star`, 첫 줄들의 `# name:` `# description:`으로 이름·설명
 - 스크립트가 받는 것: panel_path · target_path · cursor · selected · targets(고른 파일, 없으면 커서), 함수 read_text · write_text · list_dir · exists · is_dir · file_size · join_path · basename · dirname · mkdir · rename, print 출력. 맨 위 for/while 허용, 2천만 단계 · 15초 제한(무한 반복 멈춤), 파일을 바꾸는 함수를 쓰면 끝난 뒤 두 패널 새로 고침. 압축 파일 안 쓰기는 기존처럼 읽기 전용 오류

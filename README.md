@@ -4,6 +4,8 @@
 
 한 창에서 **Files**(이중 패널 파일 관리자) · **FTP** · **Terminal**(SSH · Telnet · 시리얼 · 로컬 셸) 세 가지 보기를 오가고, 파일 패널 아래에는 **터미널 도크**(F9)를 띄울 수 있습니다. 터미널은 웹 서버를 켜서 다른 PC의 브라우저에서도 쓸 수 있습니다.
 
+Total Commander에서 손에 익은 기능 — 폴더 크기(Space), 마스크 선택(Num+ / Num-), 빠른 검색(Alt+글자), 여러 이름 바꾸기(Ctrl+M), 압축 파일 안 탐색, 폴더 비교·동기화, 파일 내용 비교, 패널 안 FTP, 빠른 보기(Ctrl+Q), 폴더 트리, 간단히·썸네일 보기, 사용자 단추 막대, 플러그인 — 을 같은 키로 씁니다.
+
 ![스크린샷](screenshot/screen_shot.png)
 
 ---
@@ -19,11 +21,13 @@
 | 프론트엔드 | `src/frontend/src` | React 18 + Zustand. `App.jsx`가 보기 전환·하단 도크·전역 단축키 담당 |
 | | `components/`, `stores/` | 파일 관리자 화면 (패널, 뷰어, CodeMirror 6 에디터, FTP, 대화상자)과 상태 |
 | | `terminal/` | 터미널 화면 (처음 열 때 지연 로딩, xterm.js 6). `core/`는 React와 무관한 TypeScript |
-| 백엔드 | `src/*.go` (package main) | 파일 목록·복사/이동·휴지통·ZIP·텍스트 인코딩·Starlark·FTP 보기 |
+| 백엔드 | `src/*.go` (package main) | 파일 목록·복사/이동·휴지통·압축·텍스트 인코딩·Starlark·FTP 보기, 그리고 경로에 따라 나눠 보내기: 압축 파일 안(`archivefs.go`) · `ftp://` 패널(`ftppanel.go`) · 비교/동기화 · 썸네일 · 단추 · 플러그인 |
 | | `src/internal/termapp` | 터미널 탭·연결·파일 전송·포워딩·도커·Lua·웹 호스트 |
-| | `src/internal/*` | 연결(`sshconn` `telnet` `serial` `localshell`), 전송(`transfer`), `web`, `luahost`, 설정·저장, 공용(`textenc` `atomicfile`) |
+| | `src/internal/*` | 연결(`sshconn` `telnet` `serial` `localshell`), 전송(`transfer`), `web`, `luahost`, `archive`(ZIP · TAR · 7Z · RAR 읽기), 설정·저장, 공용(`textenc` `atomicfile`) |
 
 **프론트 ↔ 백엔드**: 창 안에서는 Wails 바인딩(`wailsjs/`)과 이벤트로, 다른 PC의 브라우저에서는 `internal/web`이 같은 페이지를 내려 주고 `web_shim.js`가 같은 API·이벤트를 WebSocket으로 전달합니다 (브라우저 화면은 터미널만).
+
+**가상 경로**: 패널은 보통 폴더 말고도 `C:\x\a.zip\docs`(압축 파일 안, 읽기 전용)와 `ftp://<연결>/pub`(FTP)를 그대로 경로로 씁니다. Go `App`이 경로를 보고 FileManager · internal/archive · FTPManager로 나눠 보내므로, 프론트는 F5/F6/F3 … 를 같은 API로 부릅니다.
 
 다이어그램 원본: [docs/architecture.svg](docs/architecture.svg) · 터미널 통합 설계: [docs/choboterm-integration.md](docs/choboterm-integration.md)
 
@@ -33,14 +37,22 @@
 
 ### 파일 관리자 (Files 보기)
 - 이중 패널 (좌 / 우), 패널마다 탭 (Ctrl+T / Ctrl+W / Ctrl+Tab), 탭·경로는 다음 실행 때 복원
-- 키보드 탐색: 방향키 · vim(`h j k l`) · WASD, Shift+글자로 빠른 이동, `-`로 이전 폴더
-- 복사 (F5), 이동 (F6) — 같은 이름은 덮어쓰기 / 이름 바꾸기 (복사는 건너뛰기도)를 물어봄
+- 키보드 탐색: 방향키 · vim(`h j k l`) · WASD, Shift+글자로 빠른 이동, **Alt+글자 빠른 검색 칸**, `-`로 이전 폴더
+- 복사 (F5), 이동 (F6) — 같은 이름은 덮어쓰기 / 이름 바꾸기 (복사는 건너뛰기도)를 물어봄, 수정 시각 유지
 - 휴지통 (F8 / Del), 영구 삭제 (Shift+Del), 새 폴더 (F7), 새 파일 (Ctrl+N), 이름 바꾸기 (F2)
-- 다중 선택 (Ctrl+Click, Shift+Click, Space, Insert, Ctrl+A), 파일 검색 (Ctrl+F, 하위 폴더까지), 바로가기 (Ctrl+D)
-- 숨김 파일 토글 (Ctrl+H), 경로 표시줄 (클릭 가능한 브레드크럼), 드라이브 / 마운트 포인트 선택기
+- 선택: Ctrl/Shift+Click, Space(폴더면 **크기 계산**), Insert, Ctrl+A, **Num+ / Num- 마스크 선택·해제**(`*.txt;*.md|tmp*`), Num* 반전
+- **여러 이름 바꾸기 (Ctrl+M)**: [N] [E] [C] [YMD] 마스크, 찾아 바꾸기(정규식), 대소문자, 미리 보기·충돌 표시, 묶음 안 맞바꾸기 가능·실패하면 되돌림
+- **압축 파일을 폴더처럼**: ZIP · JAR · TAR · TAR.GZ/BZ2/XZ · 7Z · RAR에 Enter로 들어가 보기, F5로 꺼내기, F3 보기 (읽기 전용)
+- **폴더 비교 (Shift+F2)** · **동기화 (Alt+F2)**: 하위 폴더 · 내용 비교, 줄마다 방향(→ ←) 골라 복사
+- **파일 내용 비교 (Ctrl+Shift+D)**: 좌우 diff, 차이 이동, 양쪽 편집·저장, 바이너리는 첫 차이 위치
+- **FTP를 패널에서**: 드라이브 목록 → "FTP 연결..." — F5/F6 받기·올리기(폴더 포함), F7 F8 F2, F3/F4
+- **빠른 보기 (Ctrl+Q)**, **폴더 트리 (Ctrl+F8)**, **보기 방식** 자세히(Ctrl+F2) · 간단히(Ctrl+F1) · 썸네일(Ctrl+Shift+F1)
+- **사용자 단추 막대**: 프로그램 + 인자(%P %T %N %F %S) 또는 @sync · @diff 같은 앱 기능
+- **플러그인 (Ctrl+Shift+X)**: `~/.chobocho-commander/plugins/*.star` Starlark 스크립트 (패널 정보 · 파일 함수)
+- 파일 검색 (Ctrl+F, 하위 폴더까지, 압축 안에서도), 바로가기 (Ctrl+D), 숨김 파일 토글 (Ctrl+H), 브레드크럼 경로, 드라이브 선택기
 - **내장 뷰어 (F3)**: 텍스트(인코딩 자동 판별, 조합형 포함) · 이미지(확대/축소, ←/→ 넘기기) · 마크다운 렌더링(GitHub 이미지는 로컬 저장소 파일로)
 - **내장 에디터 (F4)**: CodeMirror 6, 구문 강조, 찾기, 인코딩 선택 저장, 32MB까지, F3 ↔ F4 전환
-- ZIP 압축 / 압축 해제, 명령 실행 창 (Ctrl+O), Starlark 스크립트 (Ctrl+M 스크래치, 에디터에서 F5 실행)
+- ZIP 압축 / 압축 풀기(모든 형식), 명령 실행 창 (Ctrl+O), Starlark 스크립트 (Ctrl+Shift+M 스크래치, 에디터에서 F5 실행)
 
 ### 터미널 (Terminal 보기 · 하단 도크)
 - **연결**: SSH(키 · 에이전트 · ssh_config · ProxyJump · OTP 질문), Telnet, FTP, 시리얼(COM / ttyUSB), 로컬 셸(cmd / PowerShell / pwsh / WSL)
@@ -154,13 +166,18 @@ CI(`.github/workflows/ci.yml`): PR과 master 푸시마다 Windows · Linux에서
 | `↑` / `↓`, `j` / `k`, `w` / `s` | 커서 이동 |
 | `Tab`, `h` / `a`, `l` / `d` | 패널 전환 / 왼쪽 패널 / 오른쪽 패널 |
 | `Shift+글자` | 그 글자로 시작하는 파일로 (다시 누르면 다음) |
+| `Alt+글자` | 빠른 검색 칸 (`*` `?` 가능, ↑↓ 이전/다음, Enter 열기) |
 | `Enter` | 열기 / 디렉토리 진입 |
 | `Backspace` / `-` | 상위 디렉토리 / 이전에 있던 폴더 |
-| `Space` / `Insert` | 선택 토글 / 선택 토글 + 아래로 |
+| `Space` / `Insert` | 선택 토글(폴더는 크기 계산) / 선택 토글 + 아래로 |
+| `Alt+Shift+Enter` | 모든 폴더 크기 |
 | `Ctrl+A` | 전체 선택 |
+| `Num+` / `Num-` / `Num*` | 마스크로 선택 / 해제 / 반전 (`Ctrl+Num+` `Ctrl+Num-` 모두) |
 | `Ctrl+T` / `Ctrl+W` / `Ctrl+Tab` / `Ctrl+Shift+Tab` | 새 탭 / 탭 닫기 / 다음 탭 / 이전 탭 |
 | `F1` | 도움말 |
-| `F2` | 이름 변경 |
+| `F2` / `Ctrl+M` | 이름 변경 / 여러 이름 바꾸기 |
+| `Shift+F2` / `Alt+F2` | 폴더 비교 / 폴더 동기화 |
+| `Ctrl+Shift+D` | 파일 내용 비교 |
 | `F3` / `F4` | 보기 / 편집 |
 | `F5` / `F6` | 반대 패널로 복사 / 이동 |
 | `F7` | 새 디렉토리 |
@@ -171,7 +188,11 @@ CI(`.github/workflows/ci.yml`): PR과 master 푸시마다 Windows · Linux에서
 | `Ctrl+F` / `Ctrl+D` | 파일 검색 / 바로가기 |
 | `Ctrl+H` / `Ctrl+R` | 숨김 파일 토글 / 새로 고침 |
 | `Ctrl+Shift+C` | 커서 파일 경로를 클립보드로 |
-| `Ctrl+O` / `Ctrl+M` | 명령 실행 창 / Starlark 스크래치 |
+| `Ctrl+O` / `Ctrl+Shift+M` | 명령 실행 창 / Starlark 스크래치 |
+| `Ctrl+Q` / `Ctrl+F8` | 빠른 보기 / 폴더 트리 |
+| `Ctrl+F1` / `Ctrl+Shift+F1` / `Ctrl+F2` | 간단히 / 썸네일 / 자세히 보기 |
+| `Ctrl+Shift+X` | 플러그인 |
+| `Enter` (압축 파일) | 압축 파일 안으로 (읽기 전용, F5로 꺼내기) |
 
 ### 뷰어 · 에디터 (F3 / F4)
 
@@ -218,11 +239,16 @@ src/
 ├── filebookmarks.go settings.go fileutil.go repoimage.go
 ├── drives_* trash_* open_* # OS별 드라이브·휴지통·열기
 ├── ftpmanager.go           # FTP 보기 클라이언트 (FTPS 포함)
+├── archivefs.go            # 압축 파일 안 경로: 목록·꺼내기·보기, 쓰기는 읽기 전용 오류
+├── ftppanel.go             # 패널의 ftp:// 경로: 받기·올리기·삭제·이름 바꾸기·보기
+├── dirsize.go dirsync.go filecompare.go renamebatch.go   # 폴더 크기, 비교·동기화, 내용 비교, 여러 이름 바꾸기
+├── thumbnail.go userbuttons.go plugins.go               # 썸네일, 사용자 단추, Starlark 플러그인
 ├── cmd/chobocho-term/      # 헤드리스 터미널 웹 서버 (-tags headless)
 ├── internal/
 │   ├── termapp/            # 터미널 Host: 탭·연결·파일 전송·뷰어·포워딩·도커·Lua·웹 (Wails 바인딩)
 │   ├── sshconn/ telnet/ serial/ localshell/   # 연결 종류 (localshell: ConPTY / pty)
 │   ├── transfer/           # SFTP / SCP / FTP(S) / Zmodem
+│   ├── archive/            # ZIP · TAR(.gz .bz2 .xz) · 7Z · RAR 읽기, 가상 경로 나누기, 꺼내기
 │   ├── web/                # 웹 서버 (HTTP + WebSocket, 토큰, TLS, web_shim.js)
 │   ├── luahost/            # Lua 스크립트 (별도 프로세스)
 │   ├── config/ store/ secret/ appdir/ sessionlog/ update/ i18n/ dialog/
@@ -232,9 +258,11 @@ src/
     ├── bench/              # 성능 측정 (뷰어/에디터, 터미널), 실제 백엔드 종단 점검
     └── src/
         ├── App.jsx         # 최상위 (Files / FTP / Terminal 보기 + 하단 도크, 전역 단축키)
-        ├── components/     # FilePanel, FileViewer, TextEditor, FTPManager, HelpDialog, 대화상자 ...
-        ├── stores/         # fileStore, editorStore, ftpStore, dockStore, themeStore
-        ├── utils/ styles/ test/
+        ├── components/     # FilePanel, FileViewer, TextEditor, FTPManager, HelpDialog, 대화상자,
+        │                   # MultiRenameDialog, SyncDialog, DiffView, QuickView, FolderTree, ButtonBar, PluginDialog ...
+        ├── stores/         # fileStore, editorStore, ftpStore, dockStore, themeStore, buttonStore
+        ├── utils/          # mask, multiRename, compareDirs, diffTargets, ftpPath, buttonParams, fileTypes ...
+        ├── styles/ test/
         └── terminal/       # 터미널 화면 (처음 열 때 지연 로딩, xterm 6)
             ├── core/       # 프레임워크 무관 TS: 세션, 분할, 설정, 원격 파일·소스, 포워딩, 도커, Lua, i18n, 도움말 ...
             ├── store/      # termStore, filesStore, scriptStore, termEvents (zustand)
@@ -256,11 +284,13 @@ tools/gen_notices.py        # THIRD_PARTY_NOTICES.txt 생성
 | FTP | jlaffaye/ftp | v0.2.4 |
 | SSH / SFTP | golang.org/x/crypto, pkg/sftp | |
 | 로컬 셸 (Linux) | creack/pty | v1.1 |
+| 압축 | archive/zip·tar (표준), bodgit/sevenzip, nwaples/rardecode, ulikunitz/xz | |
+| 그림 (썸네일) | golang.org/x/image (BMP · WebP · 크기 줄이기) | v0.47 |
 | 웹 서버 | gorilla/websocket | v1.5 |
 | Lua / Starlark | gopher-lua v1.1, go.starlark.net | |
 | UI 라이브러리 | React | 18 |
 | 상태 관리 | Zustand | v4 |
-| 에디터 | CodeMirror | 6 |
+| 에디터 · 비교 | CodeMirror, @codemirror/merge | 6, 6.12 |
 | 터미널 | xterm.js | 6 |
 | 마크다운 | marked + DOMPurify | |
 | 빌드 · 테스트 | Vite v4, Vitest v4, TypeScript 5 | |
@@ -274,6 +304,7 @@ tools/gen_notices.py        # THIRD_PARTY_NOTICES.txt 생성
 
 - 앱 설정 · 패널 탭: `~/.chobocho-commander/`
 - FTP 북마크: `~/.chobocho-commander/ftp_bookmarks.json`
+- 사용자 단추: `~/.chobocho-commander/buttonbar.json`, 플러그인: `~/.chobocho-commander/plugins/*.star`
 - 터미널 설정 · 세션 · 접속 기록: `~/.chobocho-commander/term/` (처음 실행 때 기존 choboTerm 설정을 복사)
 - 세션 로그 / Lua 스크립트: `문서\choboterm\logs`, `문서\choboterm\scripts`
 - 다운로드 · Zmodem 수신: 기본 `~/Downloads`

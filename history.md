@@ -2,6 +2,10 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #131-2: 파일 복사·이동(F5/F6) 흐름 중복 정리
+- copy/copyWithMode/move/moveWithMode 네 함수가 "대상 고르기 → 충돌 검사 → 실행 → 새로 고침 → 커서" 흐름을 각각 반복하던 것을 _startTransfer·_transfer 두 함수와 TRANSFERS 표(방식별 백엔드 함수 이름, 새로 고칠 폴더, 상태 문구)로 정리. 동작·문구는 그대로.
+- 테스트: 프론트 1233개 그대로 통과, 빌드 통과.
+
 ## 2026-10-25 Todo.md #131-1: package main의 원자적 쓰기·손상 백업을 internal/atomicfile 하나로
 - 중복: package main(fileutil.go)의 writeFileAtomic·backupCorrupt와 터미널용 internal/atomicfile이 같은 일을 함.
 - atomicfile을 Write(폴더 없으면 실패 — 사용자 파일)와 WriteCreatingDir(폴더 생성 — 설정 파일)로 나누고, 파일 관리자 설정·북마크·FTP 기록·편집기 저장이 모두 이를 사용. main의 두 함수 삭제.

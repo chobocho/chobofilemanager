@@ -70,6 +70,20 @@ export function sortFiles(files, sortBy = 'name', sortDir = 'asc') {
   })
 }
 
+// 복사·이동 방식별 백엔드 함수 이름(api는 테스트에서 바뀌므로 호출할 때 찾음)과 새로 고칠 폴더
+const TRANSFERS = {
+  copy: {
+    doing: 'Copying', done: 'Copied', failed: 'Copy failed',
+    calls: { plain: 'CopyItems', overwrite: 'CopyItems', rename: 'CopyItemsRename', skip: 'CopyItemsSkipConflicts' },
+    affected: (_sources, dest) => [dest],
+  },
+  move: {
+    doing: 'Moving', done: 'Moved', failed: 'Move failed',
+    calls: { plain: 'MoveItems', overwrite: 'MoveItemsOverwrite', rename: 'MoveItemsRename' },
+    affected: (sources, dest) => [...new Set([...sources.map(p => parentDir(p)), dest])],
+  },
+}
+
 // 패널별 목록 요청 순번 — 늦게 도착한 이전 응답이 최신 이동 결과를 덮어쓰지 않도록 (Todo #92)
 const navTokens = { left: 0, right: 0 }
 // 진행 중인 이동이 가는 경로 — 끝난 작업의 새로 고침이 다른 폴더로 가는 이동을 버리지 않게 (Todo #130-3)
@@ -388,89 +402,42 @@ export const useFileStore = create((set, get) => ({
 
   // ─── File Operations ──────────────────────────────────────────────────────
 
-  copy: async () => {
+  // 복사·이동 (F5/F6): 같은 흐름을 TRANSFERS 표로 (Todo #131-2)
+  copy: () => get()._startTransfer('copy'),
+  copyWithMode: (sources, dest, mode) => get()._transfer('copy', sources, dest, mode),
+  move: () => get()._startTransfer('move'),
+  moveWithMode: (sources, dest, mode) => get()._transfer('move', sources, dest, mode),
+
+  // 대상(선택 또는 커서 파일) → 충돌 검사. 충돌이 있으면 실행하지 않고 돌려줘 창에서 방식을 고르게 함
+  _startTransfer: async (kind) => {
     const state = get()
     const panel = state.activePanel
     const other = panel === 'left' ? 'right' : 'left'
     const selected = operationPaths(state[panel])
-    if (!selected.length) return { conflicts: [], sources: [], dest: '' }
+    const none = { conflicts: [], sources: [], dest: '' }
+    if (!selected.length) return none
 
     const dest = state[other].path
     const conflicts = await api.CheckCopyConflicts(selected, dest)
     if (conflicts && conflicts.length > 0) {
       return { conflicts, sources: selected, dest }
     }
-
-    set({ status: `Copying ${selected.length} item(s)...` })
-    try {
-      await api.CopyItems(selected, dest)
-      await get()._refreshAffected([dest])
-      get()._focusCopiedFile(dest, selected)
-      set({ status: `Copied ${selected.length} item(s)` })
-    } catch (err) {
-      set({ status: `Copy failed: ${err}` })
-    }
-    return { conflicts: [], sources: [], dest: '' }
+    await get()._transfer(kind, selected, dest, 'plain')
+    return none
   },
 
-  copyWithMode: async (sources, dest, mode) => {
-    set({ status: `Copying ${sources.length} item(s)...` })
+  // 실행 → 바뀐 폴더 새로 고침 → 대상 패널에서 옮긴 파일에 커서
+  _transfer: async (kind, sources, dest, mode) => {
+    const t = TRANSFERS[kind]
+    set({ status: `${t.doing} ${sources.length} item(s)...` })
     try {
-      if (mode === 'overwrite') {
-        await api.CopyItems(sources, dest)
-      } else if (mode === 'rename') {
-        await api.CopyItemsRename(sources, dest)
-      } else if (mode === 'skip') {
-        await api.CopyItemsSkipConflicts(sources, dest)
-      }
-      await get()._refreshAffected([dest])
+      const call = t.calls[mode]
+      if (call) await api[call](sources, dest)
+      await get()._refreshAffected(t.affected(sources, dest))
       get()._focusCopiedFile(dest, sources)
-      set({ status: `Copied ${sources.length} item(s)` })
+      set({ status: `${t.done} ${sources.length} item(s)` })
     } catch (err) {
-      set({ status: `Copy failed: ${err}` })
-    }
-  },
-
-  move: async () => {
-    const state = get()
-    const panel = state.activePanel
-    const other = panel === 'left' ? 'right' : 'left'
-    const selected = operationPaths(state[panel])
-    if (!selected.length) return { conflicts: [], sources: [], dest: '' }
-
-    const dest = state[other].path
-    const conflicts = await api.CheckCopyConflicts(selected, dest)
-    if (conflicts && conflicts.length > 0) {
-      return { conflicts, sources: selected, dest }
-    }
-
-    set({ status: `Moving ${selected.length} item(s)...` })
-    try {
-      await api.MoveItems(selected, dest)
-      const affectedDirs = [...new Set([...selected.map(p => parentDir(p)), dest])]
-      await get()._refreshAffected(affectedDirs)
-      get()._focusCopiedFile(dest, selected)
-      set({ status: `Moved ${selected.length} item(s)` })
-    } catch (err) {
-      set({ status: `Move failed: ${err}` })
-    }
-    return { conflicts: [], sources: [], dest: '' }
-  },
-
-  moveWithMode: async (sources, dest, mode) => {
-    set({ status: `Moving ${sources.length} item(s)...` })
-    try {
-      if (mode === 'overwrite') {
-        await api.MoveItemsOverwrite(sources, dest)
-      } else if (mode === 'rename') {
-        await api.MoveItemsRename(sources, dest)
-      }
-      const affectedDirs = [...new Set([...sources.map(p => parentDir(p)), dest])]
-      await get()._refreshAffected(affectedDirs)
-      get()._focusCopiedFile(dest, sources)
-      set({ status: `Moved ${sources.length} item(s)` })
-    } catch (err) {
-      set({ status: `Move failed: ${err}` })
+      set({ status: `${t.failed}: ${err}` })
     }
   },
 

@@ -2,6 +2,21 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #125 — T9: 성능 측정 · 헤드리스 빌드 · 빌드 스크립트 · CI · README)
+
+### 변경
+- `npm run bench:term` (bench/term.html, termBench.js, run-term.mjs): 실제 xterm + TermSession으로 출력 처리량·키 입력 지연을 헤드리스 Edge에서 측정
+  - 기준선(이 PC): 출력 1MB 71ms(14MB/s) · 5MB 128ms(39MB/s) · 10MB 226ms(44MB/s), 색 섞인 출력 10MB 208ms(48MB/s), 키 → Send 중앙값 0.2ms · 최대 6.4ms
+- `cmd/chobocho-term`: 창 없는 터미널 웹 서버(`-tags headless`), 설정·세션은 앱과 같은 `~/.chobocho-commander/term` — 실제로 띄워 우리 페이지(shim 포함) 제공 확인
+- 리팩터링: 설정 폴더를 `internal/appdir`로 (앱과 헤드리스가 함께 씀)
+- `build.bat` / `build_linux.sh`: 프론트·Go 테스트 → wails build → `release/` + 헤드리스 빌드
+- `.github/workflows/ci.yml`: Windows·Linux에서 프론트(타입 검사·테스트·빌드), Go vet(헤드리스 태그 포함)·테스트, 헤드리스 빌드
+- `tools/gen_notices.py` + `THIRD_PARTY_NOTICES.txt`(Go·npm 83개 라이선스), README 전면 갱신(터미널·도크·빌드·테스트·구조·단축키)
+- 바인딩 비교 테스트의 건너뛰기 문구를 지금 상황에 맞게
+
+### 테스트
+- Go `appdir_test.go`, `cmd/chobocho-term/main_test.go` — Go 전체 통과
+
 ## 2026-10-25 (Todo.md #122 보완: 셸의 지금 폴더 → 파일 패널, WSL 시작 폴더)
 
 ### 변경

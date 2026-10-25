@@ -33,3 +33,5 @@ Thumbs.db
 
 # BAT 파일
 src/build.bat
+# build.bat / build_linux.sh 결과물
+release/

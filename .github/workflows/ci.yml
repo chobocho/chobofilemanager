@@ -1,0 +1,56 @@
+# Todo #125: 모든 PR과 master 푸시를 Windows·Linux에서 검사합니다.
+# 프론트(타입 검사·테스트·빌드) → Go(vet, 헤드리스 태그 포함 · 테스트).
+# 페이지(src/frontend/dist)는 Go 프로그램에 들어가므로 Go보다 먼저 빌드합니다.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      # Wails v2(Linux)는 cgo로 GTK·WebKit을 씁니다
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+      - name: Frontend
+        working-directory: src/frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Vet
+        run: |
+          go vet ./...
+          go vet -tags headless ./internal/... ./cmd/...
+      - name: Test
+        run: go test ./...
+      # 창 없는 터미널 웹 서버 (WebView2·GTK 불필요)
+      - name: Headless build
+        env:
+          CGO_ENABLED: "0"
+        run: go build -tags headless -o chobocho-term-headless ./cmd/chobocho-term

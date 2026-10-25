@@ -30,7 +30,7 @@ func TestBoundMethodsMatchGeneratedBindings(t *testing.T) {
 	// bindings under wailsjs/go/termapp. They exist once termapp is bound (Todo #118).
 	f, err := os.Open(filepath.Join(moduleRoot(t), "frontend", "wailsjs", "go", "termapp", "App.d.ts"))
 	if os.IsNotExist(err) {
-		t.Skip("pending Todo #118: termapp is not bound yet, so wailsjs/go/termapp is not generated")
+		t.Skip("wailsjs/go/termapp is not generated here (it is gitignored): run \"wails generate module\" in src to check the bindings")
 	}
 	if err != nil {
 		t.Fatal(err)

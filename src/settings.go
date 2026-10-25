@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"totalcmd/internal/appdir"
 )
 
 type PanelTabsState struct {
@@ -18,12 +20,9 @@ type AppSettings struct {
 	RightTabs *PanelTabsState `json:"rightTabs,omitempty"`
 }
 
+// 설정 폴더 (~/.chobocho-commander) — 헤드리스 터미널(cmd/chobocho-term)과 같은 곳 (internal/appdir)
 func defaultConfigDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".chobocho-commander"), nil
+	return appdir.Dir()
 }
 
 func (a *App) resolvedConfigDir() (string, error) {

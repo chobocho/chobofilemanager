@@ -94,7 +94,7 @@ describe('wailsjs/runtime.js 브라우저 mock', () => {
     const nullFns = ['CopyItems', 'MoveItems', 'DeleteItems', 'TrashItems', 'CreateDirectory', 'CreateFile',
       'RenameItem', 'WriteTextFile', 'WriteTextFileWithEncoding', 'CopyItemsRename', 'CopyItemsSkipConflicts',
       'MoveItemsOverwrite', 'MoveItemsRename', 'AddFileBookmark', 'DeleteFileBookmark', 'OpenFile',
-      'ChangeWorkingDirectory', 'SaveSessionState', 'CompressItems', 'ExtractArchive', 'OpenCmdWindow',
+      'SaveSessionState', 'CompressItems', 'ExtractArchive', 'OpenCmdWindow',
       'FTPConnect', 'FTPDisconnect', 'FTPDownload', 'FTPUpload', 'FTPDeleteItem', 'FTPCreateDirectory',
       'FTPRenameItem', 'FTPSaveBookmark', 'FTPDeleteBookmark', 'FTPDeleteHistory', 'FTPClearHistory', 'FTPAddHistory']
     for (const n of nullFns) {

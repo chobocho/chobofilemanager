@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -210,25 +211,21 @@ func TestApp_ImageStarlarkHomeDrives(t *testing.T) {
 	}
 }
 
+// Todo #126: 셸 명령은 넘긴 폴더에서 돌고, 프로세스 작업 폴더(터미널과 함께 쓰는 전역 상태)는 그대로
 func TestApp_ShellAndWorkingDirectory(t *testing.T) {
 	a := newCovApp(t)
 	dir := t.TempDir()
+	before, _ := os.Getwd()
 	out, err := a.RunShellCommand("echo app-shell", dir)
 	if err != nil || !strings.Contains(out, "app-shell") {
 		t.Errorf("RunShellCommand = %q, %v", out, err)
 	}
-
-	orig, _ := os.Getwd()
-	t.Chdir(orig) // 테스트 종료 시 원래 작업 폴더로 복원
-	if err := a.ChangeWorkingDirectory(dir); err != nil {
-		t.Fatal(err)
+	if after, _ := os.Getwd(); after != before {
+		t.Errorf("작업 폴더가 바뀜: %q → %q", before, after)
 	}
-	wd, _ := os.Getwd()
-	if !samePath(wd, dir) {
-		t.Errorf("작업 폴더 = %q, want %q", wd, dir)
-	}
-	if err := a.ChangeWorkingDirectory(filepath.Join(dir, "none")); err == nil {
-		t.Error("없는 폴더로 이동은 에러")
+	// 패널을 옮길 때마다 os.Chdir 하던 바인딩은 없어야 함
+	if _, ok := reflect.TypeOf(a).MethodByName("ChangeWorkingDirectory"); ok {
+		t.Error("ChangeWorkingDirectory 바인딩이 남아 있음")
 	}
 }
 

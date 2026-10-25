@@ -637,10 +637,6 @@ func (fm *FileManager) GetParentPath(path string) string {
 	return filepath.Dir(path)
 }
 
-func (fm *FileManager) ChangeWorkingDirectory(path string) error {
-	return os.Chdir(path)
-}
-
 func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {
 	var results []FileInfo
 

@@ -156,10 +156,9 @@ export const useFileStore = create((set, get) => ({
     await get().navigate(panel, paths[activeIdx] || home)
   },
 
+  // Todo #126: 프로세스 작업 폴더는 바꾸지 않음 (터미널과 함께 쓰는 전역 상태) — 셸·명령 창 등은 폴더를 직접 넘김
   setActivePanel: (panel) => {
     set({ activePanel: panel })
-    const path = get()[panel].path
-    if (path) api.ChangeWorkingDirectory(path).catch(() => {})
   },
 
   // 반환값: 결과가 적용되었으면 true (더 새로운 이동에 밀렸거나 실패하면 false)
@@ -205,11 +204,8 @@ export const useFileStore = create((set, get) => ({
   },
 
   // 이동 후 공통 처리: 세션 저장, 활성 패널이면 프로세스 작업 폴더 변경
-  _afterNavigate: (panel, path) => {
+  _afterNavigate: () => {
     get()._saveSession()
-    if (get().activePanel === panel) {
-      api.ChangeWorkingDirectory(path).catch(() => {})
-    }
   },
 
   // history의 다른 위치로 이동 (뒤로/앞으로 공통). 성공했을 때만 historyIndex를 바꿈 (Todo #92)

@@ -125,15 +125,10 @@ describe('fileStore 커버리지 — init / 세션 복원', () => {
 })
 
 describe('fileStore 커버리지 — 패널/정렬/새로고침', () => {
-  it('FC-04: setActivePanel은 작업 폴더를 변경', () => {
+  // Todo #126: 프로세스 작업 폴더(os.Chdir)는 터미널과 함께 쓰므로 패널이 바꾸지 않음 — 작업마다 폴더를 넘김
+  it('FC-04: setActivePanel은 활성 패널만 바꾸고 프로세스 작업 폴더는 그대로', () => {
     st().setActivePanel('right')
     expect(st().activePanel).toBe('right')
-    expect(api.ChangeWorkingDirectory).toHaveBeenCalledWith('/b')
-  })
-
-  it('FC-05: 경로 없는 패널은 ChangeWorkingDirectory 호출 안 함', () => {
-    useFileStore.setState(s => ({ right: { ...s.right, path: '' } }))
-    st().setActivePanel('right')
     expect(api.ChangeWorkingDirectory).not.toHaveBeenCalled()
   })
 
@@ -170,11 +165,10 @@ describe('fileStore 커버리지 — 패널/정렬/새로고침', () => {
     expect(st().left.history).toEqual(['/a'])
   })
 
-  it('FC-10: 비활성 패널 이동은 작업 폴더를 바꾸지 않음', async () => {
+  it('FC-10: 패널 이동도 프로세스 작업 폴더를 바꾸지 않음 (활성·비활성 모두)', async () => {
     await st().navigate('right', '/home')
-    expect(api.ChangeWorkingDirectory).not.toHaveBeenCalled()
     await st().navigate('left', '/home')
-    expect(api.ChangeWorkingDirectory).toHaveBeenCalledWith('/home')
+    expect(api.ChangeWorkingDirectory).not.toHaveBeenCalled()
   })
 
   it('FC-11: setCursorOnParent / clearSelection / toggleSelect', () => {

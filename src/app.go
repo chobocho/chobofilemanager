@@ -10,7 +10,7 @@ type App struct {
 	fileManager *FileManager
 	ftpManager  *FTPManager
 	bookmarkMu  sync.Mutex // 파일 북마크 read-modify-write 직렬화 (Todo #87)
-	configDir   string // 빈 문자열이면 기본값(~/.chobocho-commander) 사용; 테스트에서 격리된 임시 디렉토리 주입용
+	configDir   string     // 빈 문자열이면 기본값(~/.chobocho-commander) 사용; 테스트에서 격리된 임시 디렉토리 주입용
 }
 
 func NewApp() *App {
@@ -131,10 +131,6 @@ func (a *App) JoinPath(parts ...string) string {
 
 func (a *App) GetParentPath(path string) string {
 	return a.fileManager.GetParentPath(path)
-}
-
-func (a *App) ChangeWorkingDirectory(path string) error {
-	return a.fileManager.ChangeWorkingDirectory(path)
 }
 
 func (a *App) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {

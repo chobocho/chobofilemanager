@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 3: 패널 이동이 프로세스 작업 폴더를 바꾸지 않게)
+
+### 변경
+- **버그 수정**: 활성 패널을 바꾸거나 폴더를 옮길 때마다 `ChangeWorkingDirectory` → `os.Chdir`로 프로세스 전체 작업 폴더를 바꾸던 것을 없앰 —
+  터미널 고루틴·로컬 셸·상대 경로까지 영향을 주는 전역 상태였고, 셸 명령·명령 창·도크는 이미 폴더를 직접 넘김
+- 바인딩(`App.ChangeWorkingDirectory`, `FileManager.ChangeWorkingDirectory`)과 모의 런타임 항목 제거, wailsjs 다시 생성
+
+### 테스트
+- FC-04·FC-10·NAV-04/05: 패널 이동 때 호출하지 않음, Go `TestApp_ShellAndWorkingDirectory`: 셸 명령 뒤에도 작업 폴더 그대로 + 바인딩 없음
+
 ## 2026-10-25 (Todo.md #126 리팩터링 2: 앱 단축키·F키 막대는 파일 보기에서만)
 
 ### 변경

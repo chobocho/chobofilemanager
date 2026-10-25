@@ -64,11 +64,11 @@ describe('Todo #92 — navigation', () => {
     expect(useFileStore.getState().left.cursor).toBe(0)
   })
 
-  it('NAV-04: navigateBack은 세션 저장 + 작업 폴더 변경', async () => {
+  it('NAV-04: navigateBack은 세션 저장, 프로세스 작업 폴더는 그대로 (Todo #126)', async () => {
     useFileStore.setState(s => ({ left: { ...s.left, path: '/b', history: ['/a', '/b'], historyIndex: 1 } }))
     api.ListDirectory.mockResolvedValue({ path: '/a', files: [] })
     await useFileStore.getState().navigateBack('left')
-    expect(api.ChangeWorkingDirectory).toHaveBeenCalledWith('/a')
+    expect(api.ChangeWorkingDirectory).not.toHaveBeenCalled()
     expect(api.SaveSessionState).toHaveBeenCalled()
   })
 
@@ -80,7 +80,7 @@ describe('Todo #92 — navigation', () => {
     expect(left.path).toBe('/b')
     expect(left.historyIndex).toBe(1)
     expect(left.cursor).toBe(0)
-    expect(api.ChangeWorkingDirectory).toHaveBeenCalledWith('/b')
+    expect(api.ChangeWorkingDirectory).not.toHaveBeenCalled()
 
     useFileStore.setState(s => ({ left: { ...s.left, path: '/a', history: ['/a', '/b'], historyIndex: 0 } }))
     api.ListDirectory.mockRejectedValueOnce(new Error('denied'))

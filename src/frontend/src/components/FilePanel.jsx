@@ -375,7 +375,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         break
       case 'w':
       case 'W':
-        if (e.ctrlKey) { e.preventDefault(); store.closeTab(side, panel.activeTabIdx) }
+        if (e.ctrlKey) { e.preventDefault(); store.closeTab(side, useFileStore.getState()[side].activeTabIdx) }
         else if (!e.shiftKey && !e.altKey && !e.metaKey && e.key === 'w') {
           // WASD: w = 위로
           e.preventDefault()
@@ -394,9 +394,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         // Ctrl+Tab = next tab, Ctrl+Shift+Tab = prev tab (only when Ctrl is held)
         if (e.ctrlKey) {
           e.preventDefault()
+          // 탭 번호·개수는 지금 값으로 — 이 핸들러는 탭이 바뀌어도 다시 만들어지지 않을 수 있음 (Todo #130-3)
+          const { activeTabIdx, tabs } = useFileStore.getState()[side]
           const nextIdx = e.shiftKey
-            ? (panel.activeTabIdx - 1 + panel.tabs.length) % panel.tabs.length
-            : (panel.activeTabIdx + 1) % panel.tabs.length
+            ? (activeTabIdx - 1 + tabs.length) % tabs.length
+            : (activeTabIdx + 1) % tabs.length
           store.switchTab(side, nextIdx)
         }
         break

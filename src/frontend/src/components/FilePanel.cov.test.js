@@ -256,6 +256,17 @@ describe('FilePanel 커버리지 (FPC)', () => {
     expect(actions.switchTab).toHaveBeenCalledTimes(2)
   })
 
+  it('FPC-19b: 목록·커서가 그대로인 채 활성 탭 번호·탭 개수만 바뀌어도 Ctrl+W/Ctrl+Tab은 지금 값 사용 (Todo #130-3)', () => {
+    const tabs = [{ id: 'x1', path: '/d' }, { id: 'x2', path: '/d' }, { id: 'x3', path: '/d' }]
+    const { list } = setup({ panelExtra: { tabs, activeTabIdx: 1 } })
+    // 앞 탭(0)을 닫은 것처럼: 활성 탭은 0번이 되고 개수는 2 — 파일·커서·경로는 그대로
+    act(() => { useFileStore.setState(s => ({ left: { ...s.left, tabs: tabs.slice(1), activeTabIdx: 0 } })) })
+    fireEvent.keyDown(list, { key: 'w', ctrlKey: true })
+    expect(actions.closeTab).toHaveBeenLastCalledWith('left', 0)
+    fireEvent.keyDown(list, { key: 'Tab', ctrlKey: true, shiftKey: true })
+    expect(actions.switchTab).toHaveBeenLastCalledWith('left', 1)
+  })
+
   it('FPC-20: Ctrl+Shift+C → 커서 파일 경로 클립보드 복사 + 상태 표시', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })

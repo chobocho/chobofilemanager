@@ -131,11 +131,9 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 		if err := os.MkdirAll(sub, 0755); err != nil {
 			return err
 		}
-		if err := archive.Extract(archivePath, nil, sub, "overwrite"); err != nil {
-			return err
-		}
-		copyMarkOfTheWeb(archivePath, sub)
-		return nil
+		// 도중에 실패해도 이미 꺼낸 파일에는 표시 (Todo #135)
+		defer copyMarkOfTheWeb(archivePath, sub)
+		return archive.Extract(archivePath, nil, sub, "overwrite")
 	}
 	// 압축 파일명(확장자 제거)으로 서브폴더 생성, 이미 존재하면 (N) 접미사 추가
 	base := filepath.Base(archivePath)
@@ -148,6 +146,8 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return err
 	}
+	// 오류(안전하지 않은 경로 · 손상)로 끝나도 이미 꺼낸 파일에는 표시 — 위험한 압축 파일일수록 오류가 남 (Todo #135)
+	defer copyMarkOfTheWeb(archivePath, destDir)
 
 	r, err := zip.OpenReader(archivePath)
 	if err != nil {
@@ -179,7 +179,6 @@ func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
 	if skipped > 0 {
 		return fmt.Errorf("안전하지 않은 경로의 항목 %d개를 건너뛰었습니다", skipped)
 	}
-	copyMarkOfTheWeb(archivePath, destDir)
 	return nil
 }
 

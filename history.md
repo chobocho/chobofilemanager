@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #135: #134 수정분 리뷰 + 테스트 보강
+- 버그(보안): 압축 풀기가 도중에 실패하면(안전하지 않은 경로 항목, 쓰기 실패) 이미 꺼낸 파일에 인터넷 표시(Zone.Identifier)가 붙지 않음 — 위험한 압축 파일일수록 오류로 끝나므로 보호가 가장 필요한 파일이 빠짐. `ExtractArchive`는 하위 폴더를 만든 직후 `defer`로, 압축 안 F5 복사는 오류 확인 전에 표시
+- 리뷰 결과 이상 없음: 여러 이름 바꾸기 대소문자 키 · 동기화 임시 파일 교체 · diff CRLF 복원 · 썸네일 픽셀 제한 · ShellExecute 포인터 수명
+- 테스트: TestArchive_MarkOfTheWebOnPartialExtract(ZIP), TestArchive_MarkOfTheWebOnPartialCopyOut(TAR), TestFTPPanel_MoveIntoOwnFolderKeepsSource — 수정 전 실패/수정 후 통과, Go 전체 통과
+
 ## 2026-10-26 F4 에디터 CRLF 저장 확인
 - 요청: CRLF 파일을 F4로 고쳐 저장하면 CRLF로. 확인 결과 이미 그렇게 동작함(Todo #112): 열 때 원래 줄바꿈을 기억하고 저장할 때 CRLF로 되돌림(프론트 CT-10 · 원격 파일 RE-02). #133 보고의 "F4 에디터는 LF로 저장"은 잘못된 설명이었음
 - 백엔드도 줄바꿈을 바꾸지 않는지 테스트 추가(crlf_save_test.go): UTF-8 · CP949 · UTF-16LE · 자동 인코딩 저장 후 다시 읽기, FTP 패널 저장 — Go 전체 통과

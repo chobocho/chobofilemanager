@@ -3,6 +3,9 @@
 package main
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -50,5 +53,57 @@ func TestArchive_PropagatesMarkOfTheWeb(t *testing.T) {
 	fm.CopyItems([]string{filepath.Join(z2, "top.txt")}, dest2)
 	if _, err := os.ReadFile(filepath.Join(dest2, "top.txt") + ":Zone.Identifier"); err == nil {
 		t.Error("no mark on a local archive")
+	}
+}
+
+// Todo #135: 압축 풀기가 도중에 실패해도(안전하지 않은 경로 항목 등) 이미 꺼낸 파일에는 표시를 붙임 —
+// 위험한 압축 파일일수록 오류가 나므로, 오류 경로에서 표시가 빠지면 보호가 가장 필요한 파일이 맨몸으로 남음
+func TestArchive_MarkOfTheWebOnPartialExtract(t *testing.T) {
+	base := t.TempDir()
+	zp := filepath.Join(base, "m.zip")
+	zf, _ := os.Create(zp)
+	w := zip.NewWriter(zf)
+	fw, _ := w.Create("evil.exe")
+	fw.Write([]byte("MZ"))
+	fw, _ = w.Create("../escape.txt")
+	fw.Write([]byte("x"))
+	w.Close()
+	zf.Close()
+	zone := []byte("[ZoneTransfer]\r\nZoneId=3\r\n")
+	if err := os.WriteFile(zp+":Zone.Identifier", zone, 0644); err != nil {
+		t.Skipf("no alternate data streams here: %v", err)
+	}
+	out := t.TempDir()
+	if err := newTestFM().ExtractArchive(zp, out); err == nil {
+		t.Fatal("unsafe entry must be reported")
+	}
+	if b, err := os.ReadFile(filepath.Join(out, "m", "evil.exe") + ":Zone.Identifier"); err != nil || string(b) != string(zone) {
+		t.Errorf("partially extracted file lost the mark: %q %v", b, err)
+	}
+}
+
+// Todo #135: 압축 안에서 F5 복사(internal/archive, TAR) — 뒤 항목 쓰기가 실패해도 먼저 꺼낸 항목엔 표시
+func TestArchive_MarkOfTheWebOnPartialCopyOut(t *testing.T) {
+	base := t.TempDir()
+	tp := filepath.Join(base, "t.tar")
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, f := range []struct{ name, body string }{{"d/ok.txt", "fine"}, {"d/blocked.txt", "zz"}} {
+		tw.WriteHeader(&tar.Header{Name: f.name, Mode: 0644, Size: int64(len(f.body)), Typeflag: tar.TypeReg})
+		tw.Write([]byte(f.body))
+	}
+	tw.Close()
+	os.WriteFile(tp, buf.Bytes(), 0644)
+	zone := []byte("[ZoneTransfer]\r\nZoneId=3\r\n")
+	if err := os.WriteFile(tp+":Zone.Identifier", zone, 0644); err != nil {
+		t.Skipf("no alternate data streams here: %v", err)
+	}
+	dest := t.TempDir()
+	os.MkdirAll(filepath.Join(dest, "d", "blocked.txt"), 0755) // 같은 이름의 폴더 → 이 파일 쓰기만 실패
+	if err := newTestFM().CopyItems([]string{filepath.Join(tp, "d")}, dest); err == nil {
+		t.Fatal("blocked entry must fail the copy")
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "d", "ok.txt") + ":Zone.Identifier"); err != nil || string(b) != string(zone) {
+		t.Errorf("partially copied file lost the mark: %q %v", b, err)
 	}
 }

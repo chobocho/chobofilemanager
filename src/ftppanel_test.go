@@ -275,3 +275,25 @@ func TestFTPPanel_MoveWithinConnectionHonoursMode(t *testing.T) {
 		t.Fatalf("overwrite mode: deleted=%v renamed=%v", srv.deleted, renamed)
 	}
 }
+
+// Todo #135: 같은 폴더로 이동(F6) — 대상의 "같은 이름"이 바로 원본이므로 덮어쓰기여도 지우면 안 됨 (데이터 보호)
+func TestFTPPanel_MoveIntoOwnFolderKeepsSource(t *testing.T) {
+	a, srv, id := ftpPanelFixture(t)
+	srv.handler = func(cmd, arg string) string {
+		switch cmd {
+		case "RNFR":
+			return "350 ready"
+		case "RNTO":
+			return "250 ok"
+		}
+		return ""
+	}
+	for _, move := range []func([]string, string) error{a.MoveItems, a.MoveItemsOverwrite} {
+		if err := move([]string{"ftp://" + id + "/sub/b.txt"}, "ftp://"+id+"/sub"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(srv.deleted) != 0 {
+		t.Fatalf("moving into its own folder deleted %v", srv.deleted)
+	}
+}

@@ -103,10 +103,10 @@ func (fm *FileManager) extractArchiveSources(sources []string, dest, mode string
 			continue
 		}
 		written, err := archive.ExtractPaths(arc, []string{inner}, dest, mode)
+		copyMarkOfTheWeb(arc, written...) // 실패해도 이미 꺼낸 것에는 (Todo #135)
 		if err != nil {
 			return nil, err
 		}
-		copyMarkOfTheWeb(arc, written...)
 	}
 	return local, nil
 }

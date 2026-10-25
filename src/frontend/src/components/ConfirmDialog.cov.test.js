@@ -181,6 +181,19 @@ describe('RenameDialog 커버리지', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('RN-06: 창이 열린 뒤 커서가 움직여도(복사 완료 새로 고침 등) 연 파일의 이름을 바꿈 (Todo #130-3)', () => {
+    setPanel([file('a.txt'), file('b.txt'), file('x.txt')], 1)
+    const onConfirm = vi.fn()
+    render(h(RenameDialog, { onConfirm, onClose: vi.fn() }))
+    act(() => { useFileStore.setState(s => ({ left: { ...s.left, cursor: 2 } })) })
+    expect(screen.getByText('Original: b.txt')).toBeTruthy()
+    act(() => { useFileStore.setState(s => ({ left: { ...s.left, cursor: 0, cursorOnParent: true } })) })
+    const input = screen.getByDisplayValue('b.txt') // 커서가 [..]로 가도 창이 사라지지 않음
+    fireEvent.change(input, { target: { value: 'b2.txt' } })
+    fireEvent.submit(input.closest('form'))
+    expect(onConfirm).toHaveBeenCalledWith('/d/b.txt', 'b2.txt')
+  })
+
   it('RN-05: 빈 이름이면 Rename 버튼 비활성', () => {
     setPanel([file('a.txt')])
     render(h(RenameDialog, { onConfirm: vi.fn(), onClose: vi.fn() }))

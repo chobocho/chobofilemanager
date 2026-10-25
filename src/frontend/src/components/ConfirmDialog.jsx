@@ -169,9 +169,8 @@ export function NewItemDialog({ type, onConfirm, onClose }) {
 // ─── Rename Dialog ────────────────────────────────────────────────────────────
 
 export function RenameDialog({ onConfirm, onClose }) {
-  const store = useFileStore()
-  const panel = store[store.activePanel]
-  const currentFile = getCursorFile(panel)
+  // 연 순간의 커서 파일로 고정 — 열린 동안 커서가 움직여도(복사 완료 새로 고침 등) 다른 파일을 바꾸지 않음 (Todo #130-3)
+  const [currentFile] = useState(() => { const s = useFileStore.getState(); return getCursorFile(s[s.activePanel]) })
   const [name, setName] = useState(currentFile?.name || '')
   const inputRef = useRef(null)
 

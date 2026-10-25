@@ -387,7 +387,15 @@
 - [x] 130-1 Go package main (파일 관리자: filemanager·ftpmanager·app·settings) — 로컬/FTP 이름 바꾸기·F6 이동 덮어쓰기 차단, 닿지 않는 디코딩 폴백 정리
 - [x] 130-2 Go internal (termapp 통합부·host·appdir·localshell 변경분) — SCP 가짜 서버 테스트, 손상 설정/세션 백업(atomicfile), Telnet 협상 반복 차단
 - 130-3 프론트 앱 (App·stores·components)
-- 130-4 프론트 터미널 (core·store·components)
+  - [x] a. 이름 바꾸기 창이 제출 시점 커서 파일을 바꿈 (복사 완료 등으로 커서 이동 시 다른 파일)
+  - [ ] b. FTP 다운로드/업로드가 같은 이름을 묻지 않고 덮어씀
+  - [ ] c. 복사/이동 충돌 창 단추 연타 시 작업 두 번 실행
+  - [ ] d. 검색 결과 열기가 드라이브 루트 파일이면 "C:"로 이동
+  - [ ] e. Ctrl+W가 탭 닫은 뒤 엉뚱한 탭을 닫음 (useCallback 의존성)
+  - [ ] f. 편집 저장·이동 후 새로 고침이 커서·선택을 잃음
+  - [ ] g. 폴더 읽기 실패/로딩 중 숨은 목록에 파일 작업이 실행됨
+  - [ ] h. 백그라운드 새로 고침이 진행 중 이동을 버림
+- [x] 130-4 프론트 터미널 (core·store·components) — 키워드 강조·원격 파일 창 테스트, 새로 고침 선택 유지 버그
 
 ## 131. 중복 코드 제거 (테스트 통과 유지)
 

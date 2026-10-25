@@ -1,0 +1,157 @@
+/* The cat (choboTerm style.css, Todo #124) */
+/* Chobocho Commander: only in the Terminal view (the file manager has its own look) */
+body:not(.term-view-active) #cat,
+body:not(.term-view-active) #catZ,
+body:not(.term-view-active) #catBubble { display: none; }
+/* ---- The cat (cat.ts) ----
+   Above the terminals, the memo pad and the Lua console (up to 7), below
+   menus and dialogs (10 and up). Only the cat itself takes the mouse. */
+
+#cat {
+    position: fixed;
+    z-index: 8;
+    background-repeat: no-repeat;
+    image-rendering: auto;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#cat.dragging {
+    cursor: grabbing;
+}
+
+#cat[hidden],
+#catZ[hidden],
+#catBubble[hidden],
+#luaResult[hidden] {
+    display: none;
+}
+
+#catZ {
+    position: fixed;
+    z-index: 8;
+    width: 30px;
+    height: 30px;
+    pointer-events: none;
+    font: bold 13px "Segoe UI", sans-serif;
+    color: #b8c6d4;
+}
+
+#catZ span {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    opacity: 0;
+    animation: catz 2.4s linear infinite;
+}
+
+#catZ span:nth-child(2) {
+    font-size: 16px;
+    animation-delay: 0.8s;
+}
+
+#catZ span:nth-child(3) {
+    animation-delay: 1.6s;
+}
+
+@keyframes catz {
+    0% { transform: translate(0, 0); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translate(14px, -30px); opacity: 0; }
+}
+
+#catBubble {
+    position: fixed;
+    z-index: 9;
+    width: 300px;
+    padding: 10px 12px;
+    background: #fffdf6;
+    color: #222;
+    border: 1px solid #c9b48a;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    font: 13px "Malgun Gothic", "Segoe UI", "Noto Sans CJK KR", "Noto Sans KR", "NanumGothic", sans-serif;
+}
+
+#catBubble .head {
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+#catBubble .hint {
+    color: #777;
+    font-weight: normal;
+    font-size: 12px;
+}
+
+#catBubble p {
+    margin: 4px 0 8px;
+    line-height: 1.45;
+}
+
+#catBubble textarea {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+    font: 13px Consolas, "D2Coding", "DejaVu Sans Mono", monospace;
+}
+
+#catBubble .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+#luaResult {
+    position: fixed;
+    z-index: 9;
+    right: 24px;
+    bottom: 80px;
+    width: min(560px, calc(100vw - 32px));
+    height: min(360px, 60vh);
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    resize: both; /* drag the corner for a bigger log */
+    overflow: hidden;
+}
+
+/* The log: one dark, scrolling, selectable text box, like the Lua console. */
+#luaResult .log {
+    flex: 1;
+    min-height: 0;
+    margin: 8px 10px 0;
+    padding: 8px 10px;
+    resize: none;
+    border: 1px solid #3b5b85;
+    border-radius: 4px;
+    outline: none;
+    background: #111827;
+    color: #e5e7eb;
+    font: 13px/1.45 Consolas, "D2Coding", "DejaVu Sans Mono", monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
+#luaResult .log:focus {
+    border-color: #60a5fa;
+}
+
+#luaResult .log::selection {
+    background: #2563eb;
+    color: #fff;
+}
+
+#luaResult .buttons {
+    margin: 8px 10px 10px;
+}
+
+/* Chobocho Commander (Todo #124): choboTerm's .dialog / .titlebar look for the result window */
+#luaResult.dialog { background: var(--bg-modal, #1e1e2a); color: var(--text-primary, #ddd); border: 1px solid var(--border-active, #555); border-radius: 6px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); display: flex; flex-direction: column; }
+#luaResult .titlebar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border, #333); font-size: 12px; }
+#luaResult .titlebar .title { flex: 1; }
+#luaResult button, #catBubble button { font-size: 12px; }

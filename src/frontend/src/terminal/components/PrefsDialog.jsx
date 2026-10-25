@@ -223,6 +223,10 @@ export default function PrefsDialog() {
             </fieldset>
           )}
           <fieldset>
+            <legend>고양이</legend>
+            <label className={styles.check}><input {...chk('cat')} /> 고양이 보이기 (Terminal 보기 아래쪽을 걸어 다님, 클릭하면 Lua 실행)</label>
+          </fieldset>
+          <fieldset>
             <legend>업데이트</legend>
             <label className={styles.check}><input {...chk('updateCheck')} /> 시작할 때 새 버전 확인</label>
             <div className={styles.hlRow}>

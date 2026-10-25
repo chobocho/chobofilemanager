@@ -8,6 +8,7 @@ import {lookOptions, glassOn, seeThrough, applyTranslucency} from './look';
 import {themeByName} from './themes';
 import {NARROW, WIDE} from './cjkwidth';
 import {loadRules} from './highlight';
+import {applyMountedCat} from './cat';
 import type {TermSession} from './session';
 import type {Reconnector} from './reconnect';
 
@@ -26,6 +27,7 @@ export function applyLook(s: TermSession) {
 /** After the Settings window's OK: every tab takes the new look and keyword rules. */
 export function applySettingsAll(list: TermSession[]) {
     applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu);
+    applyMountedCat();
     loadRules();
     for (const s of list) {
         applyLook(s);

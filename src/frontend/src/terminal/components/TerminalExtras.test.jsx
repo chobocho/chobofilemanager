@@ -142,3 +142,27 @@ describe('창 투명도 (TL)', () => {
     expect(document.body.classList.contains('term-glass')).toBe(true)
   })
 })
+
+describe('고양이 (CTW)', () => {
+  beforeEach(() => { (Element.prototype).setPointerCapture ??= () => {} })
+
+  it('CTW-01: 작업 공간이 고양이를 띄우고(설정 켬), 닫으면 치움', async () => {
+    api.GetSettings.mockResolvedValue({ fontSize: 16, cat: true, catIntro: true })
+    const u = render(React.createElement(TerminalWorkspace, { createTerminal: (o) => new FakeTerminal(o), addons: false, cat: true }))
+    await waitFor(() => expect(document.getElementById('cat')?.hidden).toBe(false))
+    u.unmount()
+    expect(document.getElementById('cat')).toBeNull()
+  })
+
+  it('CTW-02: 설정 > 고양이 보이기 끄면 바로 숨김', async () => {
+    api.GetSettings.mockResolvedValue({ fontSize: 16, cat: true, catIntro: true })
+    render(React.createElement(TerminalWorkspace, { createTerminal: (o) => new FakeTerminal(o), addons: false, cat: true }))
+    await waitFor(() => expect(document.getElementById('cat')?.hidden).toBe(false))
+    fireEvent.keyDown(document.querySelector('[data-terminal-root]'), { key: 'O', ctrlKey: true, shiftKey: true })
+    const dlg = await screen.findByRole('dialog', { name: '설정' })
+    fireEvent.click(within(dlg).getByLabelText(/고양이 보이기/))
+    await act(async () => { fireEvent.click(within(dlg).getByRole('button', { name: '확인' })) })
+    expect(settings.cat).toBe(false)
+    expect(document.getElementById('cat').hidden).toBe(true)
+  })
+})

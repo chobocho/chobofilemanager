@@ -30,10 +30,11 @@ export interface PrefsForm {
     opacity: string;
     glassGpu: boolean;
     updateCheck: boolean;
+    cat: boolean;
 }
 
 export type PrefsValues = Pick<TermSettings, 'fontSize' | 'fontUtf8' | 'fontEucKr' | 'theme' | 'cursorStyle' | 'cursorBlink' | 'scrollback' |
-    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight' | 'language' | 'translucency' | 'opacity' | 'glassGpu' | 'updateCheck'>;
+    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight' | 'language' | 'translucency' | 'opacity' | 'glassGpu' | 'updateCheck' | 'cat'>;
 
 export function prefsForm(s: TermSettings): PrefsForm {
     return {
@@ -60,6 +61,7 @@ export function prefsForm(s: TermSettings): PrefsForm {
         opacity: String(s.opacity || 85),
         glassGpu: !!s.glassGpu,
         updateCheck: !!s.updateCheck,
+        cat: s.cat !== false,
     };
 }
 
@@ -101,6 +103,7 @@ export function readPrefs(f: PrefsForm): {values: PrefsValues} | {error: string;
             opacity: Number(f.opacity) || 85,
             glassGpu: f.glassGpu,
             updateCheck: f.updateCheck,
+            cat: f.cat,
         },
     };
 }

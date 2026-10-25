@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { Plus, X, TerminalSquare, Star, Settings, Command } from 'lucide-react'
-import { startEventRouter } from '../core/session'
+import { startEventRouter, sessionById, allSessions } from '../core/session'
 import { loadSettings } from '../core/settings'
 import { loadRules } from '../core/highlight'
 import { startI18n, resolveLang } from '../core/i18n'
@@ -41,7 +41,8 @@ const defaultCreateTerminal = (opts) => new Terminal(opts)
 // Terminal 보기 (Todo #120, #121): 탭 막대(그룹) + 칸별 터미널 + 연결 대화상자.
 // 모든 칸은 하나의 부모 아래에 평평하게 마운트하고 분할 트리로 계산한 위치에 배치합니다
 // (분할할 때 칸을 다른 부모로 옮기면 React가 다시 만들어 화면 내용이 사라지므로).
-export default function TerminalWorkspace({ createTerminal = defaultCreateTerminal, addons = true }) {
+// cat: 고양이 (Todo #124) — jsdom 테스트에서는 끔 (24fps 애니메이션)
+export default function TerminalWorkspace({ createTerminal = defaultCreateTerminal, addons = true, cat = addons }) {
   const tabs = useTermStore(s => s.tabs)
   const groups = useTermStore(s => s.groups)
   const activeId = useTermStore(s => s.activeId)
@@ -69,6 +70,28 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const [menu, setMenu] = useState(null) // { id, x, y }
   const [webServer, setWebServer] = useState(null) // 웹 서버가 켜져 있으면 { clients }
   const areaRef = useRef(null)
+  const catRef = useRef(null)
+
+  // 고양이: 칸들의 아래쪽을 걸어 다님, 설정을 따름
+  useEffect(() => {
+    if (!cat) return
+    let alive = true
+    let handle
+    import('../core/cat').then(({ mountCat }) => {
+      if (!alive) return
+      handle = mountCat({
+        floor: () => areaRef.current,
+        cursorTerm: (ae) => {
+          const own = allSessions().find(s => ae && s.term.element?.contains(ae))
+          return (own ?? sessionById(useTermStore.getState().activeId))?.term
+        },
+        focusActive: () => sessionById(useTermStore.getState().activeId)?.focus(),
+      })
+      catRef.current = handle
+      loadSettings().then(() => { if (alive) handle.apply() })
+    })
+    return () => { alive = false; handle?.dispose(); catRef.current = null }
+  }, [cat])
 
   useEffect(() => {
     startEventRouter()

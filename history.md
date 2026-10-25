@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 보완 2: F1 터미널 도움말 · 창 제목 · 디버그 기록)
+
+### 변경
+- `core/helpText.ts`(choboTerm help.ts 내용, 한국어·English, 링크는 이 앱 저장소) + `TerminalHelp.jsx`: Terminal 보기에서 F1, English 버튼·Alt+L 전환(기억), 링크는 기본 브라우저, 화면 번역 대상에서 제외(`data-no-i18n`)
+- `core/title.ts`: Terminal 보기가 보이는 동안 창 제목 = 앱 제목 + 활성 연결(host:port [인코딩] / ftp:// / 로컬 / 시리얼 baud / 도커), 다른 보기로 가면 원래 제목
+- `core/debug.ts`: CHOBOTERM_DEBUG=1 또는 debug.on일 때 화면의 console 경고·오류·페이지 오류를 Go의 debug.log로 (켜지기 전 것도 보냄)
+
+### 테스트
+- `TerminalHelp.test.jsx`(HL-01~04, TT-01~02, DB-01~02) — 프론트 1172개 통과
+
 ## 2026-10-25 (Todo.md #124 보완 1: 복사·붙여넣기, 빠진 단축키, 글꼴 크기, 탭 막대 마우스)
 
 ### 변경

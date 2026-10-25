@@ -100,7 +100,7 @@ const ATTRS = ['title', 'placeholder', 'aria-label'];
 // Only the terminal's part of the window (and its menus, which sit at the end of <body>).
 const SCOPE = '[data-terminal-root], [data-term-i18n]';
 // Not translated: terminal screens, file contents.
-const SKIP = '.xterm, .cm-content';
+const SKIP = '.xterm, .cm-content, [data-no-i18n]'; // + the help window, which has its own English
 
 function inScope(n: Node): boolean {
     const el = n instanceof Element ? n : n.parentElement;

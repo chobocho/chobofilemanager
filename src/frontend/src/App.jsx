@@ -349,7 +349,7 @@ function FileManagerApp() {
         {terminalMounted && (
           <div className={styles.terminalView} hidden={view !== 'terminal'}>
             <Suspense fallback={null}>
-              <TerminalWorkspace />
+              <TerminalWorkspace shown={view === 'terminal'} />
             </Suspense>
           </div>
         )}

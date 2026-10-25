@@ -193,3 +193,12 @@
 :global(body.term-fade) .workspace { opacity: var(--term-fade); }
 :global(body.term-glass) .workspace, :global(body.term-glass) .panes { background: transparent; }
 :global(body.term-glass) .pane :global(.xterm-viewport) { background-color: transparent !important; }
+
+/* 터미널 도움말 (F1, Todo #124) */
+.help { width: 860px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.helpBody { flex: 1; min-height: 0; overflow: auto; padding-right: 6px; font-size: 12px; }
+.helpBody h3 { margin: 12px 0 4px; font-size: 13px; color: var(--text-accent); }
+.helpBody table { width: 100%; border-collapse: collapse; }
+.helpBody td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid var(--border); }
+.helpKey { width: 32%; white-space: nowrap; font-family: 'D2Coding', Consolas, monospace; color: var(--text-primary); }
+.helpBody a { color: var(--text-accent); }

@@ -19,6 +19,9 @@ import { checkUpdate } from '../core/update'
 import { applyTranslucency } from '../core/look'
 import { onTermEvent } from '../core/termApi'
 import { copySelection, pasteClipboard } from '../core/clipboard'
+import TerminalHelp from './TerminalHelp.jsx'
+import { terminalTitle } from '../core/title'
+import { installDebug } from '../core/debug'
 import SearchBar from './SearchBar.jsx'
 import TabMenu from './TabMenu.jsx'
 import SessionManager from './SessionManager.jsx'
@@ -43,7 +46,8 @@ const defaultCreateTerminal = (opts) => new Terminal(opts)
 // 모든 칸은 하나의 부모 아래에 평평하게 마운트하고 분할 트리로 계산한 위치에 배치합니다
 // (분할할 때 칸을 다른 부모로 옮기면 React가 다시 만들어 화면 내용이 사라지므로).
 // cat: 고양이 (Todo #124) — jsdom 테스트에서는 끔 (24fps 애니메이션)
-export default function TerminalWorkspace({ createTerminal = defaultCreateTerminal, addons = true, cat = addons }) {
+// shown: 이 보기가 화면에 보이는지 (창 제목을 활성 연결로 바꿀지)
+export default function TerminalWorkspace({ createTerminal = defaultCreateTerminal, addons = true, cat = addons, shown = true }) {
   const tabs = useTermStore(s => s.tabs)
   const groups = useTermStore(s => s.groups)
   const activeId = useTermStore(s => s.activeId)
@@ -75,6 +79,16 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const areaRef = useRef(null)
   const catRef = useRef(null)
 
+  // 창 제목: 보이는 동안 활성 탭의 연결, 숨기면 원래 제목 (Todo #124)
+  const baseTitle = useRef(typeof document !== 'undefined' ? document.title : '')
+  useEffect(() => {
+    const set = (title) => { document.title = title; window.runtime?.WindowSetTitle?.(title) }
+    if (!shown) { set(baseTitle.current); return }
+    const s = sessionById(activeId)
+    set(terminalTitle(baseTitle.current, active && s ? { state: active.state, proto: active.proto, encoding: s.encoding, req: s.req, docker: active.docker } : undefined))
+  }, [shown, activeId, active?.state, active?.proto, active?.label])
+  useEffect(() => () => { document.title = baseTitle.current }, [])
+
   // 고양이: 칸들의 아래쪽을 걸어 다님, 설정을 따름
   useEffect(() => {
     if (!cat) return
@@ -98,6 +112,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
 
   useEffect(() => {
     startEventRouter()
+    installDebug()
     startTransferEvents()
     startScriptEvents()
     loadSettings().then(async () => {
@@ -279,6 +294,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       {saveRequest && <SaveSessionDialog request={saveRequest} />}
       {prefsOpen && <PrefsDialog />}
       {macrosOpen && <MacrosDialog />}
+      {helpOpen && <TerminalHelp onClose={() => { setHelpOpen(false); sessionById(useTermStore.getState().activeId)?.focus() }} />}
       {panel?.kind === 'forwards' && <ForwardsDialog key={panel.id} id={panel.id} />}
       {panel?.kind === 'containers' && <ContainersDialog key={panel.id} id={panel.id} />}
       <PasteConfirm request={pasteRequest} onAnswer={ok => { if (ok) pasteRequest?.paste(); setPasteRequest(null) }} />

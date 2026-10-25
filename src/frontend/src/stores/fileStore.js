@@ -42,9 +42,19 @@ function emptyCursorOnParent(path, files, showHidden) {
 
 // 패널의 "현재 커서 파일" — 숨김 필터를 적용한 visible 목록 기준, [..]에 있으면 null (Todo #78)
 export function getCursorFile(panelState) {
-  if (!panelState || panelState.cursorOnParent) return null
+  // 목록을 못 읽어 오류만 보이거나 읽는 중이면 숨은 옛 목록의 파일을 대상으로 삼지 않음 (Todo #130-3)
+  if (!panelState || panelState.cursorOnParent || panelState.error || panelState.loading) return null
   const visible = panelState.showHidden ? panelState.files : panelState.files.filter(f => !f.isHidden)
   return visible[panelState.cursor] || null
+}
+
+// 복사·이동·삭제 대상: 선택한 항목, 없으면 커서 파일. 오류·로딩 중인 패널은 없음 (Todo #130-3)
+export function operationPaths(panelState) {
+  if (!panelState || panelState.error || panelState.loading) return []
+  const selected = [...panelState.selected]
+  if (selected.length) return selected
+  const cursor = getCursorFile(panelState)
+  return cursor ? [cursor.path] : []
 }
 
 // 폴더 우선 + sortBy/sortDir 정렬 (Todo #93 — 새로고침/이동 후에도 선택한 정렬 유지)
@@ -379,11 +389,7 @@ export const useFileStore = create((set, get) => ({
     const state = get()
     const panel = state.activePanel
     const other = panel === 'left' ? 'right' : 'left'
-    const selected = [...state[panel].selected]
-    if (!selected.length) {
-      const cursor = getCursorFile(state[panel])
-      if (cursor) selected.push(cursor.path)
-    }
+    const selected = operationPaths(state[panel])
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
 
     const dest = state[other].path
@@ -426,11 +432,7 @@ export const useFileStore = create((set, get) => ({
     const state = get()
     const panel = state.activePanel
     const other = panel === 'left' ? 'right' : 'left'
-    const selected = [...state[panel].selected]
-    if (!selected.length) {
-      const cursor = getCursorFile(state[panel])
-      if (cursor) selected.push(cursor.path)
-    }
+    const selected = operationPaths(state[panel])
     if (!selected.length) return { conflicts: [], sources: [], dest: '' }
 
     const dest = state[other].path
@@ -472,11 +474,7 @@ export const useFileStore = create((set, get) => ({
   delete: async () => {
     const state = get()
     const panel = state.activePanel
-    const selected = [...state[panel].selected]
-    if (!selected.length) {
-      const cursor = getCursorFile(state[panel])
-      if (cursor) selected.push(cursor.path)
-    }
+    const selected = operationPaths(state[panel])
     if (!selected.length) {
       set({ status: '삭제할 파일이 없습니다.' })
       return { paths: [], count: 0 }
@@ -601,7 +599,7 @@ export const useFileStore = create((set, get) => ({
 
   compress: async (panel) => {
     const state = get()[panel]
-    const selected = [...state.selected]
+    const selected = state.error || state.loading ? [] : [...state.selected]
     if (!selected.length) return
     const destPath = joinPath(state.path, 'archive.zip')
     try {

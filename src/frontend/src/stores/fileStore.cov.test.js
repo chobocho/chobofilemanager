@@ -42,7 +42,7 @@ vi.mock('../wailsjs/runtime', () => {
 })
 
 import api from '../wailsjs/runtime'
-import { useFileStore, sortFiles } from './fileStore.js'
+import { useFileStore, sortFiles, getCursorFile } from './fileStore.js'
 
 const initial = useFileStore.getState()
 
@@ -195,6 +195,23 @@ describe('fileStore 커버리지 — 패널/정렬/새로고침', () => {
     await st().writeFile('/a/y.txt', 'new')
     expect(st().left.files[st().left.cursor].name).toBe('y.txt')
     expect([...st().left.selected]).toEqual(['/a/x.txt'])
+  })
+
+  // Todo #130-3: 폴더를 못 읽어 오류만 보이거나 읽는 중이면, 숨은 옛 목록에 작업하지 않음
+  it('FC-09f: 오류·로딩 중인 패널 — 복사·이동·삭제·압축 대상 없음, 커서 파일 없음', async () => {
+    for (const extra of [{ error: 'cannot read' }, { loading: true }]) {
+      resetApi()
+      useFileStore.setState(s => ({ left: { ...s.left, cursor: 1, selected: new Set(['/a/x.txt']), ...extra } }))
+      expect(getCursorFile(st().left)).toBeNull()
+      await st().copy()
+      await st().move()
+      expect((await st().delete()).paths).toEqual([])
+      await st().compress('left')
+      for (const k of ['CheckCopyConflicts', 'CopyItems', 'MoveItems', 'CompressItems']) {
+        expect(api[k], `${k} ${JSON.stringify(extra)}`).not.toHaveBeenCalled()
+      }
+      useFileStore.setState(s => ({ left: { ...s.left, error: null, loading: false } }))
+    }
   })
 
   it('FC-10: 패널 이동도 프로세스 작업 폴더를 바꾸지 않음 (활성·비활성 모두)', async () => {

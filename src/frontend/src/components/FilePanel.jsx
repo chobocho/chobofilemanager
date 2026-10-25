@@ -135,9 +135,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   }, [panel.path])
 
 
+  // 오류·로딩 중에는 줄을 그리지 않으므로 키 조작 대상도 없음 (Todo #130-3 — 숨은 옛 목록에 Enter·F3 등이 먹던 문제)
+  const unavailable = !!(panel.error || panel.loading)
   const visibleFiles = useMemo(
-    () => panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden),
-    [panel.files, panel.showHidden])
+    () => unavailable ? [] : panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden),
+    [panel.files, panel.showHidden, unavailable])
 
   // 루트 경로 여부 (더 이상 올라갈 수 없음)
   const isAtRoot = isRootPath(panel.path)

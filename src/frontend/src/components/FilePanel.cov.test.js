@@ -267,6 +267,16 @@ describe('FilePanel 커버리지 (FPC)', () => {
     expect(actions.switchTab).toHaveBeenLastCalledWith('left', 1)
   })
 
+  it('FPC-19c: 폴더를 못 읽어 오류만 보이면 Enter·F3이 숨은 옛 목록에 먹지 않음 (Todo #130-3)', () => {
+    const { list, onView } = setup({ panelExtra: { cursor: 0, error: 'cannot read' } })
+    expect(rows(list).length).toBe(0)
+    fireEvent.keyDown(list, { key: 'Enter' })
+    fireEvent.keyDown(list, { key: 'F3' })
+    expect(actions.navigate).not.toHaveBeenCalled()
+    expect(actions.openFile).not.toHaveBeenCalled()
+    expect(onView).not.toHaveBeenCalled()
+  })
+
   it('FPC-20: Ctrl+Shift+C → 커서 파일 경로 클립보드 복사 + 상태 표시', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })

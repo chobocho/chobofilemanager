@@ -333,7 +333,18 @@ func (fm *FileManager) CreateFile(path string) error {
 	return f.Close()
 }
 
+// RenameItem: 이름 바꾸기. 같은 이름의 다른 항목이 있으면 거부 — Windows의 os.Rename은 파일을 말없이 덮어씀 (Todo #130-1).
+// 대소문자만 바꾸는 것(a.txt → A.txt)은 같은 파일이므로 허용
 func (fm *FileManager) RenameItem(oldPath, newPath string) error {
+	if dst, err := os.Lstat(newPath); err == nil {
+		src, serr := os.Lstat(oldPath)
+		if serr != nil {
+			return serr
+		}
+		if !os.SameFile(src, dst) {
+			return fmt.Errorf("같은 이름이 이미 있습니다: %s", filepath.Base(newPath))
+		}
+	}
 	return os.Rename(oldPath, newPath)
 }
 

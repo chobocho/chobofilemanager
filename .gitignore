@@ -35,3 +35,4 @@ Thumbs.db
 src/build.bat
 # build.bat / build_linux.sh 결과물
 release/
+src/frontend/coverage/

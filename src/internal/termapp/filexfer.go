@@ -493,6 +493,17 @@ func (a *App) FileRename(tabID int, dir, from, to string) error {
 		return err
 	}
 	return t.withFS(func(fs transfer.RemoteFS) error {
+		// SCP (mv) and FTP (RNTO) replace an existing file without a word: refuse a name
+		// already in the folder. Changing only the case is the same entry, so it's allowed.
+		if to != from && !strings.EqualFold(to, from) {
+			if list, err := fs.List(dir); err == nil {
+				for _, e := range list {
+					if e.Name == to {
+						return errors.New("같은 이름이 이미 있습니다: " + to) // the page translates it (i18n_en.json)
+					}
+				}
+			}
+		}
 		return fs.Rename(path.Join(dir, from), path.Join(dir, to))
 	})
 }

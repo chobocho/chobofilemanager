@@ -2,6 +2,17 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #130-1·2 리뷰: 이름 바꾸기가 다른 파일을 덮어쓰던 버그)
+
+### 변경
+- 측정부터: Go 전체 문장 커버리지 78.8%(약한 곳 transfer 62·telnet 70·config 74), 프론트 88%(highlight 20·RemoteFiles 63·cat 53·SessionManager 76·filesStore 80) — 이 순서로 리뷰·보강
+- **버그 수정(데이터 손실)**: 파일 패널 F2 이름 바꾸기에서 이미 있는 이름을 쓰면 Windows `os.Rename`이 그 파일을 말없이 덮어써 지워짐 → `RenameItem`이 같은 이름의 다른 항목이 있으면 거부(대소문자만 바꾸기는 같은 파일이라 허용)
+- **같은 버그(원격)**: 원격 파일 창 이름 바꾸기 — SCP(mv)·FTP(RNTO)는 덮어씀 → 폴더 목록에 같은 이름이 있으면 거부
+- 커버리지 결과 폴더를 .gitignore에
+
+### 테스트
+- `rename_guard_test.go`(덮어쓰기 거부·폴더·대소문자만·새 이름), `rename_remote_test.go` — 수정 전 실패 확인, Go 전체 통과
+
 ## 2026-10-25 (Todo.md #128: 두 번째 실행 때 웹 서버)
 
 ### 변경

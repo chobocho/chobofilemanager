@@ -6,7 +6,9 @@ import { sendMacro } from '../core/macros'
 import { useFilesStore } from './filesStore'
 import { useScriptStore } from './scriptStore'
 import { dockerLabel, dockerTooltip, engineOf } from '../core/docker'
-import { settings } from '../core/settings'
+import { settings, saveSettings } from '../core/settings'
+import { nextFontSize } from '../core/clipboard'
+import { toast } from '../core/toast'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
@@ -341,6 +343,26 @@ export const useTermStore = create((set, get) => ({
     sessionById(get().activeId)?.focus()
   },
   applySettings: () => applySettingsAll(allSessions()),
+
+  // 글꼴 크기 (Ctrl+= / Ctrl+- / Ctrl+0 / Ctrl+휠): 모든 탭, 기억
+  changeFontSize: (change) => {
+    const n = nextFontSize(settings.fontSize, change)
+    if (n !== settings.fontSize) {
+      saveSettings(s => { s.fontSize = n })
+      for (const s of allSessions()) { s.term.options.fontSize = n; s.fit() }
+    }
+    toast(`글꼴 크기 ${n}`)
+  },
+
+  // 그룹(탭 막대의 칸) 순서 바꾸기: from을 to 자리로
+  moveGroup: (from, to) => set(s => {
+    const gs = [...s.groups]
+    const i = gs.findIndex(g => g.id === from), j = gs.findIndex(g => g.id === to)
+    if (i < 0 || j < 0 || i === j) return {}
+    const [g] = gs.splice(i, 1)
+    gs.splice(j, 0, g)
+    return { groups: gs }
+  }),
 
   openSessionManager: () => set({ sessionManager: true }),
   closeSessionManager: () => {

@@ -68,6 +68,10 @@ export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shif
     if (splitKeyDir({ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey, code: ev.code ?? ''})) return true;
     if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S' || k === 'H' || k === 'O' || k === 'M' || k === 'L' || k === 'B' || k === 'F' || k === 'P' || k === 'J' || k === 'K')) return true;
     if (ev.ctrlKey && (k === 'Tab' || k === 'PageUp' || k === 'PageDown')) return true;
+    // Todo #124: 복사·붙여넣기·끊기·인코딩·새 탭, 도움말(F1), 글꼴 크기 (Ctrl+= / Ctrl+- / Ctrl+0)
+    if (ev.ctrlKey && ev.shiftKey && !ev.altKey && ['C', 'V', 'D', 'E', 'N'].includes(k)) return true;
+    if (k === 'F1' && !ev.ctrlKey && !ev.altKey && !ev.shiftKey) return true;
+    if (ev.ctrlKey && !ev.altKey && !ev.shiftKey && ['=', '+', '-', '0'].includes(ev.key)) return true;
     return false;
 }
 

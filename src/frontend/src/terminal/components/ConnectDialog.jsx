@@ -90,6 +90,12 @@ export default function ConnectDialog({ tab }) {
     if (e.altKey && e.key.toLowerCase() === 's') {
       e.preventDefault()
       saveSession()
+    } else if (e.altKey && e.key.toLowerCase() === 'c') { // Connect
+      e.preventDefault()
+      submit(e)
+    } else if (e.altKey && e.key.toLowerCase() === 'a') { // Cancel
+      e.preventDefault()
+      useTermStore.getState().cancelDialog(tab.id)
     } else if (e.key === 'Escape') {
       e.preventDefault()
       if (listOpen) setListOpen(false)

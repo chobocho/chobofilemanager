@@ -18,6 +18,7 @@ import { PasteConfirm } from './TerminalModals.jsx'
 import { checkUpdate } from '../core/update'
 import { applyTranslucency } from '../core/look'
 import { onTermEvent } from '../core/termApi'
+import { copySelection, pasteClipboard } from '../core/clipboard'
 import SearchBar from './SearchBar.jsx'
 import TabMenu from './TabMenu.jsx'
 import SessionManager from './SessionManager.jsx'
@@ -68,6 +69,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const [pasteRequest, setPasteRequest] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menu, setMenu] = useState(null) // { id, x, y }
+  const [helpOpen, setHelpOpen] = useState(false)
+  const dragGroup = useRef(null) // 끌고 있는 탭(그룹) id
   const [webServer, setWebServer] = useState(null) // 웹 서버가 켜져 있으면 { clients }
   const areaRef = useRef(null)
   const catRef = useRef(null)
@@ -134,7 +137,15 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     const k = e.key.length === 1 ? e.key.toUpperCase() : e.key
     if (dir) { if (st.activeId != null) st.splitPane(st.activeId, dir) }
     else if (k === 'S') setSearchOpen(true)
-    else if (k === 'T') st.newTab()
+    else if (k === 'T' || k === 'N') st.newTab()
+    else if (k === 'C' && e.shiftKey) { const s = sessionById(st.activeId); if (s) copySelection(s) }
+    else if (k === 'V' && e.shiftKey) { const s = sessionById(st.activeId); if (s) pasteClipboard(s, setPasteRequest) }
+    else if (k === 'D' && e.shiftKey) { if (st.activeId != null) st.disconnect(st.activeId) }
+    else if (k === 'E' && e.shiftKey) { if (st.activeId != null) st.toggleEncoding(st.activeId) }
+    else if (k === 'F1') setHelpOpen(o => !o)
+    else if (e.key === '=' || e.key === '+') st.changeFontSize(1)
+    else if (e.key === '-' && !e.shiftKey) st.changeFontSize(-1)
+    else if (e.key === '0') st.changeFontSize('reset')
     else if (k === 'H') st.openSessionManager()
     else if (k === 'O') st.openPrefs()
     else if (k === 'M') st.openMacros()
@@ -174,12 +185,17 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
 
   return (
     <div className={styles.workspace} onKeyDown={onKeyDown} data-terminal-root>
-      <div className={styles.tabBar} role="tablist">
+      <div className={styles.tabBar} role="tablist"
+        onDoubleClick={(e) => { if (e.target === e.currentTarget) useTermStore.getState().newTab() }}>
         {groups.map(g => {
           const ids = leaves(g.layout)
           const current = g === activeGroup
           return (
-            <div key={g.id} role="tab" aria-selected={current}
+            <div key={g.id} role="tab" aria-selected={current} draggable
+              onDragStart={(e) => { dragGroup.current = g.id; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move' }}
+              onDragOver={(e) => { if (dragGroup.current != null && dragGroup.current !== g.id) e.preventDefault() }}
+              onDrop={(e) => { e.preventDefault(); if (dragGroup.current != null) useTermStore.getState().moveGroup(dragGroup.current, g.id); dragGroup.current = null }}
+              onDragEnd={() => { dragGroup.current = null }}
               className={`${styles.tab} ${current ? styles.tabActive : ''}`}
               onClick={() => { if (!current) useTermStore.getState().setActive(ids[0]) }}>
               {ids.map(id => {
@@ -189,7 +205,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                   <span key={id} title={(t.tooltip || t.label) + (t.log ? `\n로그 기록 중: ${t.log}` : '')} data-logging={t.log ? '' : undefined} data-busy={xfer?.tabId === id ? '' : undefined}
                     className={`${styles.paneChip} ${id === activeId ? styles.paneChipActive : ''} ${t.activity ? styles.tabActivity : ''}`}
                     onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}>
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}
+                    onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); e.stopPropagation(); useTermStore.getState().closeTab(id) } }}>
                     <span className={`${styles.dot} ${t.state !== 'idle' ? styles.dotOn : ''}`} />
                     <span data-tab-label>{t.label}</span>
                     {(() => {

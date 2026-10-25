@@ -27,6 +27,23 @@ export class FakeTerminal {
     oscHandlers = new Map<number, (data: string) => boolean>();
     keyHandler: ((ev: KeyboardEvent) => boolean) | null = null;
     unicode = {activeVersion: '6', register: () => {}};
+    /** What the user selected with the mouse (the test sets it). */
+    selection = '';
+    /** xterm's mouse mode: 'none', or 'any' etc. while a program (vim, mc) uses the mouse. */
+    modes = {mouseTrackingMode: 'none'};
+    pasted: string[] = [];
+    getSelection() {
+        return this.selection;
+    }
+    hasSelection() {
+        return this.selection !== '';
+    }
+    clearSelection() {
+        this.selection = '';
+    }
+    paste(text: string) {
+        this.pasted.push(text);
+    }
 
     private dataE = emitter<string>();
     private resizeE = emitter<{cols: number; rows: number}>();

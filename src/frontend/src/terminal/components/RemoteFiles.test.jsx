@@ -290,3 +290,103 @@ describe('원격 파일 창 (RFV)', () => {
     expect(useFilesStore.getState().views[1]).toBeUndefined()
   })
 })
+
+describe('원격 파일 창 — 키보드·메뉴 (RFV, Todo #130-4)', () => {
+  const sel = () => within(win()).getAllByRole('row').filter(r => r.getAttribute('aria-selected') === 'true').map(r => r.textContent.split(/\d/)[0])
+
+  it('RFV-23: 화살표·Home·End로 이동, Shift는 범위, Ctrl+A는 전체', async () => {
+    await openFiles()
+    await keyIn('ArrowDown')
+    expect(sel()).toEqual(['a.txt'])
+    await keyIn('End')
+    expect(sel()).toEqual(['b.log'])
+    await keyIn('ArrowUp', { shiftKey: true })
+    expect(sel()).toEqual(['a.txt', 'b.log'])
+    await keyIn('Home')
+    expect(sel()).toEqual(['.. (상위 폴더)'])
+    await keyIn('a', { ctrlKey: true })
+    expect(sel()).toEqual(['src', 'a.txt', 'b.log'])
+    await keyIn('a') // Ctrl 없이는 아무것도 안 함
+    expect(sel()).toEqual(['src', 'a.txt', 'b.log'])
+  })
+
+  it('RFV-24: Alt+↑ / Alt+← 상위 폴더, 그냥 ←는 무시', async () => {
+    await openFiles()
+    await keyIn('ArrowLeft')
+    expect(within(win()).getByLabelText('원격 경로').value).toBe('/home/me')
+    await keyIn('ArrowUp', { altKey: true })
+    await waitFor(() => expect(within(win()).getByLabelText('원격 경로').value).toBe('/home'))
+    await keyIn('Enter') // me 폴더 선택돼 있음 → 다시 들어감
+    await waitFor(() => expect(row('a.txt')).toBeTruthy())
+    await keyIn('ArrowLeft', { altKey: true })
+    await waitFor(() => expect(within(win()).getByLabelText('원격 경로').value).toBe('/home'))
+  })
+
+  it('RFV-25: 우클릭 메뉴 — 고른 것이 없으면 다운로드·이름 바꾸기 비활성, 폴더면 "열기"', async () => {
+    await openFiles()
+    await keyIn('Home') // .. 은 고를 수 없는 줄
+    fireEvent.contextMenu(within(win()).getByRole('grid'))
+    let menu = screen.getByRole('menu', { name: '파일 메뉴' })
+    expect(within(menu).getByRole('menuitem', { name: '다운로드' }).getAttribute('aria-disabled')).toBe('true')
+    expect(within(menu).getByRole('menuitem', { name: '이름 바꾸기 (F2)' }).getAttribute('aria-disabled')).toBe('true')
+    await act(async () => { fireEvent.click(within(menu).getByRole('menuitem', { name: '이름 바꾸기 (F2)' })) })
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    await keyIn('Escape') // 메뉴만 닫힘
+    expect(screen.queryByRole('menu', { name: '파일 메뉴' })).toBeNull()
+    expect(win()).toBeTruthy()
+
+    await keyIn('ArrowDown') // src 폴더
+    fireEvent.contextMenu(within(win()).getByRole('grid'))
+    menu = screen.getByRole('menu', { name: '파일 메뉴' })
+    expect(within(menu).getByRole('menuitem', { name: '보기 (F3)' }).getAttribute('aria-disabled')).toBe('true')
+    await act(async () => { fireEvent.click(within(menu).getByRole('menuitem', { name: '열기' })) })
+    await waitFor(() => expect(row('main.go')).toBeTruthy())
+    expect(screen.queryByRole('menu', { name: '파일 메뉴' })).toBeNull()
+  })
+
+  it('RFV-26: 우클릭 메뉴 — 새로 고침, 파일 패널 폴더로 받기', async () => {
+    await openFiles()
+    await act(async () => { fireEvent.mouseDown(row('a.txt')) })
+    fireEvent.contextMenu(within(win()).getByRole('grid'))
+    const calls = api.FileList.mock.calls.length
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: '새로 고침 (F5)' })) })
+    expect(api.FileList.mock.calls.length).toBe(calls + 1)
+    fireEvent.contextMenu(within(win()).getByRole('grid'))
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: '파일 패널 폴더로 받기' })) })
+    expect(api.FileDownloadTo).toHaveBeenCalledWith(1, '/home/me', [expect.objectContaining({ name: 'a.txt' })], 'C:\\work')
+  })
+
+  it('RFV-27: Ctrl+숫자 → 그 번호의 즐겨찾기, ✕로 즐겨찾기 빼기', async () => {
+    api.FileBookmarks.mockResolvedValue(['/home', '/home/me/src'])
+    await openFiles()
+    await keyIn('2', { ctrlKey: true })
+    await waitFor(() => expect(row('main.go')).toBeTruthy())
+    await keyIn('b', { ctrlKey: true })
+    const menu = screen.getByRole('menu', { name: '즐겨찾기' })
+    await act(async () => { fireEvent.click(within(within(menu).getByRole('menuitem', { name: /^\/home\/me\/src/ })).getByTitle('즐겨찾기에서 빼기')) })
+    expect(api.SetFileBookmarks).toHaveBeenLastCalledWith(1, ['/home'])
+  })
+
+  it('RFV-28: 폴더를 고르면 보기·편집 단추 비활성, 파일이면 활성', async () => {
+    const w = await openFiles()
+    expect(within(w).getByRole('button', { name: '보기' }).disabled).toBe(true) // src 폴더
+    await act(async () => { fireEvent.mouseDown(row('a.txt')) })
+    expect(within(w).getByRole('button', { name: '보기' }).disabled).toBe(false)
+    expect(within(w).getByRole('button', { name: '편집' }).disabled).toBe(false)
+  })
+
+  it('RFV-29: Explorer에서 끌어 놓은 파일 → 지금 폴더로 올리기, 창을 닫으면 끌어 놓기 해제', async () => {
+    let drop
+    const off = vi.fn()
+    window.runtime = { OnFileDrop: (fn) => { drop = fn }, OnFileDropOff: off }
+    try {
+      await openFiles()
+      await act(async () => { drop(0, 0, ['C:\\x\\a.bin', 'C:\\x\\b.bin']) })
+      expect(api.FileUploadPaths).toHaveBeenCalledWith(1, '/home/me', ['C:\\x\\a.bin', 'C:\\x\\b.bin'])
+      await act(async () => { fireEvent.click(within(win()).getByTitle('닫기 (Esc)')) })
+      expect(off).toHaveBeenCalled()
+    } finally {
+      delete window.runtime
+    }
+  })
+})

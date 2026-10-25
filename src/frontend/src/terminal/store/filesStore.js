@@ -108,7 +108,12 @@ export const useFilesStore = create((set, get) => {
       }
     },
 
-    refresh: (id) => get().load(id, view(id)?.cwd ?? '/'),
+    // 새로 고침: 고른 항목을 그대로 유지 (Todo #130-4 — 전에는 첫 줄로 돌아감)
+    refresh: (id) => {
+      const v = view(id)
+      const names = v ? pickedEntries(v).map(e => e.name) : []
+      return get().load(id, v?.cwd ?? '/', names.length ? names : undefined)
+    },
 
     goUp: (id) => {
       const v = view(id)

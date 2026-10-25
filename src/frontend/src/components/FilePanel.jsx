@@ -252,6 +252,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         break
       case 'Enter':
         e.preventDefault()
+        // Todo #133-1: Alt+Shift+Enter = 보이는 모든 폴더의 크기 (Total Commander와 같게)
+        if (e.altKey && e.shiftKey) { store.calcAllDirSizes(side); break }
         // Todo #122: Ctrl+Enter 파일 이름 / Ctrl+Shift+Enter 전체 경로를 터미널 도크에 붙여넣기
         if (e.ctrlKey && onPastePath) {
           if (!cursorOnParent && files[cur]) onPastePath(files[cur], e.shiftKey)
@@ -276,7 +278,12 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         break
       case ' ':
         e.preventDefault()
-        if (files[cur]) store.toggleSelect(side, files[cur].path)
+        if (files[cur]) {
+          // Todo #133-1: 폴더를 선택하면 크기도 계산 (Total Commander와 같게)
+          const willSelect = !panel.selected.has(files[cur].path)
+          store.toggleSelect(side, files[cur].path)
+          if (files[cur].isDir && willSelect) store.calcDirSize(side, files[cur].path)
+        }
         break
       case 'Insert':
         e.preventDefault()
@@ -385,7 +392,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       default:
         break
     }
-  }, [isActive, keyboardDisabled, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath])
+  }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return
@@ -426,9 +433,10 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   rowHandlersRef.current = { click: handleRowClick, dbl: handleRowDoubleClick }
 
   const selectedCount = panel.selected.size
+  const dirSizes = panel.dirSizes || {}
   const totalSize = visibleFiles
-    .filter(f => panel.selected.has(f.path) && !f.isDir)
-    .reduce((acc, f) => acc + f.size, 0)
+    .filter(f => panel.selected.has(f.path))
+    .reduce((acc, f) => acc + (f.isDir ? (dirSizes[f.path] ?? 0) : f.size), 0)
 
   return (
     <div
@@ -563,6 +571,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             index={index}
             highlighted={isActive && panel.cursor === index && !cursorOnParent}
             selected={panel.selected.has(file.path)}
+            dirSize={file.isDir ? dirSizes[file.path] : undefined}
             theme={theme}
             onRowClick={onRowClick}
             onRowDoubleClick={onRowDoubleClick}
@@ -594,7 +603,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
 export default FilePanel
 
 // 파일 한 줄. 커서/선택이 바뀐 행만 다시 그려지도록 memo (Todo #98 — 큰 폴더에서 키 입력마다 전체 재렌더 방지)
-const FileRow = memo(function FileRow({ file, index, highlighted, selected, theme, onRowClick, onRowDoubleClick }) {
+const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirSize, theme, onRowClick, onRowDoubleClick }) {
   const { icon: Icon, color } = getFileIcon(file, theme)
   return (
     <div
@@ -616,7 +625,7 @@ const FileRow = memo(function FileRow({ file, index, highlighted, selected, them
         {file.isSymlink && <ChevronRight size={10} className={styles.symlinkIcon} />}
       </div>
       <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
-        {formatSize(file.size, file.isDir)}
+        {dirSize !== undefined ? formatSize(dirSize, false) : formatSize(file.size, file.isDir)}
       </div>
       <div className={styles.colCell} style={{ width: COLUMNS[2].width }}>
         {formatDate(file.modified)}

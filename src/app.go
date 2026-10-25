@@ -226,3 +226,8 @@ func (a *App) FTPAddHistory(config FTPConfig) {
 func (a *App) ResolveRepoImage(markdownPath, owner, repo, relPath string) string {
 	return a.fileManager.ResolveRepoImage(markdownPath, owner, repo, relPath)
 }
+
+// DirSize: 폴더 크기 (Space, Todo #133-1)
+func (a *App) DirSize(path string) (DirSizeResult, error) {
+	return a.fileManager.DirSize(path)
+}

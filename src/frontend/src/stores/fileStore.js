@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import api from '../wailsjs/runtime'
+import { formatSize } from '../utils/fileTypes.js'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
@@ -138,6 +139,7 @@ const createPanelState = (side) => ({
   historyIndex: -1,
   cursor: 0,
   cursorOnParent: false,
+  dirSizes: {}, // Space로 계산한 폴더 크기 (경로 → 바이트), 다른 폴더로 가면 비움 (Todo #133-1)
   tabs: [createTabState('')],
   activeTabIdx: 0,
 })
@@ -208,6 +210,7 @@ export const useFileStore = create((set, get) => ({
           path: result.path,
           files,
           selected: new Set(),
+          dirSizes: result.path === s[panel].path ? s[panel].dirSizes : {},
           loading: false,
           history: newHistory,
           historyIndex: newHistory.length - 1,
@@ -252,6 +255,7 @@ export const useFileStore = create((set, get) => ({
           path: result.path,
           files,
           selected: new Set(),
+          dirSizes: {},
           loading: false,
           historyIndex: newIndex,
           cursor: 0,
@@ -356,6 +360,37 @@ export const useFileStore = create((set, get) => ({
       const selected = new Set(visible.map(f => f.path))
       return { [panel]: { ...s[panel], selected } }
     })
+  },
+
+  // 폴더 크기 계산 (Space / Alt+Shift+Enter, Todo #133-1). 결과는 그 폴더가 아직 보일 때만 반영
+  calcDirSize: async (panel, path) => {
+    const name = getLastPathSegment(path) || path
+    set({ status: `크기 계산 중: ${name}...` })
+    try {
+      const r = await api.DirSize(path)
+      set(s => {
+        if (!s[panel].files.some(f => f.path === path)) return {}
+        return {
+          [panel]: { ...s[panel], dirSizes: { ...s[panel].dirSizes, [path]: r.size } },
+          status: `${name}: ${formatSize(r.size, false)} (파일 ${r.files}개, 폴더 ${r.dirs}개)`,
+        }
+      })
+      return r.size
+    } catch (err) {
+      set({ status: `크기 계산 실패: ${name}: ${err?.message ?? err}` })
+      return null
+    }
+  },
+
+  calcAllDirSizes: async (panel) => {
+    const p = get()[panel]
+    const dirs = (p.showHidden ? p.files : p.files.filter(f => !f.isHidden)).filter(f => f.isDir)
+    let total = 0
+    for (const d of dirs) {
+      if (get()[panel].path !== p.path) return // 다른 폴더로 갔으면 그만
+      total += (await get().calcDirSize(panel, d.path)) ?? 0
+    }
+    if (dirs.length) set({ status: `폴더 ${dirs.length}개: ${formatSize(total, false)}` })
   },
 
   clearSelection: (panel) => {
@@ -788,7 +823,7 @@ export const useFileStore = create((set, get) => ({
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return
       set(st => ({
-        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), loading: false }
+        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), dirSizes: {}, loading: false }
       }))
       get()._saveSession()
     } catch (err) {

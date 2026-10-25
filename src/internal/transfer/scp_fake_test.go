@@ -30,7 +30,7 @@ type fakeSCPServer struct {
 	noSCP bool // "command -v scp" fails, like a box without scp
 }
 
-// shellWords undoes shellQuote ('it'\''s' → it's) and splits on spaces.
+// shellWords undoes shellQuote (quoted runs and backslash escapes) and splits on spaces.
 func shellWords(s string) []string {
 	var words []string
 	var cur strings.Builder

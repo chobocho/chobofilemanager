@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import api from '../wailsjs/runtime'
 import { formatSize } from '../utils/fileTypes.js'
+import { parseMask, matchMask } from '../utils/mask.js'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
@@ -391,6 +392,38 @@ export const useFileStore = create((set, get) => ({
       total += (await get().calcDirSize(panel, d.path)) ?? 0
     }
     if (dirs.length) set({ status: `폴더 ${dirs.length}개: ${formatSize(total, false)}` })
+  },
+
+  // 마스크로 선택 / 해제 (Num+ / Num-, Todo #133-2). 보이는 항목만, 폴더는 includeDirs일 때만
+  lastMask: '*.*',
+  selectByMask: (panel, mask, { select = true, includeDirs = false } = {}) => {
+    const m = parseMask(mask)
+    set(s => {
+      const p = s[panel]
+      const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+      const hits = visible.filter(f => (includeDirs || !f.isDir) && matchMask(f.name, m))
+      const selected = new Set(p.selected)
+      for (const f of hits) select ? selected.add(f.path) : selected.delete(f.path)
+      return {
+        [panel]: { ...p, selected },
+        lastMask: mask,
+        status: `${mask}: ${hits.length}개 ${select ? '선택' : '선택 해제'}`,
+      }
+    })
+  },
+
+  // 반전 (Num*): 보이는 파일만 뒤집음, 폴더 선택은 그대로 (Total Commander와 같게)
+  invertSelection: (panel) => {
+    set(s => {
+      const p = s[panel]
+      const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+      const selected = new Set(p.selected)
+      for (const f of visible) {
+        if (f.isDir) continue
+        selected.has(f.path) ? selected.delete(f.path) : selected.add(f.path)
+      }
+      return { [panel]: { ...p, selected } }
+    })
   },
 
   clearSelection: (panel) => {

@@ -10,6 +10,7 @@ import FTPManager from './components/FTPManager'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
+import SelectMaskDialog from './components/SelectMaskDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
@@ -293,6 +294,9 @@ function FileManagerApp() {
     if (getCursorFile(s[s.activePanel])) setModal('rename')
   }
 
+  // Num+ / Num- (Todo #133-2)
+  const openMaskSelect = useCallback((mode) => setModal(mode === 'deselect' ? 'deselect' : 'select'), [])
+
   const handleSwitchPanel = useCallback(() => {
     const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
     useFileStore.getState().setActivePanel(next)
@@ -326,14 +330,14 @@ function FileManagerApp() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath}
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
                 requestAnimationFrame(() => ref.current?.focus())
               }} />
             <div className={styles.divider} />
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath}
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
@@ -390,6 +394,11 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {(modal === 'select' || modal === 'deselect') && (
+        <SelectMaskDialog mode={modal} initialMask={useFileStore.getState().lastMask}
+          onConfirm={(mask, opts) => { const s = useFileStore.getState(); s.selectByMask(s.activePanel, mask, { ...opts, select: modal === 'select' }); closeModal() }}
+          onClose={closeModal} />
+      )}
       {modal === 'shell' && (() => {
         const s = useFileStore.getState()
         return <ShellCommandDialog workDir={s[s.activePanel].path} onClose={closeModal} />

@@ -111,7 +111,7 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, keyboardDisabled = false }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, onMaskSelect, keyboardDisabled = false }, ref) {
   // Todo #98: 필요한 조각만 구독 — 상태 표시줄 등 무관한 변경으로 목록 전체가 다시 그려지지 않도록.
   // 액션은 안정적인 함수이므로 getState()로 사용
   const store = useFileStore.getState()
@@ -239,6 +239,16 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         store.setCursor(side, cur + 1)
         scrollToCursor(cur + 1, showParent)
       }
+    }
+
+    // Todo #133-2: 숫자 키패드 + / - / * = 마스크 선택 / 해제 / 반전, Ctrl과 함께면 모두 선택 / 모두 해제
+    // (주 키보드의 - 는 그대로 '뒤로')
+    if (!e.altKey && !e.metaKey && (e.code === 'NumpadAdd' || e.code === 'NumpadSubtract' || e.code === 'NumpadMultiply')) {
+      e.preventDefault()
+      if (e.code === 'NumpadMultiply') store.invertSelection(side)
+      else if (e.code === 'NumpadAdd') e.ctrlKey ? store.selectAll(side) : onMaskSelect?.('select')
+      else e.ctrlKey ? store.clearSelection(side) : onMaskSelect?.('deselect')
+      return
     }
 
     switch (e.key) {
@@ -392,7 +402,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       default:
         break
     }
-  }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath])
+  }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath, onMaskSelect])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return

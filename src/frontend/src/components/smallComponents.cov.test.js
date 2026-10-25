@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import React from 'react'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 
 const quitMock = vi.fn()
 vi.mock('../../wailsjs/runtime/runtime', () => ({ Quit: (...a) => quitMock(...a) }))
@@ -267,15 +267,15 @@ describe('Toolbar 커버리지', () => {
 describe('충돌 다이얼로그 커버리지', () => {
   const conflicts = [{ name: 'a.txt', destPath: '/d/a.txt' }, { name: 'b.txt', destPath: '/d/b.txt' }]
 
-  it('CC-01: 복사 충돌 — 개수/목록 표시, 각 버튼이 모드 전달', () => {
+  it('CC-01: 복사 충돌 — 개수/목록 표시, 각 버튼이 모드 전달', async () => {
     const onConfirm = vi.fn(), onClose = vi.fn()
     render(h(CopyConflictDialog, { conflicts, sources: [], dest: '/d', onConfirm, onClose }))
     expect(screen.getByText('파일 복사 충돌')).toBeTruthy()
     expect(screen.getByText('2개')).toBeTruthy()
     expect(screen.getByTitle('/d/a.txt').textContent).toBe('a.txt')
-    fireEvent.click(screen.getByText('덮어쓰기'))
-    fireEvent.click(screen.getByText('이름 바꾸어 복사'))
-    fireEvent.click(screen.getByText('건너뛰기'))
+    await act(async () => { fireEvent.click(screen.getByText('덮어쓰기')) })
+    await act(async () => { fireEvent.click(screen.getByText('이름 바꾸어 복사')) })
+    await act(async () => { fireEvent.click(screen.getByText('건너뛰기')) })
     expect(onConfirm.mock.calls.map(c => c[0])).toEqual(['overwrite', 'rename', 'skip'])
     fireEvent.click(screen.getByText('취소'))
     expect(onClose).toHaveBeenCalledTimes(1)
@@ -290,13 +290,13 @@ describe('충돌 다이얼로그 커버리지', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('MC-01: 이동 충돌 — 덮어쓰기/이름 바꾸기 모드 전달, 건너뛰기 없음', () => {
+  it('MC-01: 이동 충돌 — 덮어쓰기/이름 바꾸기 모드 전달, 건너뛰기 없음', async () => {
     const onConfirm = vi.fn(), onClose = vi.fn()
     const { container } = render(h(MoveConflictDialog, { conflicts, sources: [], dest: '/d', onConfirm, onClose }))
     expect(screen.getByText('파일 이동 충돌')).toBeTruthy()
     expect(screen.queryByText('건너뛰기')).toBeNull()
-    fireEvent.click(screen.getByText('덮어쓰기'))
-    fireEvent.click(screen.getByText('이름 바꾸어 이동'))
+    await act(async () => { fireEvent.click(screen.getByText('덮어쓰기')) })
+    await act(async () => { fireEvent.click(screen.getByText('이름 바꾸어 이동')) })
     expect(onConfirm.mock.calls.map(c => c[0])).toEqual(['overwrite', 'rename'])
     fireEvent.click(screen.getByText('파일 이동 충돌'))
     expect(onClose).not.toHaveBeenCalled()
@@ -304,4 +304,26 @@ describe('충돌 다이얼로그 커버리지', () => {
     fireEvent.click(screen.getByText('취소'))
     expect(onClose).toHaveBeenCalledTimes(2)
   })
+
+  // Todo #130-3: 작업이 끝날 때까지 단추를 다시 누를 수 없음 (연타로 두 번 실행 방지)
+  for (const [label, Dialog, first, second] of [
+    ['CC-09: 복사', CopyConflictDialog, '덮어쓰기', '이름 바꾸어 복사'],
+    ['MC-02: 이동', MoveConflictDialog, '덮어쓰기', '이름 바꾸어 이동'],
+  ]) {
+    it(`${label} 충돌 — 진행 중에는 다른 단추·취소도 막힘, 끝나면 다시 가능`, async () => {
+      let finish
+      const onConfirm = vi.fn(() => new Promise(r => { finish = r }))
+      const onClose = vi.fn()
+      render(h(Dialog, { conflicts, sources: [], dest: '/d', onConfirm, onClose }))
+      fireEvent.click(screen.getByText(first))
+      fireEvent.click(screen.getByText(first))
+      fireEvent.click(screen.getByText(second))
+      fireEvent.click(screen.getByText('취소'))
+      expect(onConfirm).toHaveBeenCalledTimes(1)
+      expect(onClose).not.toHaveBeenCalled()
+      expect(screen.getByText(second).closest('button').disabled).toBe(true)
+      await act(async () => { finish() })
+      expect(screen.getByText(second).closest('button').disabled).toBe(false)
+    })
+  }
 })

@@ -110,6 +110,9 @@ wails build -platform linux/amd64
 | `F6` | 반대 패널로 이동 |
 | `F7` | 새 디렉토리 생성 |
 | `F8` / `Del` | 삭제 |
+| `F9` | 하단 터미널 도크 (활성 패널 폴더의 cmd / PowerShell / WSL) |
+| `Shift+F9` | 바깥 명령 창 열기 |
+| `Ctrl+Enter` / `Ctrl+Shift+Enter` | 커서 파일 이름 / 전체 경로를 도크 셸에 붙여넣기 |
 | `Ctrl+S` | 저장 (에디터) |
 | `Esc` | 모달 / 에디터 닫기 |
 

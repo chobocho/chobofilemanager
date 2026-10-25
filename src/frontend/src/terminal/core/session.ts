@@ -19,6 +19,8 @@ export interface ConnectRequest {
     jump: string;
     cols?: number;
     rows?: number;
+    /** Local shells: the folder to start in (the terminal dock passes the panel's). */
+    dir?: string;
 }
 
 export interface SessionDeps {

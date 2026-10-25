@@ -34,6 +34,19 @@ const SECTIONS = [
     ],
   },
   {
+    title: '터미널 (Todo #122)',
+    rows: [
+      { keys: ['F9'],              desc: '하단 터미널 도크 열기/닫기 (활성 패널 폴더의 셸)' },
+      { keys: ['Shift+F9'],        desc: '바깥 명령 창(cmd) 열기' },
+      { keys: ['Ctrl+Enter'],      desc: '커서 파일 이름을 도크 셸에 붙여넣기' },
+      { keys: ['Ctrl+Shift+Enter'], desc: '커서 파일 전체 경로를 도크 셸에 붙여넣기' },
+      { keys: ['Ctrl+Shift+T / W'], desc: 'Terminal 보기: 새 탭 / 탭 닫기' },
+      { keys: ['Ctrl+Shift+\\ / -'], desc: 'Terminal 보기: 옆으로 / 아래로 분할' },
+      { keys: ['Ctrl+Shift+H / O / M'], desc: 'Terminal 보기: 세션 관리 / 설정 / 매크로' },
+      { keys: ['Ctrl+Shift+L / B / S'], desc: 'Terminal 보기: 세션 로그 / 메모장 / 찾기' },
+    ],
+  },
+  {
     title: '탭',
     rows: [
       { keys: ['Ctrl+T'],          desc: '새 탭 열기' },

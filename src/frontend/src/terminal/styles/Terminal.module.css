@@ -122,3 +122,12 @@
 .memoTop .iconBtn { border: none; }
 .memoInput { flex: 1; resize: none; border: none; outline: none; padding: 8px; background: transparent; color: var(--text-primary); font-family: 'D2Coding', Consolas, monospace; font-size: 13px; }
 .memoStatus { padding: 3px 8px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+
+/* 하단 터미널 도크 (Todo #122) */
+.dock { position: relative; display: flex; flex-direction: column; flex: 0 0 auto; min-height: 100px; border-top: 1px solid var(--border-active); background: var(--bg-panel, #000); }
+.dockGrip { position: absolute; left: 0; right: 0; top: -3px; height: 6px; cursor: row-resize; z-index: 2; }
+.dockBar { display: flex; align-items: center; gap: 8px; padding: 2px 8px; font-size: 12px; color: var(--text-primary); background: var(--bg-toolbar, var(--bg-modal)); border-bottom: 1px solid var(--border); }
+.dockBar select { font-size: 12px; }
+.dockTitle { font-weight: 600; }
+.dockSpacer { flex: 1; }
+.dockTerm { position: relative; flex: 1; min-height: 0; overflow: hidden; padding: 2px 4px; }

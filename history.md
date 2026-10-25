@@ -2,6 +2,19 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #122 — T6: 하단 터미널 도크 + 패널 연동)
+
+### 변경
+- Go: `ConnectRequest.dir`(로컬 셸 시작 폴더) 추가 — 있는 폴더일 때만 쓰고 아니면 홈 (`localStartDir`), wire.golden 갱신
+- `TerminalDock.jsx` 신규 (F9, 처음 열 때 지연 로딩): 활성 패널 폴더에서 cmd/PowerShell/WSL 시작, 셸 선택·다시 시작, 셸이 끝나거나 시작 실패 시 Enter로 다시,
+  경계선 끌어 높이 조절, 닫아도 셸 유지(숨김), 도크 안 F9 = 닫고 패널로
+- 패널 따라가기(선택): 패널 폴더·활성 패널이 바뀌면 셸에 맞는 cd (`cd /d`, `Set-Location -LiteralPath`, WSL은 `wslpath`)
+- 경로 붙여넣기: 패널에서 Ctrl+Enter 파일 이름 / Ctrl+Shift+Enter 전체 경로 — 셸별 따옴표, 도크가 닫혀 있으면 열고 셸이 뜬 뒤 입력
+- `stores/dockStore.js` 신규(열림·높이·따라가기·셸 기억), F키 막대 F9 = Term, 바깥 명령 창은 Shift+F9로 이동, 도움말·README 단축키 갱신
+
+### 테스트
+- Go `dock_test.go`, `dock.test.ts`(DK-01~07), `TerminalDock.test.jsx`(DKV-01~10), App `DKA-01~05`, AP-29/30/31 갱신 — 프론트 1017개, Go 전체 통과
+
 ## 2026-10-25 (Todo.md #121 — T5 7차: 메모장, T5 완료)
 
 ### 변경

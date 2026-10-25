@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -407,7 +409,7 @@ func (a *App) connectRemote(tabID int, req terminal.ConnectRequest) (string, err
 func (a *App) connectLocal(tabID int, req terminal.ConnectRequest, cmdline string) (string, error) {
 	t := a.getTab(tabID)
 	t.disconnect()
-	sess, err := localshell.Start(cmdline, localshell.Home(), req.Cols, req.Rows)
+	sess, err := localshell.Start(cmdline, localStartDir(req.Dir), req.Cols, req.Rows)
 	if err != nil {
 		return "", err
 	}
@@ -416,6 +418,17 @@ func (a *App) connectLocal(tabID int, req terminal.ConnectRequest, cmdline strin
 	_ = store.AddHistory(store.HostEntry{Host: req.Host, Encoding: codec.UTF8}, nil)
 	t.start(sess, "local", req)
 	return "local", nil
+}
+
+// localStartDir is the folder a local shell starts in: dir when it is an
+// existing folder (the terminal dock passes the file panel's), else home.
+func localStartDir(dir string) string {
+	if dir = strings.TrimSpace(dir); dir != "" {
+		if st, err := os.Stat(dir); err == nil && st.IsDir() {
+			return filepath.Clean(dir)
+		}
+	}
+	return localshell.Home()
 }
 
 // start makes sess the tab's session and starts reading it.

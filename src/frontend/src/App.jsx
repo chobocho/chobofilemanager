@@ -14,6 +14,7 @@ import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
 import { isTerminalTarget } from './utils/keyboard.js'
+import { useDockStore } from './stores/dockStore'
 
 // Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
 const loadTextEditor = () => import('./components/TextEditor')
@@ -21,6 +22,8 @@ const loadFileViewer = () => import('./components/FileViewer')
 const TextEditor = lazy(loadTextEditor)
 // Todo #120: 터미널(choboTerm)은 Terminal 보기를 처음 열 때 불러옴 (xterm 포함)
 const TerminalWorkspace = lazy(() => import('./terminal/components/TerminalWorkspace.jsx'))
+// Todo #122: 하단 터미널 도크 — F9로 처음 열 때 불러옴
+const TerminalDock = lazy(() => import('./terminal/components/TerminalDock.jsx'))
 const FileViewer = lazy(loadFileViewer)
 
 // 시작 후 여유 시간에 미리 받아 두어 첫 F3/F4도 바로 열리게 함
@@ -47,6 +50,8 @@ export default function App() {
   // 한 번 연 터미널은 다른 보기로 가도 세션이 유지되도록 마운트 유지
   const [terminalMounted, setTerminalMounted] = useState(false)
   useEffect(() => { if (view === 'terminal') setTerminalMounted(true) }, [view])
+  const dockOpen    = useDockStore(s => s.open)
+  const dockMounted = useDockStore(s => s.mounted)
   const [modal, setModal]           = useState(null)
   const [editorFile, setEditorFile] = useState(null)
   const [viewerFile, setViewerFile] = useState(null)
@@ -70,6 +75,24 @@ export default function App() {
     const ref = active === 'left' ? leftPanelRef : rightPanelRef
     // DOM 업데이트 후 포커스 (requestAnimationFrame으로 한 프레임 뒤)
     requestAnimationFrame(() => ref.current?.focus())
+  }, [])
+
+  // 도크를 닫으면 파일 패널로 포커스
+  const dockWasOpen = useRef(false)
+  useEffect(() => {
+    if (dockWasOpen.current && !dockOpen) focusActivePanel()
+    dockWasOpen.current = dockOpen
+  }, [dockOpen, focusActivePanel])
+
+  const openCmdWindow = useCallback(() => {
+    const s = useFileStore.getState()
+    import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(s[s.activePanel].path))
+      .catch(err => useFileStore.getState().setStatus(`명령 창 열기 실패: ${err}`))
+  }, [])
+
+  // Ctrl+Enter(이름) / Ctrl+Shift+Enter(전체 경로) → 터미널 도크
+  const pastePath = useCallback((file, full) => {
+    useDockStore.getState().paste(full ? file.path : file.name)
   }, [])
 
   const tryOpenViewer = useCallback((file) => {
@@ -111,12 +134,11 @@ export default function App() {
         e.preventDefault()
         setModal('shell')
       }
-      if (e.key === 'F9') {
+      // Todo #122: F9 하단 터미널 도크, Shift+F9 바깥 명령 창
+      if (e.key === 'F9' && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
-        const s = useFileStore.getState()
-        const workDir = s[s.activePanel].path
-        import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(workDir))
-          .catch(err => useFileStore.getState().setStatus(`명령 창 열기 실패: ${err}`))
+        if (e.shiftKey) openCmdWindow()
+        else if (view === 'files') useDockStore.getState().toggle()
       }
       // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
       if (isStarlarkScratchShortcut(e)) {
@@ -126,7 +148,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayOpen, handleStarlarkScratch])
+  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, view])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -262,14 +284,14 @@ export default function App() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen}
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
                 requestAnimationFrame(() => ref.current?.focus())
               }} />
             <div className={styles.divider} />
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen}
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
@@ -279,6 +301,13 @@ export default function App() {
         ) : view === 'ftp' ? (
           <FTPManager />
         ) : null}
+        {dockMounted && (
+          <div className={styles.dockView} hidden={!(dockOpen && view === 'files')}>
+            <Suspense fallback={null}>
+              <TerminalDock />
+            </Suspense>
+          </div>
+        )}
         {terminalMounted && (
           <div className={styles.terminalView} hidden={view !== 'terminal'}>
             <Suspense fallback={null}>
@@ -307,11 +336,7 @@ export default function App() {
         onDelete={handleDelete}
         onTrash={handleTrash}
         onShell={() => setModal('shell')}
-        onCmd={() => {
-          const s = useFileStore.getState()
-          import('./wailsjs/runtime').then(m => m.default.OpenCmdWindow(s[s.activePanel].path))
-            .catch(err => s.setStatus(`명령 창 열기 실패: ${err}`))
-        }}
+        onCmd={() => useDockStore.getState().toggle()}
       />
 
       {modal === 'newdir' && (

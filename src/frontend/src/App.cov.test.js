@@ -15,6 +15,10 @@ import api from './wailsjs/runtime'
 import App from './App.jsx'
 import { useFileStore } from './stores/fileStore'
 import { findSurfaceWithText } from './test/textSurface.js'
+import { setTermBackend } from './terminal/core/termApi'
+import { stopEventRouter } from './terminal/core/session'
+import { DOCK_ID_BASE } from './terminal/core/dock'
+import { useDockStore, DOCK_PREFS_KEY } from './stores/dockStore'
 
 const h = React.createElement
 Element.prototype.scrollIntoView = vi.fn()
@@ -72,6 +76,7 @@ beforeEach(() => {
   fs['/b'] = [file('/b', 'x.txt'), file('/b', 'z.txt')]
   setupApi()
   useFileStore.setState({ activePanel: 'left', status: '' })
+  useDockStore.getState().resetForTest()
 })
 afterEach(() => cleanup())
 
@@ -400,9 +405,9 @@ describe('App 커버리지 — 패널/뷰/도움말/기타', () => {
     expect(screen.queryByText(/도움말 — Chobocho Commander/)).toBeNull()
   })
 
-  it('AP-29: Ctrl+O 셸 대화상자 / F9 명령 창', async () => {
+  it('AP-29: Ctrl+O 셸 대화상자 / Shift+F9 바깥 명령 창 (F9는 도크, Todo #122)', async () => {
     await renderApp()
-    await key({ key: 'F9' })
+    await key({ key: 'F9', shiftKey: true })
     await flush()
     expect(api.OpenCmdWindow).toHaveBeenCalledWith('/a')
     await key({ key: 'o', ctrlKey: true })
@@ -411,14 +416,14 @@ describe('App 커버리지 — 패널/뷰/도움말/기타', () => {
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
-  it('AP-30: F9 실패 시 상태 표시', async () => {
+  it('AP-30: Shift+F9 실패 시 상태 표시', async () => {
     api.OpenCmdWindow.mockRejectedValue('no cmd')
     await renderApp()
-    await key({ key: 'F9' })
+    await key({ key: 'F9', shiftKey: true })
     await waitFor(() => expect(useFileStore.getState().status).toBe('명령 창 열기 실패: no cmd'))
   })
 
-  it('AP-31: F키바 버튼 클릭 (Copy/Move/NewDir/Trash/Shell/CMD/Rename/View/Edit)', async () => {
+  it('AP-31: F키바 버튼 클릭 (Copy/Move/NewDir/Trash/Shell/Term/Rename/View/Edit)', async () => {
     await renderApp()
     cursorTo('y.txt')
     fireEvent.click(screen.getByTitle('Copy (F5)'))
@@ -435,9 +440,10 @@ describe('App 커버리지 — 패널/뷰/도움말/기타', () => {
     await flush()
     expect(screen.getByText(/휴지통으로 이동하시겠습니까/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    fireEvent.click(screen.getByTitle('CMD (F9)'))
+    fireEvent.click(screen.getByTitle('Term (F9)'))
     await flush()
-    expect(api.OpenCmdWindow).toHaveBeenCalledWith('/a')
+    expect(useDockStore.getState().open).toBe(true)
+    act(() => useDockStore.getState().hide())
     fireEvent.click(screen.getByTitle('Shell (Ctrl+O)'))
     expect(screen.getByRole('textbox')).toBeTruthy()
     await key({ key: 'Escape' })
@@ -555,5 +561,74 @@ describe('App Terminal 보기 (TV)', () => {
     await screen.findByLabelText('Host')
     await key({ key: 'F8' })
     expect(screen.queryByText('휴지통으로 이동')).toBeNull()
+  })
+})
+
+// ─── Todo #122: 하단 터미널 도크 ──────────────────────────────────────────────
+describe('App 터미널 도크 (DKA)', () => {
+  let term
+  beforeEach(() => {
+    try { localStorage.removeItem(DOCK_PREFS_KEY) } catch { /* 없음 */ }
+    useDockStore.getState().resetForTest()
+    const ok = () => vi.fn().mockResolvedValue(undefined)
+    term = { GetSettings: vi.fn().mockResolvedValue({}), Connect: vi.fn().mockResolvedValue('local'), Send: ok(), Resize: ok(), CloseTab: ok(), Disconnect: ok() }
+    setTermBackend(term, { EventsOn: () => () => {}, ClipboardSetText: vi.fn() })
+  })
+  afterEach(() => { cleanup(); stopEventRouter(); setTermBackend(null) })
+  // 숨긴 도크도 찾도록 (getByRole은 hidden을 건너뜀)
+  const dock = () => document.querySelector('[aria-label="터미널 도크"]')
+
+  it('DKA-01: F9 → 도크가 처음 열 때 로드되고 활성 패널 폴더에서 셸 시작, 다시 F9로 닫힘(셸 유지)', async () => {
+    await renderApp()
+    expect(dock()).toBeNull()
+    await key({ key: 'F9' })
+    await waitFor(() => expect(dock()).toBeTruthy())
+    await waitFor(() => expect(term.Connect).toHaveBeenCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'cmd', dir: '/a' })))
+    expect(api.OpenCmdWindow).not.toHaveBeenCalled()
+    await key({ key: 'F9' })
+    expect(dock().closest('[hidden]')).toBeTruthy()
+    expect(term.CloseTab).not.toHaveBeenCalled()
+    expect(screen.getByText('y.txt')).toBeTruthy()
+  })
+
+  it('DKA-02: F키 막대 Term(F9) 버튼도 도크 토글', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('Term (F9)'))
+    await waitFor(() => expect(dock()).toBeTruthy())
+    expect(useDockStore.getState().open).toBe(true)
+  })
+
+  it('DKA-03: 패널에서 Ctrl+Enter → 커서 파일 이름, Ctrl+Shift+Enter → 전체 경로를 셸에 붙여넣기', async () => {
+    await renderApp()
+    await key({ key: 'F9' })
+    await waitFor(() => expect(term.Connect).toHaveBeenCalled())
+    await flush()
+    cursorTo('y.txt')
+    const panel = document.activeElement?.closest?.('[tabindex]') ?? document.body
+    await act(async () => { fireEvent.keyDown(screen.getByText('y.txt'), { key: 'Enter', ctrlKey: true }) })
+    await waitFor(() => expect(term.Send).toHaveBeenCalledWith(DOCK_ID_BASE, 'y.txt '))
+    await act(async () => { fireEvent.keyDown(screen.getByText('y.txt'), { key: 'Enter', ctrlKey: true, shiftKey: true }) })
+    await waitFor(() => expect(term.Send).toHaveBeenCalledWith(DOCK_ID_BASE, '/a/y.txt '))
+    expect(api.ReadTextFile).not.toHaveBeenCalled() // 파일을 열지 않음
+    void panel
+  })
+
+  it('DKA-04: 도크가 닫혀 있어도 Ctrl+Enter는 도크를 열고 셸이 뜬 뒤 붙여넣기', async () => {
+    await renderApp()
+    cursorTo('x.txt')
+    await act(async () => { fireEvent.keyDown(screen.getByText('y.txt'), { key: 'Enter', ctrlKey: true }) })
+    await waitFor(() => expect(term.Send).toHaveBeenCalledWith(DOCK_ID_BASE, 'x.txt '))
+    expect(useDockStore.getState().open).toBe(true)
+  })
+
+  it('DKA-05: 도크는 파일 보기에서만 — Terminal 보기로 가면 숨김', async () => {
+    await renderApp()
+    await key({ key: 'F9' })
+    await waitFor(() => expect(dock()).toBeTruthy())
+    fireEvent.click(screen.getByTitle('Terminal'))
+    await screen.findByLabelText('Host')
+    expect(dock().closest('[hidden]')).toBeTruthy()
+    fireEvent.click(screen.getByTitle('File Manager'))
+    expect(dock().closest('[hidden]')).toBeNull()
   })
 })

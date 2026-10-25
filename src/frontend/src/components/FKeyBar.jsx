@@ -17,7 +17,8 @@ export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onTrash, o
     { num: 'F7',     label: 'NewDir', action: onNewDir, active: !!onNewDir },
     // Todo #57: F8 = 휴지통(onTrash). 옛 동작이 필요하면 onDelete fallback.
     { num: 'F8',     label: 'Trash',  action: onTrash ?? onDelete, active: !!(onTrash ?? onDelete), danger: true },
-    { num: 'F9',     label: 'CMD',    action: onCmd,    active: !!onCmd },
+    // Todo #122: F9 = 하단 터미널 도크 (바깥 명령 창은 Shift+F9)
+    { num: 'F9',     label: 'Term',   action: onCmd,    active: !!onCmd },
     { num: 'Ctrl+O',     label: 'Shell',  action: onShell,  active: !!onShell },
     { num: 'Alt+F4', label: 'Quit',   action: handleQuit, active: true },
   ]

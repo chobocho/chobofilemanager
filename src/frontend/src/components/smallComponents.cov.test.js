@@ -34,7 +34,7 @@ describe('FKeyBar 커버리지', () => {
     render(h(FKeyBar, hs))
     const map = [['Help', 'onHelp'], ['Rename', 'onRename'], ['View', 'onView'], ['Edit', 'onEdit'],
       ['Copy', 'onCopy'], ['Move', 'onMove'], ['NewDir', 'onNewDir'], ['Trash', 'onTrash'],
-      ['CMD', 'onCmd'], ['Shell', 'onShell']]
+      ['Term', 'onCmd'], ['Shell', 'onShell']]
     for (const [label, fn] of map) {
       fireEvent.click(screen.getByText(label).closest('button'))
       expect(hs[fn], label).toHaveBeenCalledTimes(1)

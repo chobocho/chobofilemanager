@@ -111,7 +111,7 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, keyboardDisabled = false }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, keyboardDisabled = false }, ref) {
   // Todo #98: 필요한 조각만 구독 — 상태 표시줄 등 무관한 변경으로 목록 전체가 다시 그려지지 않도록.
   // 액션은 안정적인 함수이므로 getState()로 사용
   const store = useFileStore.getState()
@@ -242,6 +242,11 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         break
       case 'Enter':
         e.preventDefault()
+        // Todo #122: Ctrl+Enter 파일 이름 / Ctrl+Shift+Enter 전체 경로를 터미널 도크에 붙여넣기
+        if (e.ctrlKey && onPastePath) {
+          if (!cursorOnParent && files[cur]) onPastePath(files[cur], e.shiftKey)
+          break
+        }
         if (cursorOnParent) {
           store.navigateUp(side)
         } else if (files[cur]) {
@@ -398,7 +403,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       default:
         break
     }
-  }, [isActive, keyboardDisabled, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel])
+  }, [isActive, keyboardDisabled, panel.cursor, panel.path, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return

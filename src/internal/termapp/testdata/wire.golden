@@ -92,6 +92,7 @@ connectRequest {
     "jump" string
     "cols" int
     "rows" int
+    "dir,omitempty" string
 }
 
 consoleFile {

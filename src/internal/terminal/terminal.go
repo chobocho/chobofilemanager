@@ -43,6 +43,7 @@ type ConnectRequest struct {
 	Jump     string `json:"jump"` // SSH jump hosts (ssh -J); "" = ProxyJump of ~/.ssh/config, "none" = none
 	Cols     int    `json:"cols"`
 	Rows     int    `json:"rows"`
+	Dir      string `json:"dir,omitempty"` // local shells: the folder to start in ("" = home)
 }
 
 // Protocol returns the protocol of a well-known port ("ssh" 22, "ftp" 21 and

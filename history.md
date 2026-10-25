@@ -2,6 +2,12 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 CI 실패 수정: package-lock.json과 npm 버전 불일치
+- 증상: GitHub Actions의 Frontend 단계에서 `npm ci`가 "Missing: @emnapi/runtime@1.11.3, esbuild@0.28.2 from lock file"로 실패 (여러 커밋 전부터 계속).
+- 원인: 로컬(Node 24, npm 11)이 만든 lock에 선택적 peer 의존성이 빠져 있는데, CI(Node 22, npm 10)는 이를 요구함.
+- 수정: npm 10으로 lock 재생성(npm 10/11 모두 `npm ci` 통과 확인), CI의 Node를 24로 올려 로컬과 맞춤.
+- 확인: 예전 lock은 npm 10 `npm ci --dry-run`에서 같은 오류로 실패하고 새 lock은 통과. 프론트 1239개 통과.
+
 ## 2026-10-25 버전 0.2.13
 - version.go, wails.json, package.json(+lock)의 버전을 0.2.12 → 0.2.13으로 올림.
 

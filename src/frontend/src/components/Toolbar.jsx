@@ -45,7 +45,7 @@ export default function Toolbar({
       if (shortcutsDisabled) return
       // FTP 화면에서는 숨겨진 로컬 패널에 작용하지 않도록 F1(도움말)만 허용
       if (view !== 'files') {
-        if (e.key === 'F1') { e.preventDefault(); onHelp?.() }
+        if (e.key === 'F1' && !e.ctrlKey) { e.preventDefault(); onHelp?.() }
         return
       }
       // Todo #54: Shift+Delete = 영구 삭제. 일반 Delete + F8 = 휴지통(Todo #57)
@@ -60,13 +60,17 @@ export default function Toolbar({
         return
       }
       switch(e.key) {
-        case 'F1': e.preventDefault(); onHelp?.();         break
+        case 'F1':
+          if (e.ctrlKey) break // Ctrl+F1 간단히 보기 (Todo #133-11, 패널이 처리)
+          e.preventDefault(); onHelp?.()
+          break
         case 'Tab':
           e.preventDefault()
           if (!e.ctrlKey) onSwitchPanel?.()
           break
         // Todo #133-6: Shift+F2 폴더 비교, Alt+F2 폴더 동기화
         case 'F2':
+          if (e.ctrlKey) break // Ctrl+F2 자세히 보기 (Todo #133-11, 패널이 처리)
           e.preventDefault()
           if (e.shiftKey) onCompareDirs?.()
           else if (e.altKey) onSyncDirs?.()

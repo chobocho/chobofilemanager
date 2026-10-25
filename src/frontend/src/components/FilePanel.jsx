@@ -3,7 +3,8 @@ import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
 import { useFTPStore } from '../stores/ftpStore'
 import { isFtpPath, ftpId, ftpRoot, ftpLabel } from '../utils/ftpPath.js'
-import { isViewableFile, isTextFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
+import { isViewableFile, isTextFile, isImageFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
+import api from '../wailsjs/runtime'
 import styles from '../styles/FilePanel.module.css'
 import FolderTree from './FolderTree.jsx'
 import {
@@ -118,6 +119,31 @@ export function findQuickSearch(files, text, from, dir) {
   }
   return -1
 }
+
+// 보기 방식별 화살표 이동 (Todo #133-11). 간단히는 세로로 채운 열(rows칸), 썸네일은 가로로 채운 줄(cols칸).
+// 새 인덱스, 윗줄 위의 ↑는 -1([..]), 해당 없는 키는 null
+export function gridMove(mode, key, cur, count, { rows, cols }) {
+  if (!count) return null
+  const clamp = (i) => Math.max(0, Math.min(count - 1, i))
+  if (mode === 'brief') {
+    if (key === 'ArrowUp') return cur === 0 ? -1 : cur - 1
+    if (key === 'ArrowDown') return clamp(cur + 1)
+    if (key === 'ArrowLeft') return clamp(cur - rows)
+    if (key === 'ArrowRight') return clamp(cur + rows)
+  } else if (mode === 'thumbs') {
+    if (key === 'ArrowUp') return cur - cols < 0 ? -1 : cur - cols
+    if (key === 'ArrowDown') return clamp(cur + cols)
+    if (key === 'ArrowLeft') return clamp(cur - 1)
+    if (key === 'ArrowRight') return clamp(cur + 1)
+  } else {
+    if (key === 'ArrowUp') return cur === 0 ? -1 : cur - 1
+    if (key === 'ArrowDown') return clamp(cur + 1)
+  }
+  return null
+}
+
+const BRIEF_ROW = 20
+const THUMB_CELL = 112
 
 function getFileIcon(file, theme) {
   const icons = theme === 'light' ? FILE_ICONS_LIGHT : FILE_ICONS_DARK
@@ -291,6 +317,23 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       return
     }
 
+    // Todo #133-11: Ctrl+F1 간단히 · Ctrl+Shift+F1 썸네일 · Ctrl+F2 자세히
+    if (e.ctrlKey && !e.altKey && (e.key === 'F1' || e.key === 'F2')) {
+      e.preventDefault()
+      store.setViewMode(side, e.key === 'F2' ? 'full' : e.shiftKey ? 'thumbs' : 'brief')
+      return
+    }
+    // 간단히 · 썸네일에서는 ←→도 커서 이동
+    const viewMode = panel.viewMode || 'full'
+    if (viewMode !== 'full' && !e.ctrlKey && !e.altKey && !e.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault()
+      if (cursorOnParent) { if (e.key === 'ArrowDown' || e.key === 'ArrowRight') moveDown(); return }
+      const next = gridMove(viewMode, e.key, cur, files.length, gridDims())
+      if (next === -1) moveUp()
+      else if (next !== null && next !== cur) { store.setCursor(side, next); scrollToCursor(next, showParent) }
+      return
+    }
+
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
@@ -446,7 +489,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       default:
         break
     }
-  }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath, onMaskSelect])
+  }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, panel.viewMode, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath, onMaskSelect])
 
   function jumpTo(idx) {
     store.setCursor(side, idx)
@@ -483,6 +526,26 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       if (idx >= 0) jumpTo(idx)
     } else if (e.key === 'Tab') { e.preventDefault(); closeQuickSearch() }
   }
+
+  // 간단히의 줄 수 · 썸네일의 열 수 (화면 크기, 잴 수 없으면 10줄 · 4열)
+  const fileListRef = useRef(null)
+  const gridDims = () => {
+    const el = fileListRef.current
+    const h = el?.clientHeight || 0, w = el?.clientWidth || 0
+    return { rows: h ? Math.max(1, Math.floor(h / BRIEF_ROW)) : 10, cols: w ? Math.max(1, Math.floor(w / THUMB_CELL)) : 4 }
+  }
+  const [briefRows, setBriefRows] = useState(10)
+  useEffect(() => {
+    const el = fileListRef.current
+    if (!el || panel.viewMode !== 'brief') return
+    const update = () => setBriefRows(gridDims().rows)
+    update()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel.viewMode])
 
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return
@@ -624,8 +687,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
           onNavigate={(p) => { store.setActivePanel(side); store.navigate(side, p) }} />
       )}
       <div className={styles.listColumn}>
-      {/* Column headers */}
-      <div className={styles.columnHeaders}>
+      {/* Column headers (자세히 보기만) */}
+      {(panel.viewMode || 'full') === 'full' && <div className={styles.columnHeaders}>
         {COLUMNS.map(col => (
           <div
             key={col.key}
@@ -639,10 +702,10 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             )}
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* File list */}
-      <div className={styles.fileList}>
+      <div className={styles.fileList} ref={fileListRef}>
         {panel.loading && (
           <div className={styles.loading}>
             <span className="animate-pulse">Loading...</span>
@@ -674,7 +737,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             <div className={styles.colCell} style={{ width: COLUMNS[3].width }} />
           </div>
         )}
-        {!panel.loading && !panel.error && visibleFiles.map((file, index) => (
+        {!panel.loading && !panel.error && (panel.viewMode || 'full') === 'full' && visibleFiles.map((file, index) => (
           <FileRow
             key={file.path}
             file={file}
@@ -687,6 +750,24 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             onRowDoubleClick={onRowDoubleClick}
           />
         ))}
+        {!panel.loading && !panel.error && panel.viewMode && panel.viewMode !== 'full' && (
+          <div data-view={panel.viewMode} className={panel.viewMode === 'brief' ? styles.briefGrid : styles.thumbGrid}
+            style={panel.viewMode === 'brief' ? { gridTemplateRows: `repeat(${briefRows}, ${BRIEF_ROW}px)` } : undefined}>
+            {visibleFiles.map((file, index) => (
+              <FileCell
+                key={file.path}
+                mode={panel.viewMode}
+                file={file}
+                index={index}
+                highlighted={isActive && panel.cursor === index && !cursorOnParent}
+                selected={panel.selected.has(file.path)}
+                theme={theme}
+                onRowClick={onRowClick}
+                onRowDoubleClick={onRowDoubleClick}
+              />
+            ))}
+          </div>
+        )}
       </div>
       </div>
       </div>
@@ -756,6 +837,51 @@ const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirS
     </div>
   )
 })
+
+// 간단히 · 썸네일 칸 (Todo #133-11)
+const FileCell = memo(function FileCell({ mode, file, index, highlighted, selected, theme, onRowClick, onRowDoubleClick }) {
+  const { icon: Icon, color } = getFileIcon(file, theme)
+  const thumbs = mode === 'thumbs'
+  return (
+    <div
+      data-row={index}
+      className={`${thumbs ? styles.thumbCell : styles.briefCell} ${highlighted ? styles.cursor : ''} ${selected ? styles.selected : ''} ${file.isHidden ? styles.hidden : ''}`}
+      onClick={(e) => onRowClick(e, file, index)}
+      onDoubleClick={() => onRowDoubleClick(file)}
+      title={file.path}
+    >
+      {thumbs ? (
+        <div className={styles.thumbBox}>
+          {!file.isDir && isImageFile(file.extension || '') ? <Thumb file={file} /> : <Icon size={40} style={{ color }} />}
+        </div>
+      ) : <Icon size={14} style={{ color, flexShrink: 0 }} />}
+      <span className={styles.fileName}>{file.name}</span>
+    </div>
+  )
+})
+
+// 썸네일 그림: 화면에 보일 때 읽음 (같은 파일·시각은 다시 읽지 않음)
+const thumbUrls = new Map()
+function Thumb({ file }) {
+  const key = `${file.path}|${file.modified}|${file.size}`
+  const [src, setSrc] = useState(() => thumbUrls.get(key) || null)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (src) return
+    let cancelled = false
+    const load = () => api.ReadThumbnail(file.path, 96)
+      .then(u => { thumbUrls.set(key, u); if (!cancelled) setSrc(u) })
+      .catch(() => { if (!cancelled) setSrc('') })
+    if (typeof IntersectionObserver === 'undefined') { load(); return () => { cancelled = true } }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some(en => en.isIntersecting)) { io.disconnect(); load() }
+    })
+    if (ref.current) io.observe(ref.current)
+    return () => { cancelled = true; io.disconnect() }
+  }, [key])
+  if (src) return <img data-thumb className={styles.thumbImg} src={src} alt="" />
+  return <span ref={ref} className={styles.thumbPending}>{src === '' ? '⚠' : ''}</span>
+}
 
 function TabBar({ side, panel, store, ftpConns }) {
   const getLabel = (path) => {

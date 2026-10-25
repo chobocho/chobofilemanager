@@ -2,6 +2,14 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #133-11: 보기 방식 — 자세히(Ctrl+F2) · 간단히(Ctrl+F1) · 썸네일(Ctrl+Shift+F1)
+- 패널마다 보기 방식: 간단히는 이름만 세로로 채운 여러 열(창 높이에 맞춰 줄 수 계산), 썸네일은 그림 미리 보기 칸. 열 머리글은 자세히에서만
+- 화살표: 간단히는 ↑↓ 한 칸 · ←→ 한 열, 썸네일은 ←→ 한 칸 · ↑↓ 한 줄, 맨 위에서 ↑는 [..] (`gridMove`). 선택·클릭·더블클릭·Enter는 같은 규칙
+- Go `ReadThumbnail`(thumbnail.go): golang.org/x/image(BSD, v0.47.0 — 17일 지난 버전)로 PNG·JPEG·GIF·BMP·WebP를 긴 쪽 96px로 줄임(작은 그림은 그대로), 투명하면 PNG 아니면 JPEG, SVG는 그대로. 파일 크기·시각이 같으면 최근 300개 기억. 압축 파일 안·FTP 그림도
+- 프론트 썸네일은 화면에 보일 때만 읽고(IntersectionObserver) 같은 파일·시각은 다시 읽지 않음
+- 버그 예방: Toolbar가 Ctrl+F1을 도움말로, Ctrl+F2를 이름 바꾸기로 처리하지 않게. THIRD_PARTY_NOTICES 갱신(x/image)
+- 테스트: thumbnail_test.go 4개, FilePanel.viewModes.test.js(GM 3 · VM 5) — Go 전체 · 프론트 1358개 통과
+
 ## 2026-10-26 Todo.md #133-10: 폴더 트리 (Ctrl+F8)
 - 패널마다 Ctrl+F8로 왼쪽에 `FolderTree`: 루트(드라이브 · / · FTP 루트)부터 지금 폴더까지 펼쳐 보여 주고 지금 폴더 강조, 하위 폴더는 펼칠 때 읽음(폴더만, 숨김은 패널 설정 따름)
 - 클릭으로 이동, 키보드 ↑↓ 이동 · → 펼치기/첫 하위 · ← 접기/부모 · Enter 이동(화살표는 파일 목록으로 새지 않음). 패널 폴더가 바뀌면 그 폴더까지 다시 펼침. 압축 파일 안처럼 목록에 없는 경로도 지금 폴더로 가는 길은 끼워 넣음

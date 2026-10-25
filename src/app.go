@@ -363,3 +363,13 @@ func (a *App) CompareFileBytes(pathA, pathB string) (FileCompareResult, error) {
 	}
 	return a.fileManager.CompareFileBytes(pathA, pathB)
 }
+
+// ReadThumbnail: 썸네일 보기 (Ctrl+Shift+F1, Todo #133-11)
+func (a *App) ReadThumbnail(p string, size int) (string, error) {
+	if isFTPPath(p) {
+		var s string
+		err := a.withFTPLocal(p, func(local string) (e error) { s, e = a.fileManager.ReadThumbnail(local, size); return })
+		return s, err
+	}
+	return a.fileManager.ReadThumbnail(p, size)
+}

@@ -156,6 +156,7 @@ const createPanelState = (side) => ({
   dirSizes: {}, // Space로 계산한 폴더 크기 (경로 → 바이트), 다른 폴더로 가면 비움 (Todo #133-1)
   readOnly: false, // 압축 파일 안 (Todo #133-5)
   showTree: false, // 폴더 트리 (Ctrl+F8, Todo #133-10)
+  viewMode: 'full', // 보기 방식 full · brief · thumbs (Todo #133-11)
   tabs: [createTabState('')],
   activeTabIdx: 0,
 })
@@ -468,6 +469,8 @@ export const useFileStore = create((set, get) => ({
       if (ftpId(get()[p].path) === id) await get().navigate(p, home)
     }
   },
+
+  setViewMode: (panel, viewMode) => set(s => ({ [panel]: { ...s[panel], viewMode } })),
 
   toggleTree: (panel) => set(s => ({ [panel]: { ...s[panel], showTree: !s[panel].showTree } })),
 

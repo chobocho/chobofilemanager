@@ -422,3 +422,64 @@
   display: flex;
   flex-direction: column;
 }
+
+/* 간단히 보기 (Ctrl+F1, Todo #133-11): 이름만, 세로로 채운 여러 열 */
+.briefGrid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(160px, 1fr);
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.briefCell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  height: 20px;
+  min-width: 0;
+  cursor: default;
+  font-size: 12px;
+}
+
+.briefCell .fileName, .thumbCell .fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 썸네일 보기 (Ctrl+Shift+F1): 가로로 채운 칸 */
+.thumbGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 108px);
+  gap: 4px;
+  padding: 4px;
+}
+
+.thumbCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 108px;
+  padding: 4px;
+  font-size: 11px;
+  cursor: default;
+  border-radius: 3px;
+}
+
+.thumbCell .fileName { max-width: 100%; text-align: center; }
+
+.thumbBox {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.thumbImg { max-width: 96px; max-height: 96px; object-fit: contain; }
+.thumbPending { width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }

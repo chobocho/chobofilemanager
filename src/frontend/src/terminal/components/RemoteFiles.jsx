@@ -168,7 +168,7 @@ export default function RemoteFiles({ id }) {
         </div>
         <div className={styles.filesList} style={{ '--wails-drop-target': 'drop' }}
           onContextMenu={e => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }) }}>
-          <table role="grid" tabIndex={0} ref={gridRef} aria-label="원격 파일 목록">
+          <table role="grid" tabIndex={0} ref={gridRef} aria-label="원격 파일 목록" data-remote-grid>
             <thead><tr><th>이름</th><th className={styles.num}>크기</th><th>수정한 때</th></tr></thead>
             <tbody>
               {v.entries.map((e, i) => (

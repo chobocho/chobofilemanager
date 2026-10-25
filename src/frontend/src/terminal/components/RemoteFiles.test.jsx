@@ -269,6 +269,15 @@ describe('원격 파일 창 (RFV)', () => {
     await waitFor(() => expect(document.activeElement).toBe(within(win()).getByRole('grid')))
   })
 
+  it('RFV-22: 영어 화면처럼 목록 이름(aria-label)이 바뀌어도 보기를 닫으면 목록으로 포커스', async () => {
+    await openFiles()
+    within(win()).getByRole('grid').setAttribute('aria-label', 'Remote files')
+    await act(async () => { fireEvent.mouseDown(row('a.txt')) })
+    await keyIn('F3')
+    act(() => { useEditorStore.getState().closeViewer()?.() })
+    await waitFor(() => expect(document.activeElement).toBe(within(win()).getByRole('grid')))
+  })
+
   it('RFV-21: 폴더나 여러 개를 고르면 F3은 아무것도 안 함', async () => {
     await openFiles()
     await keyIn('F3') // src 폴더 선택 상태

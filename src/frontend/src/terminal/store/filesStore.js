@@ -12,8 +12,8 @@ import { viewable } from '../core/remoteFiles'
 import { isImageFile } from '../../utils/fileTypes.js'
 
 const extOf = (name) => (name.includes('.') ? '.' + name.split('.').pop() : '')
-// 보기를 닫은 뒤 포커스를 돌려줄 곳: 원격 파일 목록
-const focusRemoteList = () => requestAnimationFrame(() => document.querySelector('[aria-label="원격 파일 목록"]')?.focus())
+// 보기를 닫은 뒤 포커스를 돌려줄 곳: 원격 파일 목록 (aria-label은 영어 화면에서 바뀌므로 전용 속성으로 찾음)
+const focusRemoteList = () => requestAnimationFrame(() => document.querySelector('[data-remote-grid]')?.focus())
 
 // 원격 파일 창 (Todo #123, choboTerm files.ts). 탭마다 창 하나 — 보이는 건 활성 탭의 창이고,
 // 다른 탭의 창은 폴더·선택·진행 중인 전송을 그대로 둡니다.

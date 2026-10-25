@@ -139,23 +139,7 @@ func (h *Host) Startup(ctx context.Context) { h.app.startup(ctx) }
 // keep the window open while a tab is connected (the page then asks the user
 // after an "app:close" event) or browsers use the web server. Unlike the
 // standalone window it doesn't save the window position: the host owns the window.
-func (h *Host) BeforeClose(ctx context.Context) bool {
-	a := h.app
-	if a.quit.Load() {
-		return false
-	}
-	if w := a.web.Load(); w != nil {
-		if n := w.ConnectedCount(); n > 0 {
-			a.emit("app:closeWeb", n)
-			return true
-		}
-	}
-	if a.windowTabsConnected() {
-		a.emit("app:close")
-		return true
-	}
-	return false
-}
+func (h *Host) BeforeClose(ctx context.Context) bool { return h.app.keepOpenToAsk() }
 
 // Shutdown is the host window's OnShutdown: it closes every session and the web server.
 func (h *Host) Shutdown(ctx context.Context) { h.app.shutdown(ctx) }

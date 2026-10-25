@@ -2,6 +2,10 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #131-6: 터미널 닫기 확인(BeforeClose) 중복 정리
+- 단독 터미널 창(app.go beforeClose)과 Commander에 들어간 터미널(host.go BeforeClose)이 같은 "연결된 탭·웹 사용자가 있으면 창을 열어 두고 묻기" 코드를 반복하던 것을 keepOpenToAsk 하나로. 단독 창은 그 앞에서 창 위치만 저장.
+- 테스트: Go 전체 통과.
+
 ## 2026-10-25 Todo.md #131-5: 복사·이동 충돌 창을 하나의 ConflictDialog로
 - CopyConflictDialog·MoveConflictDialog가 제목·단추만 다르고 60줄 가까이 같았던 것을 공용 ConflictDialog(제목, 처리 방식 목록)로 합치고, 두 창은 방식 목록만 넘기는 얇은 껍데기로 (App·테스트는 그대로).
 - 테스트: CC/MC 테스트(연타 방지 포함) 그대로 통과, 프론트 1233개·빌드 통과.

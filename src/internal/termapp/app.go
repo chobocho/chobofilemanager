@@ -143,6 +143,14 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	if w, ok := osutil.CurrentWindowState(); ok && w.Valid() {
 		_ = config.Update(func(s *config.Settings) { s.Window = &w })
 	}
+	return a.keepOpenToAsk()
+}
+
+// keepOpenToAsk returns true to keep the window open while a tab is connected
+// (the page then asks after "app:close") or browsers use the web server
+// ("app:closeWeb"); after Quit it lets the window close. Shared by the
+// standalone window and the host window (Todo #131-6).
+func (a *App) keepOpenToAsk() bool {
 	if a.quit.Load() {
 		return false
 	}

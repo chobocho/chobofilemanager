@@ -220,7 +220,7 @@ func (fm *FileManager) DeleteItems(paths []string) error {
 	return nil
 }
 
-// Todo #57: 휴지통(Recycle Bin)으로 이동. Windows: SHFileOperationW, 그 외: 미지원.
+// Todo #57: 휴지통(Recycle Bin)으로 이동. Windows: SHFileOperationW, 리눅스: freedesktop 휴지통(#137-1), 그 외: 미지원.
 func (fm *FileManager) TrashItems(paths []string) error {
 	if err := refuseInArchive(paths...); err != nil {
 		return err

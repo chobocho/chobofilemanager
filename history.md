@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #137-1: 리눅스 휴지통 (F8 / Del)
+- 원인: 리눅스 빌드의 휴지통이 stub이라 F8/Del이 항상 "Windows에서만 지원" 오류
+- `xdgtrash.go`: freedesktop.org Trash 규격 — `files/`로 옮기고 `info/<이름>.trashinfo`(Path는 URL 이스케이프, DeletionDate)를 씀. Nautilus · Dolphin 휴지통에서 그대로 보이고 복원됨
+  - 같은 장치: `$XDG_DATA_HOME/Trash`(기본 `~/.local/share/Trash`)
+  - 다른 장치(USB 등): 마운트 위치의 `.Trash/$uid`(sticky이고 링크가 아닐 때만) 또는 `.Trash-$uid`, Path는 마운트 기준 상대 경로. 장치를 건너 복사하지 않음
+  - 이름이 겹치면 `a.2.txt`, info는 O_EXCL로 먼저 잡고 옮기기가 실패하면 지움. 휴지통 폴더 자체·그 조상은 거부
+- `trash_linux.go`: 장치 번호(st_dev)·sticky 연결, `trash_other.go`는 리눅스 외 OS만
+- 테스트: xdgtrash_test.go 4개(홈 휴지통·이름 충돌·다른 장치·실패 처리, 장치는 주입해 Windows에서도 검증) — Go 전체 통과, 리눅스 amd64/arm64 빌드 확인
+
 ## 2026-10-26 Todo.md #136-2: 리눅스에서 Enter로 실행 권한(+x) 파일 실행
 - 원인: 리눅스 Enter/더블클릭이 항상 xdg-open → 실행 파일이 실행되지 않음
 - Go `FileInfo.executable`: 일반 파일 + 실행 비트(소유자·그룹·기타), 심볼릭 링크는 대상 기준, 디렉터리·FIFO 제외, Windows는 항상 false

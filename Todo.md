@@ -445,7 +445,7 @@
 - [x] 136-2 Enter/더블클릭: 실행 권한이 있는 일반 파일(Windows 제외)은 터미널 도크에서 그 폴더로 cd 후 실행 (mc처럼 출력이 보임)
 
 ## 137. 리눅스: mc(Midnight Commander) 대비 부족한 기능 (2026-10-26 조사, 우선순위순)
-- [ ] 137-1 휴지통: 리눅스 F8 휴지통이 항상 실패(trash_other.go) — XDG Trash 규격(~/.local/share/Trash) 또는 gio trash
+- [x] 137-1 휴지통: 리눅스 F8 휴지통이 항상 실패(trash_other.go) — XDG Trash 규격(~/.local/share/Trash) 또는 gio trash
 - [ ] 137-2 권한·소유자: 모드/소유자/그룹 열, chmod·chown 창 (지금은 Permissions 문자열만 받고 표시 안 함)
 - [ ] 137-3 특수 파일 안전 복사: FIFO·장치 파일을 읽어서 복사(멈춤/무한), 심볼릭 링크는 대상으로 복사됨, 희소 파일 팽창 → 링크 재생성, 특수 파일 건너뛰기
 - [ ] 137-4 링크 만들기: 심볼릭/하드 링크 생성 창, 링크 대상 고치기

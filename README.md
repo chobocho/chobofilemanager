@@ -39,7 +39,7 @@ Total Commander에서 손에 익은 기능 — 폴더 크기(Space), 마스크 �
 - 이중 패널 (좌 / 우), 패널마다 탭 (Ctrl+T / Ctrl+W / Ctrl+Tab), 탭·경로는 다음 실행 때 복원
 - 키보드 탐색: 방향키 · vim(`h j k l`) · WASD, Shift+글자로 빠른 이동, **Alt+글자 빠른 검색 칸**, `-`로 이전 폴더
 - 복사 (F5), 이동 (F6) — 같은 이름은 덮어쓰기 / 이름 바꾸기 (복사는 건너뛰기도)를 물어봄, 수정 시각 유지
-- 휴지통 (F8 / Del), 영구 삭제 (Shift+Del), 새 폴더 (F7), 새 파일 (Ctrl+N), 이름 바꾸기 (F2)
+- 휴지통 (F8 / Del — Windows 휴지통, 리눅스는 데스크톱과 같은 freedesktop 휴지통), 영구 삭제 (Shift+Del), 새 폴더 (F7), 새 파일 (Ctrl+N), 이름 바꾸기 (F2)
 - 선택: Ctrl/Shift+Click, Space(폴더면 **크기 계산**), Insert, Ctrl+A, **Num+ / Num- 마스크 선택·해제**(`*.txt;*.md|tmp*`), Num* 반전
 - **여러 이름 바꾸기 (Ctrl+M)**: [N] [E] [C] [YMD] 마스크, 찾아 바꾸기(정규식), 대소문자, 미리 보기·충돌 표시, 묶음 안 맞바꾸기 가능·실패하면 되돌림
 - **압축 파일을 폴더처럼**: ZIP · JAR · TAR · TAR.GZ/BZ2/XZ · 7Z · RAR에 Enter로 들어가 보기, F5로 꺼내기, F3 보기 (읽기 전용)

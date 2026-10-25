@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-
 	"time"
+
+	"totalcmd/internal/atomicfile"
 )
 
 // Settings are the user preferences kept in %AppData%\choboterm\settings.json.
@@ -170,6 +171,7 @@ func readSettings() Settings {
 		return s
 	}
 	if json.Unmarshal(data, &s) != nil {
+		atomicfile.BackupCorrupt(p) // keep it; the next save would overwrite it (Todo #130-2)
 		return Default()
 	}
 	if s.Macros == nil {
@@ -188,14 +190,11 @@ func Update(change func(*Settings)) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-		return err
-	}
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, data, 0o600)
+	return atomicfile.Write(p, data, 0o600)
 }
 
 // UpdateState is what the Go side remembers between checks.

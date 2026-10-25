@@ -2,6 +2,12 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #130-2: 손상된 설정·세션·호스트 파일이 다음 저장에 지워지지 않게
+- 문제: 터미널 settings.json·sessions.json(저장된 세션)·hosts.json이 깨지면 읽기가 기본값/빈 목록으로 대신하고, 다음 저장이 원본을 덮어써 사용자 데이터가 사라졌음. settings·hosts는 제자리 쓰기라 저장 중 중단되면 반쪽 파일이 남을 수 있었음.
+- 새 패키지 internal/atomicfile: Write(같은 폴더 임시 파일 → rename 교체), BackupCorrupt(<이름>.corrupt-<시각>으로 보관).
+- config·store가 이를 사용 (store의 자체 writeFileAtomic 제거).
+- 테스트: atomicfile 3개, config 4개(기본값·부분 갱신·null macros·손상 백업), store 2개(세션·호스트 손상 백업).
+
 ## 2026-10-25 Todo.md #130-2: SCP 폴백을 WSL 없이도 검사하는 가짜 서버 테스트
 - 기존 SCP 테스트(TestSCPFallback)는 CHOBOTERM_WSL이 있을 때만 돌아 CI에서 SCP 코드가 한 번도 실행되지 않았음(0%).
 - Go로 만든 가짜 SSH exec 서버(ls·scp -f·scp -t·rm·mv·mkdir 응답, 임시 폴더를 / 로 사용)를 추가해 어디서나 검사: 목록(공백·한글 이름, 날짜), 받기(작은따옴표 이름, 없는 파일, 폴더 거부), 올리기(100KB, 없는 폴더), 이름 바꾸기·폴더 만들기·삭제, scp 없는 서버 거부, shellQuote 왕복.

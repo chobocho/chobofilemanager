@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"totalcmd/internal/atomicfile"
 )
 
 // SavedSession is a connection the user saved by name, shown in groups at
@@ -85,7 +87,10 @@ func readSessions() sessionsDoc {
 	if err != nil {
 		return doc
 	}
-	_ = json.Unmarshal(data, &doc)
+	if json.Unmarshal(data, &doc) != nil {
+		atomicfile.BackupCorrupt(p) // keep it; the next save would drop every session (Todo #130-2)
+		return sessionsDoc{}
+	}
 	return doc
 }
 
@@ -104,24 +109,7 @@ func writeSessions(doc sessionsDoc) error {
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(p, data)
-}
-
-// writeFileAtomic replaces p in one step, so another choboterm reading it
-// never sees half a file.
-func writeFileAtomic(p string, data []byte) error {
-	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-		return err
-	}
-	tmp := p + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return err
-	}
-	if err := os.Rename(tmp, p); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return nil
+	return atomicfile.Write(p, data, 0o600)
 }
 
 // updateSessions reads the file, lets change edit it and writes it back,

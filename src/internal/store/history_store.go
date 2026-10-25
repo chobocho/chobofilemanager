@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"totalcmd/internal/atomicfile"
 	"totalcmd/internal/secret"
 )
 
@@ -79,6 +80,7 @@ func readHistory() []storedEntry {
 	}
 	var list []storedEntry
 	if json.Unmarshal(data, &list) != nil {
+		atomicfile.BackupCorrupt(p) // keep it; the next save would overwrite it (Todo #130-2)
 		return nil
 	}
 	return list
@@ -148,14 +150,11 @@ func writeHistory(list []storedEntry) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-		return err
-	}
 	data, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, data, 0o600)
+	return atomicfile.Write(p, data, 0o600)
 }
 
 // HistoryEntry returns what is saved for host:port.

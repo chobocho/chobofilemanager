@@ -487,7 +487,7 @@ input{width:100%%;box-sizing:border-box;padding:8px;margin:12px 0;background:#11
 button{padding:8px 16px}.err{color:#f66}p{margin:0 0 8px}</style></head>
 <body><form method="post" action="/login"><p><b>choboterm</b></p><p>%s</p>%s
 <input name="token" type="password" autocomplete="current-password" autofocus><button>%s</button></form></body></html>`,
-		i18n.Tr("choboterm 창의 설정에서 보이는 접속 토큰을 입력하세요"), msg, i18n.Tr("접속"))
+		i18n.Tr("Chobocho Commander 터미널 설정(웹 서버)에서 보이는 접속 토큰을 입력하세요"), msg, i18n.Tr("접속"))
 }
 
 // splitIndex splits index.html right after <head>, where the client's script goes.

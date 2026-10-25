@@ -20,7 +20,7 @@ import (
 var webPage fs.FS
 
 // errWindowOnly is returned when a web page calls what only the window may.
-var errWindowOnly = errors.New("choboterm 창에서만 할 수 있습니다")
+var errWindowOnly = errors.New("Chobocho Commander 창에서만 할 수 있습니다")
 
 // WebInfo describes the web server for Settings > Web.
 type WebInfo struct {

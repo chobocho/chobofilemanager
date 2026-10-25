@@ -458,7 +458,7 @@ func (p browserPicker) finishDir(dir string) func(bool) string {
 			p.c.offer(filepath.Join(dir, name), name, dir)
 			return name
 		}
-		name := "choboterm-" + time.Now().Format("20060102-150405") + ".zip"
+		name := "chobocho-term-" + time.Now().Format("20060102-150405") + ".zip"
 		if len(ents) == 1 {
 			name = ents[0].Name() + ".zip"
 		}

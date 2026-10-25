@@ -27,7 +27,7 @@ type cliOptions struct {
 }
 
 const usage = `
-Usage: choboterm [options]
+Usage: chobocho-term [options]   (Chobocho Commander terminal)
 
   --web[=ADDR]     also serve the window's page to browsers (default 127.0.0.1:7681,
                    this PC only; 0.0.0.0:7681 lets other PCs in, over HTTPS)

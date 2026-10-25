@@ -257,7 +257,7 @@ func (h *luaHost) call(ctx context.Context, m LuaMsg) (LuaMsg, error) {
 	case <-ctx.Done():
 		return LuaMsg{}, ErrScriptStopped
 	case <-time.After(luaCallTimeout):
-		return LuaMsg{}, errors.New("choboterm이 응답하지 않습니다")
+		return LuaMsg{}, errors.New("Chobocho Commander가 응답하지 않습니다")
 	}
 }
 

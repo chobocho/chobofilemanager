@@ -266,7 +266,7 @@ func TestWebBrowserSavesAFolder(t *testing.T) {
 	call = c.callAsync("FileDownloadMany", id, "/d", []transfer.FileEntry{{Name: "a.txt"}, {Name: "sub", IsDir: true}})
 	d = c.download()
 	c.callID(call)
-	if !strings.HasPrefix(d.Name, "choboterm-") || !strings.HasSuffix(d.Name, ".zip") {
+	if !strings.HasPrefix(d.Name, "chobocho-term-") || !strings.HasSuffix(d.Name, ".zip") {
 		t.Fatalf("name %q", d.Name)
 	}
 }

@@ -50,7 +50,7 @@ func EncodeExport(list []SavedSession) ([]byte, error) {
 func DecodeExport(data []byte) ([]SavedSession, error) {
 	var in sessionsExport
 	if err := json.Unmarshal(data, &in); err != nil || in.Format != exportFormat {
-		return nil, errors.New("choboterm에서 내보낸 세션 파일이 아닙니다")
+		return nil, errors.New("Chobocho Commander(또는 choboterm)에서 내보낸 세션 파일이 아닙니다")
 	}
 	list := make([]SavedSession, 0, len(in.Sessions))
 	for _, s := range in.Sessions {

@@ -98,7 +98,7 @@ func (a *App) DeleteSession(id string) error {
 func (a *App) ExportSessions() (string, error) {
 	p, finish, err := a.picker().SaveFile(dialog.Opts{
 		Title:   i18n.Tr("세션 내보내기"),
-		Name:    "choboterm-sessions.json",
+		Name:    "chobocho-commander-sessions.json",
 		Filters: []dialog.Filter{{Name: i18n.Tr("세션 파일 (*.json)"), Pattern: "*.json"}},
 	})
 	if err != nil || p == "" {

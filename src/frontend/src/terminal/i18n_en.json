@@ -77,8 +77,6 @@
   "[Zmodem] {}개 파일을 보냈습니다": "[Zmodem] Sent {} file(s)",
   "[Zmodem] 파일을 받는 중입니다... (Ctrl+C: 취소)": "[Zmodem] Receiving files... (Ctrl+C: cancel)",
   "[Zmodem] {}": "[Zmodem] {}",
-  "choboterm에서 내보낸 세션 파일이 아닙니다": "This is not a session file exported by choboterm",
-  "choboterm이 응답하지 않습니다": "choboterm does not respond",
   "scp 오류 ({})": "scp error ({})",
   "send · expect · sleep · screen · print · open_url · open_folder 사용 가능. 식을 입력하면 값을 보여 줍니다 (Lua 5.1).": "send · expect · sleep · screen · print · open_url · open_folder are available. An expression shows its value (Lua 5.1).",
   "send: 한 번에 {}KB까지 보낼 수 있습니다": "send: up to {}KB at a time",
@@ -571,11 +569,8 @@
   "다른 PC에서도 접속 가능": "other PCs can connect",
   "이 PC에서만": "this PC only",
   "TLS 인증서 SHA-256: {}": "TLS certificate SHA-256: {}",
-  "원격 브라우저에서는 쓸 수 없는 기능입니다. choboterm을 실행한 PC에서 하세요": "Not available in a browser on another PC. Do it on the PC running choboterm",
-  "choboterm 창에서만 할 수 있습니다": "Only the choboterm window can do this",
   "웹 서버가 꺼져 있습니다": "The web server is off",
   "토큰이 맞지 않습니다": "Wrong token",
-  "choboterm 창의 설정에서 보이는 접속 토큰을 입력하세요": "Enter the access token shown in Settings of the choboterm window",
   "주소가 올바르지 않습니다 (예: {}): {}": "Invalid address (e.g. {}): {}",
   "페이지를 찾을 수 없습니다: {}": "Page not found: {}",
   "웹 서버를 시작하지 못했습니다: {}": "Couldn't start the web server: {}",
@@ -668,5 +663,10 @@
   "암호화: {}": "Cipher: {}",
   "메시지 인증(MAC): {}": "MAC: {}",
   "오래된 스위치·공유기·임베디드 장비에서 흔합니다. 이 서버에 한해 허용하고 접속할까요?": "This is common with old switches, routers and embedded devices. Allow them for this server only and connect?",
-  "SSH 접속 실패: {} 서버는 안전하지 않은 옛 알고리즘만 지원합니다 ({})": "SSH connection failed: the server {} only supports old, insecure algorithms ({})"
+  "SSH 접속 실패: {} 서버는 안전하지 않은 옛 알고리즘만 지원합니다 ({})": "SSH connection failed: the server {} only supports old, insecure algorithms ({})",
+  "원격 브라우저에서는 쓸 수 없는 기능입니다. Chobocho Commander를 실행한 PC에서 하세요": "Not available in a browser on another PC. Do it on the PC running Chobocho Commander",
+  "Chobocho Commander가 응답하지 않습니다": "Chobocho Commander does not respond",
+  "Chobocho Commander(또는 choboterm)에서 내보낸 세션 파일이 아닙니다": "This is not a session file exported by Chobocho Commander",
+  "Chobocho Commander 창에서만 할 수 있습니다": "Only the Chobocho Commander window can do this",
+  "Chobocho Commander 터미널 설정(웹 서버)에서 보이는 접속 토큰을 입력하세요": "Enter the access token shown in Settings of the Chobocho Commander window"
 }

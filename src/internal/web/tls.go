@@ -61,7 +61,7 @@ func writeSelfSigned(certFile, keyFile string) error {
 	host, _ := os.Hostname()
 	tpl := &x509.Certificate{
 		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: "choboterm " + host},
+		Subject:               pkix.Name{CommonName: "Chobocho Commander " + host},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		KeyUsage:              x509.KeyUsageDigitalSignature,

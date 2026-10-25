@@ -23,13 +23,13 @@ func runHeadless(opts cliOptions) int {
 	}
 	w, err := startWeb(app, webPage, *o)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "choboterm:", err)
+		fmt.Fprintln(os.Stderr, "chobocho-term:", err)
 		if errors.Is(err, syscall.EADDRINUSE) {
 			return 0
 		}
 		return 1
 	}
-	fmt.Printf("choboterm V%s web server (no window)\n\n  %s\n\n", version.Version, w.URL(false))
+	fmt.Printf("Chobocho Commander V%s terminal web server (no window)\n\n  %s\n\n", version.Version, w.URL(false))
 	if fp := w.Fingerprint(); fp != "" {
 		fmt.Printf("  TLS certificate SHA-256: %s\n  (compare it with the one your browser shows before trusting it)\n\n", fp)
 	}
@@ -41,7 +41,7 @@ func runHeadless(opts cliOptions) int {
 	fmt.Println("Ctrl+C stops the server.")
 	if opts.open {
 		if err := osutil.OpenURL(w.LocalURL()); err != nil {
-			fmt.Fprintln(os.Stderr, "choboterm: open browser:", err)
+			fmt.Fprintln(os.Stderr, "chobocho-term: open browser:", err)
 		}
 	}
 

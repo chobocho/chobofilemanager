@@ -52,7 +52,7 @@ type Picker interface {
 
 // ErrNotInBrowser is returned for things a remote browser can't do, such as
 // choosing a folder of the PC running choboterm.
-var ErrNotInBrowser = errors.New("원격 브라우저에서는 쓸 수 없는 기능입니다. choboterm을 실행한 PC에서 하세요")
+var ErrNotInBrowser = errors.New("원격 브라우저에서는 쓸 수 없는 기능입니다. Chobocho Commander를 실행한 PC에서 하세요")
 
 // KeepPath is the finish of a native dialog: the file is already in place.
 func KeepPath(p string) func(bool) string { return func(bool) string { return p } }

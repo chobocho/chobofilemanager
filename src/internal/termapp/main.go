@@ -28,7 +28,7 @@ func Main() {
 	if err != nil || opts.help {
 		osutil.AttachConsole()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "choboterm:", err)
+			fmt.Fprintln(os.Stderr, "chobocho-term:", err)
 		}
 		fmt.Fprint(os.Stderr, usageText())
 		if err != nil {
@@ -52,7 +52,7 @@ func Main() {
 	if opts.headless || headlessBuild {
 		if len(opts.unknown) > 0 {
 			osutil.AttachConsole()
-			fmt.Fprintf(os.Stderr, "choboterm: unknown option %q\n%s", opts.unknown[0], usageText())
+			fmt.Fprintf(os.Stderr, "chobocho-term: unknown option %q\n%s", opts.unknown[0], usageText())
 			os.Exit(2)
 		}
 		os.Exit(runHeadless(opts))

@@ -6,12 +6,14 @@ import { THEMES, themeByName } from '../core/themes'
 import { settings } from '../core/settings'
 import { leaves } from '../core/layout'
 import { useTermStore } from '../store/termStore'
+import { useScriptStore } from '../store/scriptStore'
 import styles from '../styles/Terminal.module.css'
 
 // 탭 우클릭 메뉴 (Todo #121, choboTerm tabmenu.ts). 색 테마는 하위 메뉴로 이 서버에만 저장됩니다.
 export default function TabMenu({ id, x, y, onClose }) {
   const tab = useTermStore(s => s.tabs.find(t => t.id === id))
   const paneCount = useTermStore(s => leaves(s.groupOfPane(id)?.layout ?? { type: 'pane', id }).length)
+  const script = useScriptStore(s => s.tabs[id]?.script)
   const [themeOpen, setThemeOpen] = useState(false)
   const ref = useRef(null)
 
@@ -28,7 +30,7 @@ export default function TabMenu({ id, x, y, onClose }) {
 
   if (!tab) return null
   const s = sessionById(id)
-  const items = tabMenuItems({ state: tab.state, proto: tab.proto, hasReq: !!s?.req, encoding: s?.encoding ?? 'UTF-8', log: !!tab.log, docker: !!tab.docker }, paneCount)
+  const items = tabMenuItems({ state: tab.state, proto: tab.proto, hasReq: !!s?.req, encoding: s?.encoding ?? 'UTF-8', log: !!tab.log, docker: !!tab.docker, script }, paneCount)
 
   function run(act) {
     const st = useTermStore.getState()
@@ -44,6 +46,10 @@ export default function TabMenu({ id, x, y, onClose }) {
       case 'forwards': return st.openPanel('forwards', id)
       case 'containers': return st.openPanel('containers', id)
       case 'memo': return st.toggleMemo(id)
+      case 'script': return useScriptStore.getState().runFile(id)
+      case 'console': return useScriptStore.getState().toggleConsole(id)
+      case 'stopScript': return useScriptStore.getState().stop(id)
+      case 'scripts': return useScriptStore.getState().showScripts(id)
       case 'log': return st.toggleLog(id)
       case 'logs': return st.showLogs(id)
       case 'saveSession': return st.saveTabSession(id)

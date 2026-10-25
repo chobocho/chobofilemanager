@@ -22,6 +22,9 @@ import MemoPad from './MemoPad.jsx'
 import RemoteFiles from './RemoteFiles.jsx'
 import ForwardsDialog from './ForwardsDialog.jsx'
 import ContainersDialog from './ContainersDialog.jsx'
+import ScriptBox from './ScriptBox.jsx'
+import { useScriptStore, startScriptEvents, stopScriptEvents } from '../store/scriptStore'
+import { scriptBadge } from '../core/luaScript'
 import { useFilesStore, startTransferEvents, stopTransferEvents } from '../store/filesStore'
 import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
@@ -41,6 +44,15 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const macrosOpen = useTermStore(s => s.macros)
   const memos = useTermStore(s => s.memos)
   const panel = useTermStore(s => s.panel)
+  const scripts = useScriptStore(s => s.tabs)
+  // 스크립트가 도는 동안 탭 배지의 시간이 흐름
+  const [, tick] = useState(0)
+  const anyRunning = Object.values(scripts).some(x => x.script)
+  useEffect(() => {
+    if (!anyRunning) return
+    const t = setInterval(() => tick(n => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [anyRunning])
   const filesView = useFilesStore(s => (activeId != null ? s.views[activeId] : undefined))
   const active = tabs.find(t => t.id === activeId)
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
@@ -52,9 +64,10 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   useEffect(() => {
     startEventRouter()
     startTransferEvents()
+    startScriptEvents()
     loadSettings().then(loadRules)
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
-    return () => stopTransferEvents()
+    return () => { stopTransferEvents(); stopScriptEvents() }
   }, [])
 
   function onKeyDown(e) {
@@ -89,6 +102,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'F') { if (st.activeId != null) st.openFiles(st.activeId) }
     else if (k === 'P') { if (st.activeId != null) st.openPanel('forwards', st.activeId) }
     else if (k === 'J') { if (st.activeId != null) st.openPanel('containers', st.activeId) }
+    else if (k === 'K') { if (st.activeId != null) useScriptStore.getState().toggleConsole(st.activeId) }
     else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
@@ -138,6 +152,10 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}>
                     <span className={`${styles.dot} ${t.state !== 'idle' ? styles.dotOn : ''}`} />
                     <span data-tab-label>{t.label}</span>
+                    {(() => {
+                      const b = scriptBadge(scripts[id]?.script, scripts[id]?.box?.busy, Date.now())
+                      return b && <span className={styles.runBadge} title={b.title}>{b.text}</span>
+                    })()}
                     <button type="button" className={styles.tabClose} title="탭 닫기 (Ctrl+Shift+W)"
                       onClick={(e) => { e.stopPropagation(); useTermStore.getState().closeTab(id) }}><X size={11} /></button>
                   </span>
@@ -166,6 +184,14 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
             return (
               <div key={`memo${id}`} className={styles.memoArea} style={{ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) }}>
                 <MemoPad id={id} />
+              </div>
+            )
+          })}
+          {activeGroup && leaves(activeGroup.layout).filter(id => scripts[id]?.box).map(id => {
+            const r = rectsOf.get(activeGroup.id)[id]
+            return (
+              <div key={`script${id}`} className={styles.memoArea} style={{ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) }}>
+                <ScriptBox id={id} />
               </div>
             )
           })}

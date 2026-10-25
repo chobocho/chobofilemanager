@@ -4,6 +4,7 @@
 
 import {settings} from './settings';
 import type {TermSession} from './session';
+import {termApi} from './termApi';
 
 export interface Macro {
     name: string;
@@ -77,7 +78,10 @@ const notice = (s: TermSession, msg: string) => s.term.write(`\r\n\x1b[36m[${msg
 
 export function sendMacro(s: TermSession, m: Macro) {
     if (s.state !== 'on') return notice(s, '연결되어 있지 않습니다');
-    if (m.kind === 'lua') return notice(s, 'Lua 매크로는 Lua 콘솔과 함께 지원됩니다');
+    if (m.kind === 'lua') {
+        termApi.RunScript(s.id, m.name || '매크로', m.text).catch((e: unknown) => notice(s, String((e as Error)?.message ?? e)));
+        return;
+    }
     const text = expandMacro(m.text);
     if (text) void s.sendInput(text);
 }

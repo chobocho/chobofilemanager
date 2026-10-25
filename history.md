@@ -2,6 +2,18 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 — T8 3차: Lua 콘솔 · 스크립트 · Lua 매크로)
+
+### 변경
+- `core/luaScript.ts` 신규: 경과 시간, 탭 배지(▶ 시간 / Lua), 상자 제목(실행 중·끝·멈춤·오류), 줄 보관(화면 200줄·저장용 2만 줄), 입력 기록 ↑↓
+- `store/scriptStore.js` 신규: `script:start/print/result/end/screen/open` 처리, 콘솔 실행(ConsoleEval·중지·이전 입력), 파일 불러오기(Ctrl+O)·저장(Ctrl+S), 끝난 상자는 5초 뒤 닫힘(오류는 남김)
+- `ScriptBox.jsx` 신규: 칸 구석의 스크립트 상자 / Lua 콘솔(Ctrl+Shift+K) 입력 줄, 탭 칩에 실행 배지
+- 탭 메뉴: Lua 스크립트 실행... / Lua 콘솔 / 스크립트 중지 / 스크립트 폴더 열기, Lua 매크로는 이제 `RunScript`로 실행
+- `TermSession.screenText()`(screen() 응답), Go `pendingPageEvents`에서 `script:*` 6개 제거
+
+### 테스트
+- `luaScript.test.ts`(LS-01~05), `ScriptBox.test.jsx`(LC-01~08, LR-01~07), MC-12 갱신, TA-20 — 프론트 1119개 통과
+
 ## 2026-10-25 (Todo.md #124 — T8 2차: 도커 컨테이너)
 
 ### 변경

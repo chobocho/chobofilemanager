@@ -311,6 +311,17 @@ export class TermSession {
         if (this.state === 'on' || !path) this.notice(path ? `로그 기록 시작: ${path}` : '로그 기록을 멈췄습니다');
     }
 
+    /** The text on screen now, for a script's screen() (Todo #124). */
+    screenText(): string {
+        const b = (this.term as any).buffer?.active;
+        if (!b) return '';
+        const lines: string[] = [];
+        for (let y = b.viewportY; y < b.viewportY + this.term.rows; y++) {
+            lines.push(b.getLine(y)?.translateToString(true) ?? '');
+        }
+        return lines.join('\n').replace(/\s+$/, '');
+    }
+
     /** A cyan [message] line on the screen. */
     notice(msg: string) {
         this.term.write(`\r\n\x1b[36m[${msg}]\x1b[0m\r\n`);

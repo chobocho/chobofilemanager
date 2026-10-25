@@ -66,7 +66,8 @@ describe('macros (MC)', () => {
 describe('sendMacro (MC)', () => {
     let api: any, fake: FakeTerminal;
     beforeEach(() => {
-        api = {Connect: vi.fn().mockResolvedValue('ssh'), Send: vi.fn().mockResolvedValue(undefined), Resize: vi.fn(), CloseTab: vi.fn()};
+        api = {Connect: vi.fn().mockResolvedValue('ssh'), Send: vi.fn().mockResolvedValue(undefined), Resize: vi.fn(), CloseTab: vi.fn(),
+            RunScript: vi.fn().mockResolvedValue(undefined)};
         setTermBackend(api, {EventsOn: () => () => {}} as any);
     });
     afterEach(() => setTermBackend(null));
@@ -92,12 +93,16 @@ describe('sendMacro (MC)', () => {
         s.dispose();
     });
 
-    it('MC-12: Lua 매크로 — 아직 실행하지 않고 안내 (Todo #124)', async () => {
+    it('MC-12: Lua 매크로 → RunScript(탭, 이름, 내용), 이름이 없으면 "매크로", 실패는 안내', async () => {
         const s = make();
         await s.connect({host: 'h', port: 22, login: '', pass: '', encoding: 'UTF-8', jump: ''});
         sendMacro(s, {name: 'x', key: '', text: 'send("ls")', kind: 'lua'});
         expect(api.Send).not.toHaveBeenCalled();
-        expect(fake.text()).toContain('Lua');
+        expect(api.RunScript).toHaveBeenCalledWith(7, 'x', 'send("ls")');
+        api.RunScript.mockRejectedValueOnce(new Error('이미 실행 중'));
+        sendMacro(s, {name: '', key: '', text: 'y', kind: 'lua'});
+        expect(api.RunScript).toHaveBeenLastCalledWith(7, '매크로', 'y');
+        await vi.waitFor(() => expect(fake.text()).toContain('이미 실행 중'));
         s.dispose();
     });
 });

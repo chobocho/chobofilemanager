@@ -4,6 +4,7 @@ import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
 import { sendMacro } from '../core/macros'
 import { useFilesStore } from './filesStore'
+import { useScriptStore } from './scriptStore'
 import { dockerLabel, dockerTooltip, engineOf } from '../core/docker'
 import { settings } from '../core/settings'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
@@ -120,6 +121,7 @@ export const useTermStore = create((set, get) => ({
     }
     set(s => ({ tabs: tabs.filter(t => t.id !== id), groups: nextGroups, activeId: next, memos: s.memos.filter(m => m !== id) }))
     useFilesStore.getState().forget(id)
+    useScriptStore.getState().forget(id)
     if (get().panel?.id === id) set({ panel: null })
     await sessionById(id)?.close()
   },

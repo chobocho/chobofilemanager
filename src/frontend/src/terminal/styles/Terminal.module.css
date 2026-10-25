@@ -167,3 +167,17 @@
 /* 도커 컨테이너 창 (Todo #124) */
 .containers { width: 860px; max-width: calc(100vw - 32px); }
 .containers .filesList { height: 260px; flex: 0 0 auto; }
+
+/* Lua 스크립트 상자 · 콘솔 (Todo #124) */
+.runBadge { margin-left: 4px; padding: 0 4px; border-radius: 3px; background: rgba(46, 204, 113, 0.2); color: #2ecc71; font-size: 10px; }
+.scriptBox { position: absolute; left: 12px; bottom: 8px; z-index: 6; display: flex; flex-direction: column; width: min(640px, calc(100% - 24px)); max-height: 60%; pointer-events: auto;
+  background: var(--bg-modal); border: 1px solid #2ecc71; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); overflow: hidden; font-size: 12px; }
+.sb_done { border-color: #2ecc71; }
+.sb_failed { border-color: #e74c3c; }
+.sb_stopped { border-color: var(--border); }
+.scriptLines { flex: 1; min-height: 3.6em; overflow: auto; padding: 4px 8px; font-family: 'D2Coding', Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+.sl_in { color: var(--text-accent); }
+.sl_val { color: #2ecc71; }
+.sl_err { color: #e74c3c; }
+.sl_hint { color: var(--text-muted); }
+.scriptInput { border: none; border-top: 1px solid var(--border); outline: none; resize: none; padding: 4px 8px; background: transparent; color: var(--text-primary); font-family: 'D2Coding', Consolas, monospace; font-size: 12px; }

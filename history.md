@@ -2,6 +2,10 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #130~#132 마무리: README 구조 갱신
+- README 프로젝트 구조에 나뉜 파일(fileops/filetext/filearchive/fileshell)과 새 패키지(textenc, atomicfile) 반영. #130(코드 리뷰·테스트), #131(중복 제거), #132(구조 개선) 완료.
+- 최종 확인: Go 전체 통과, 프론트 1233개 통과, 빌드 통과.
+
 ## 2026-10-25 Todo.md #132-3: filemanager.go(936줄)를 관심사별 파일로 분리
 - 같은 package main 안에서 코드만 옮김 (동작 변화 없음):
   - filemanager.go(목록·정보·검색, 209줄)

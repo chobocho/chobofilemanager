@@ -407,7 +407,7 @@
 - [x] 131-5 CopyConflictDialog/MoveConflictDialog → 하나의 충돌 창
 - [x] 131-6 termapp app.go/host.go 닫기 확인(BeforeClose) 중복
 
-## 132. 전체 구조 재점검 후 개선
+## 132. 전체 구조 재점검 후 개선 ✓
 - [x] 132-1 텍스트 인코딩(판별·조합형·변환)을 package main에서 internal/textenc로 (main → internal 이전의 첫 단계)
 - [x] 132-2 ConfirmDialog.jsx에 모여 있는 대화상자 5개를 파일별로 분리
 - [x] 132-3 filemanager.go(957줄)를 관심사별 파일로 분리 (목록·작업·압축·텍스트)

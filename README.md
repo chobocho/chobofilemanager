@@ -166,7 +166,8 @@ CI(`.github/workflows/ci.yml`): PR과 master 푸시마다 Windows·Linux에서 �
 src/
 ├── main.go                # Wails 앱 진입점 (파일 관리자 App + 터미널 termapp.App 바인딩)
 ├── app.go                 # 파일 관리자 Go-JS API
-├── filemanager.go         # 파일 작업 핵심 구현
+├── filemanager.go         # 파일 목록·정보·검색
+├── fileops.go filetext.go filearchive.go fileshell.go   # 복사/이동/삭제, 텍스트·이미지, ZIP, 열기·셸
 ├── ftpmanager.go          # FTP 보기 클라이언트
 ├── cmd/chobocho-term/     # 헤드리스 터미널 웹 서버 (-tags headless)
 ├── internal/              # 터미널 (choboTerm 이식)
@@ -174,6 +175,7 @@ src/
 │   ├── sshconn/ telnet/ serial/ localshell/   # 연결 종류
 │   ├── transfer/          # SFTP / SCP / FTP(S) 전송
 │   ├── config/ store/ secret/ appdir/         # 설정·세션·비밀번호(DPAPI)·설정 폴더
+│   ├── textenc/ atomicfile/                 # 텍스트 인코딩 판별·변환(조합형 포함), 원자적 저장·손상 파일 보관
 │   ├── sessionlog/ luahost/ web/ i18n/ update/ ...
 └── frontend/
     ├── bench/             # 성능 측정 (뷰어/에디터, 터미널), 실제 백엔드 종단 점검

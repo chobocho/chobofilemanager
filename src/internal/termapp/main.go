@@ -12,8 +12,9 @@ import (
 	"totalcmd/internal/version"
 )
 
-// appName is the window title prefix, e.g. "choboterm V0.1.0".
-const appName = "choboterm V" + version.Version
+// appName is the window title of the standalone terminal, e.g. "Chobocho Commander V0.2.12".
+// A var: version.Version can be set by the build (ldflags).
+var appName = "Chobocho Commander V" + version.Version
 
 // Main runs choboterm with the command line of the process: the window, the
 // web server without it (--headless), or a Lua script (--lua-host, started by

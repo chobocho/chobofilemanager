@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -15,6 +14,8 @@ import (
 	"time"
 
 	"github.com/jlaffaye/ftp"
+
+	"totalcmd/internal/appdir"
 )
 
 type FTPConfig struct {
@@ -64,7 +65,6 @@ type FTPHistory struct {
 }
 
 type FTPManager struct {
-	ctx          context.Context
 	mu           sync.RWMutex
 	connections  map[string]*ftpConnection
 	nextSeq      uint64
@@ -74,23 +74,39 @@ type FTPManager struct {
 	historyFile  string
 }
 
+// NewFTPManager: 북마크·기록은 앱 설정 폴더(~/.chobocho-commander)에
 func NewFTPManager() *FTPManager {
-	fm := &FTPManager{
-		connections: make(map[string]*ftpConnection),
+	dir, err := appdir.Dir()
+	if err != nil {
+		return &FTPManager{connections: make(map[string]*ftpConnection)}
 	}
+	return NewFTPManagerIn(dir)
+}
 
-	// Set bookmark/history file paths
-	homeDir, err := os.UserHomeDir()
-	if err == nil {
-		configDir := filepath.Join(homeDir, ".chobocho-commander")
-		os.MkdirAll(configDir, 0755)
-		fm.bookmarkFile = filepath.Join(configDir, "ftp_bookmarks.json")
-		fm.historyFile = filepath.Join(configDir, "ftp_history.json")
-		fm.loadBookmarks()
-		fm.loadHistory()
-	}
-
+// NewFTPManagerIn: 북마크·기록을 dir에 두는 FTP 관리자 (테스트는 임시 폴더, Todo #126)
+func NewFTPManagerIn(dir string) *FTPManager {
+	fm := &FTPManager{connections: make(map[string]*ftpConnection)}
+	_ = os.MkdirAll(dir, 0755)
+	fm.bookmarkFile = filepath.Join(dir, "ftp_bookmarks.json")
+	fm.historyFile = filepath.Join(dir, "ftp_history.json")
+	fm.loadBookmarks()
+	fm.loadHistory()
 	return fm
+}
+
+// CloseAll: 모든 연결에 QUIT을 보내고 닫음 (앱 종료 때)
+func (fm *FTPManager) CloseAll() {
+	fm.mu.Lock()
+	conns := fm.connections
+	fm.connections = make(map[string]*ftpConnection)
+	fm.mu.Unlock()
+	for _, c := range conns {
+		c.mu.Lock()
+		if c.client != nil {
+			_ = c.client.Quit()
+		}
+		c.mu.Unlock()
+	}
 }
 
 // Connect: 접속 후 새 연결 id를 반환합니다 (Todo #80 — 프론트가 목록 순서로 추측하지 않도록).

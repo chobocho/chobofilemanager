@@ -1091,7 +1091,7 @@ func newTestApp(t *testing.T) *App {
 	t.Helper()
 	return &App{
 		fileManager: NewFileManager(),
-		ftpManager:  NewFTPManager(),
+		ftpManager:  newTestFTPManager(t), // 실제 홈 폴더의 FTP 북마크를 읽지 않도록
 		configDir:   t.TempDir(),
 	}
 }

@@ -12,13 +12,13 @@ import (
 
 // ─── App 래퍼 메서드: 임시 폴더에서 실제 결과까지 검증 ─────────────────────────────
 
-func TestApp_Startup_PropagatesContext(t *testing.T) {
+func TestApp_Startup_KeepsContext(t *testing.T) {
 	a := newCovApp(t)
 	type key struct{}
 	ctx := context.WithValue(context.Background(), key{}, "v")
 	a.startup(ctx)
-	if a.ctx != ctx || a.fileManager.ctx != ctx || a.ftpManager.ctx != ctx {
-		t.Error("startup 은 모든 매니저에 컨텍스트를 전달해야 함")
+	if a.ctx != ctx {
+		t.Error("startup은 Wails 컨텍스트를 보관해야 함")
 	}
 }
 

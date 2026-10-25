@@ -73,7 +73,10 @@ func newAppOptions(app *App, term *termapp.Host) *options.App {
 		// 연결된 터미널 탭이 있으면 페이지가 확인한 뒤 닫힘 (app:close 이벤트)
 		OnBeforeClose: term.BeforeClose,
 		// 종료 시 모든 터미널 세션·웹 서버 정리
-		OnShutdown: term.Shutdown,
+		OnShutdown: func(ctx context.Context) {
+			app.shutdown(ctx)
+			term.Shutdown(ctx)
+		},
 		// 파일을 끌어다 놓으면 원격 전송에 사용 (터미널 파일 창)
 		DragAndDrop: &options.DragAndDrop{
 			EnableFileDrop:     true,

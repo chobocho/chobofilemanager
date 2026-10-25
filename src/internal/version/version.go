@@ -1,6 +1,11 @@
 // Package version is the version of this build.
 package version
 
-// Version is the app version (Chobocho Commander). It must equal Version in
-// package main (src/version.go); main_options_test.go checks it.
-const Version = "0.2.12"
+// Version is the version of Chobocho Commander: the window title, the terminal,
+// the update check and the web server all use it. A build can set it with
+//
+//	-ldflags "-X totalcmd/internal/version.Version=0.2.13"
+//
+// It must equal wails.json info.productVersion and frontend/package.json
+// version (src/version_test.go checks).
+var Version = "0.2.12"

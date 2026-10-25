@@ -22,8 +22,11 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.fileManager.ctx = ctx
-	a.ftpManager.ctx = ctx
+}
+
+// shutdown: 창이 닫힐 때 — FTP 보기의 연결을 끊음 (터미널은 termapp.Host.Shutdown이 정리, Todo #126)
+func (a *App) shutdown(ctx context.Context) {
+	a.ftpManager.CloseAll()
 }
 
 // ─── File Manager API ────────────────────────────────────────────────────────

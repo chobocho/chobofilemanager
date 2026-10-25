@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/zip"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -20,9 +19,8 @@ import (
 	"golang.org/x/text/encoding/korean"
 )
 
-type FileManager struct {
-	ctx context.Context
-}
+// FileManager: 파일 작업 (상태 없음 — 작업마다 경로를 받음)
+type FileManager struct{}
 
 type FileInfo struct {
 	Name        string    `json:"name"`

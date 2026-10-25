@@ -1,11 +1,9 @@
 package main
 
-// Version: 앱 버전의 단일 출처 (Todo #102).
-// wails.json의 info.productVersion, frontend/package.json의 version과 같아야 하며 version_test.go가 검사합니다.
-// 빌드 시 덮어쓰기: wails build -ldflags "-X main.Version=0.2.13"
-var Version = "0.2.12"
+import "totalcmd/internal/version"
 
-// AppTitle: 창 제목
+// AppTitle: 창 제목. 버전은 internal/version 한 곳 (Todo #102, #126) —
+// 빌드 시 덮어쓰기: wails build -ldflags "-X totalcmd/internal/version.Version=0.2.13"
 func AppTitle() string {
-	return "Chobocho Commander V" + Version
+	return "Chobocho Commander V" + version.Version
 }

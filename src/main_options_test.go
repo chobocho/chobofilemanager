@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"totalcmd/internal/config"
@@ -66,8 +67,8 @@ func TestTerminalConfigDir_UnderAppConfigDir(t *testing.T) {
 }
 
 func TestTerminalVersionMatchesApp(t *testing.T) {
-	if version.Version != Version {
-		t.Errorf("internal/version.Version = %q, app Version = %q (keep one version)", version.Version, Version)
+	if !strings.HasSuffix(AppTitle(), version.Version) {
+		t.Errorf("AppTitle() = %q, internal/version.Version = %q (keep one version)", AppTitle(), version.Version)
 	}
 }
 

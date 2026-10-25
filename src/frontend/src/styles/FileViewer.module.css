@@ -396,3 +396,5 @@
   overflow: auto;
   padding: 12px;
 }
+/* Todo #123: 원격 파일 안내 (앞부분만 열었음 등) */
+.sourceNote { margin-left: 8px; padding: 1px 6px; border-radius: 3px; background: rgba(241, 196, 15, 0.15); color: #f1c40f; font-size: 11px; white-space: nowrap; }

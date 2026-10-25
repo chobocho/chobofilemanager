@@ -19,6 +19,7 @@ import { setTermBackend } from './terminal/core/termApi'
 import { stopEventRouter } from './terminal/core/session'
 import { DOCK_ID_BASE } from './terminal/core/dock'
 import { useDockStore, DOCK_PREFS_KEY } from './stores/dockStore'
+import { useEditorStore } from './stores/editorStore'
 
 const h = React.createElement
 Element.prototype.scrollIntoView = vi.fn()
@@ -77,6 +78,7 @@ beforeEach(() => {
   setupApi()
   useFileStore.setState({ activePanel: 'left', status: '' })
   useDockStore.getState().resetForTest()
+  useEditorStore.getState().reset() // 뷰어/에디터 상태는 스토어라 테스트마다 비움
 })
 afterEach(() => cleanup())
 
@@ -630,5 +632,41 @@ describe('App 터미널 도크 (DKA)', () => {
     expect(dock().closest('[hidden]')).toBeTruthy()
     fireEvent.click(screen.getByTitle('File Manager'))
     expect(dock().closest('[hidden]')).toBeNull()
+  })
+})
+
+// ─── Todo #123: 원격 파일도 App의 뷰어/에디터로 ───────────────────────────────
+describe('App 원격 보기 (AV)', () => {
+  afterEach(() => { cleanup(); useEditorStore.getState().reset() })
+  const src = () => ({ remote: true, read: vi.fn().mockResolvedValue('remote body'), write: vi.fn().mockResolvedValue(), readImage: vi.fn(), label: p => `srv:${p}`, note: () => '' })
+
+  it('AV-01: 스토어로 연 원격 파일 → 뷰어 표시, 닫으면 onClose (파일 패널 포커스 대신)', async () => {
+    await renderApp()
+    const onClose = vi.fn()
+    const s = src()
+    await act(async () => { useEditorStore.getState().openViewer('/r/a.txt', { source: s, onClose }) })
+    await waitFor(() => expect(findSurfaceWithText('remote body')).toBeTruthy())
+    expect(screen.getByText('srv:/r/a.txt')).toBeTruthy()
+    expect(api.ReadTextFile).not.toHaveBeenCalled()
+    await key({ key: 'Escape' })
+    await waitFor(() => expect(useEditorStore.getState().viewer).toBeNull())
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('AV-02: 원격 뷰어에서 F4 → 같은 소스로 에디터', async () => {
+    await renderApp()
+    const s = src()
+    await act(async () => { useEditorStore.getState().openViewer('/r/a.txt', { source: s }) })
+    await waitFor(() => expect(findSurfaceWithText('remote body')).toBeTruthy())
+    await key({ key: 'F4' })
+    await waitFor(() => expect(useEditorStore.getState().editor?.source).toBe(s))
+  })
+
+  it('AV-03: 로컬 F3/F4는 그대로 스토어를 거쳐 열림', async () => {
+    await renderApp()
+    cursorTo('x.txt')
+    await key({ key: 'F3' })
+    await waitFor(() => expect(useEditorStore.getState().viewer?.path).toBe('/a/x.txt'))
+    expect(useEditorStore.getState().viewer.source).toBeUndefined()
   })
 })

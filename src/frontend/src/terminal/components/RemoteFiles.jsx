@@ -102,7 +102,8 @@ export default function RemoteFiles({ id }) {
       case 'F5': if (!v.busy) st.refresh(id); break
       case 'Delete': askDelete(); break
       case 'F2': askRename(); break
-      case 'F4': if (!e.shiftKey) return; askNewFile(); break
+      case 'F3': st.view(id); break
+      case 'F4': if (e.shiftKey) askNewFile(); else st.view(id, true); break
       case 'F7': askMkdir(); break
       case 'a': if (!e.ctrlKey) return; st.selectAll(id); break
       case 'd': if (!e.ctrlKey || e.shiftKey) return; st.toggleMark(id); break
@@ -204,6 +205,8 @@ export default function RemoteFiles({ id }) {
           <button type="button" title="파일 패널에서 고른 항목을 지금 폴더로 올리기" disabled={v.busy} onClick={() => st.uploadFromPanel(id)}>⬆ 패널에서</button>
           <button type="button" title="새 폴더 (F7)" disabled={v.busy} onClick={askMkdir}><FolderPlus size={12} /> 새 폴더</button>
           <button type="button" title="새 파일 (Shift+F4)" disabled={v.busy} onClick={askNewFile}><FilePlus size={12} /> 새 파일</button>
+          <button type="button" title="보기 (F3)" disabled={v.busy || !one || one.isDir} onClick={() => st.view(id)}>보기</button>
+          <button type="button" title="편집 (F4)" disabled={v.busy || !one || one.isDir} onClick={() => st.view(id, true)}>편집</button>
           <button type="button" title="이름 바꾸기 (F2)" disabled={v.busy || !one} onClick={askRename}><Pencil size={12} /> 이름 바꾸기</button>
           <button type="button" title="삭제 (Delete)" disabled={v.busy || !list.length} onClick={askDelete}><Trash2 size={12} /> 삭제</button>
         </div>
@@ -212,6 +215,8 @@ export default function RemoteFiles({ id }) {
         <ul role="menu" aria-label="파일 메뉴" className={styles.menu} style={{ left: menu.x, top: menu.y }} onMouseDown={e => e.stopPropagation()}>
           {menuItem(one?.isDir ? '열기' : '다운로드', () => (one?.isDir ? st.enter(id, v.entries.indexOf(one)) : st.download(id)), list.length > 0)}
           {menuItem('파일 패널 폴더로 받기', () => st.downloadToPanel(id), list.length > 0 && !!panelPath)}
+          {menuItem('보기 (F3)', () => st.view(id), !!one && !one.isDir)}
+          {menuItem('편집 (F4)', () => st.view(id, true), !!one && !one.isDir)}
           {menuItem('이름 바꾸기 (F2)', askRename, !!one)}
           {menuItem('삭제 (Delete)', askDelete, list.length > 0)}
           <li className={styles.menuSep} role="separator" />

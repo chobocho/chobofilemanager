@@ -5,6 +5,7 @@ import TerminalWorkspace from './TerminalWorkspace.jsx'
 import { useTermStore } from '../store/termStore'
 import { useFilesStore } from '../store/filesStore'
 import { useFileStore } from '../../stores/fileStore'
+import { useEditorStore } from '../../stores/editorStore'
 import { setTermBackend } from '../core/termApi'
 import { stopEventRouter } from '../core/session'
 import { FakeTerminal } from '../test/fakeTerminal'
@@ -39,6 +40,7 @@ beforeEach(() => {
   setTermBackend(api, { EventsOn: (n, fn) => { handlers[n] = fn; return () => delete handlers[n] }, ClipboardSetText: vi.fn() })
   useTermStore.getState().resetForTest()
   useFilesStore.getState().resetForTest()
+  useEditorStore.getState().reset()
   resetSettingsForTest()
   useFileStore.setState(s => ({ activePanel: 'left', left: { ...s.left, path: 'C:\\work', selected: new Set(), files: [], cursor: 0 } }))
 })
@@ -229,6 +231,48 @@ describe('원격 파일 창 (RFV)', () => {
     await connected()
     await waitFor(() => expect(win().getAttribute('aria-label')).toBe('파일 전송 (FTP) - srv'))
     await waitFor(() => expect(row('a.txt')).toBeTruthy())
+  })
+
+  it('RFV-18: F3 → 원격 파일을 뷰어로 (소스는 원격, 이름표 서버:경로)', async () => {
+    await openFiles()
+    await act(async () => { fireEvent.mouseDown(row('a.txt')) })
+    await keyIn('F3')
+    const v = useEditorStore.getState().viewer
+    expect(v.path).toBe('/home/me/a.txt')
+    expect(v.source.remote).toBe(true)
+    expect(v.source.label(v.path)).toBe('srv:/home/me/a.txt')
+  })
+
+  it('RFV-19: F4 → 에디터, 저장하면 목록 새로 고침(그 파일 선택)', async () => {
+    api.FileView = vi.fn().mockResolvedValue({ data: btoa('x'), truncated: false, size: 1, modTime: 't' })
+    api.FileSaveText = vi.fn().mockResolvedValue({ saved: true, conflict: false, bad: 0, size: 2, modTime: 't2' })
+    await openFiles()
+    await act(async () => { fireEvent.mouseDown(row('b.log')) })
+    await keyIn('F4')
+    const e = useEditorStore.getState().editor
+    expect(e.path).toBe('/home/me/b.log')
+    api.FileList.mockClear()
+    await e.source.read(e.path, 'auto')
+    await act(async () => { await e.source.write(e.path, 'xy', 'auto') })
+    await waitFor(() => expect(api.FileList).toHaveBeenCalledWith(1, '/home/me'))
+    await waitFor(() => expect(row('b.log').getAttribute('aria-selected')).toBe('true'))
+  })
+
+  it('RFV-20: 이미지 F3 → 폴더의 다른 이미지들과 함께, 닫으면 파일 창으로 포커스', async () => {
+    remote['/home/me'] = [F('a.txt'), F('p.png', { size: 3 }), F('q.jpg', { size: 5 })]
+    await openFiles()
+    await act(async () => { fireEvent.mouseDown(row('p.png')) })
+    await keyIn('F3')
+    const v = useEditorStore.getState().viewer
+    expect(v.siblings).toEqual(['/home/me/p.png', '/home/me/q.jpg'])
+    act(() => { useEditorStore.getState().closeViewer()?.() })
+    await waitFor(() => expect(document.activeElement).toBe(within(win()).getByRole('grid')))
+  })
+
+  it('RFV-21: 폴더나 여러 개를 고르면 F3은 아무것도 안 함', async () => {
+    await openFiles()
+    await keyIn('F3') // src 폴더 선택 상태
+    expect(useEditorStore.getState().viewer).toBeNull()
   })
 
   it('RFV-17: 탭을 닫으면 파일 창 상태도 정리', async () => {

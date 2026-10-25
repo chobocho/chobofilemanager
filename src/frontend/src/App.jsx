@@ -15,6 +15,7 @@ import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
 import { isTerminalTarget } from './utils/keyboard.js'
 import { useDockStore } from './stores/dockStore'
+import { useEditorStore } from './stores/editorStore'
 
 // Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
 const loadTextEditor = () => import('./components/TextEditor')
@@ -41,6 +42,15 @@ export function isStarlarkScratchShortcut(e) {
   return k === 'm'
 }
 
+// 활성 패널에 보이는 이미지 파일들 (뷰어의 ←/→ 넘기기용)
+function panelImages() {
+  const s = useFileStore.getState()
+  const panel = s[s.activePanel]
+  if (!panel) return null
+  const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
+  return visible.filter(f => !f.isDir && isImageFile(f.extension || '')).map(f => f.path)
+}
+
 export default function App() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
@@ -53,8 +63,9 @@ export default function App() {
   const dockOpen    = useDockStore(s => s.open)
   const dockMounted = useDockStore(s => s.mounted)
   const [modal, setModal]           = useState(null)
-  const [editorFile, setEditorFile] = useState(null)
-  const [viewerFile, setViewerFile] = useState(null)
+  // Todo #123: 뷰어/에디터 열림 상태는 공용 스토어 (터미널의 원격 파일 창도 엶)
+  const viewer = useEditorStore(s => s.viewer)
+  const editor = useEditorStore(s => s.editor)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError]   = useState(null)
   const [trashTarget, setTrashTarget]   = useState(null) // Todo #57: F8/Delete 휴지통 대상
@@ -66,7 +77,7 @@ export default function App() {
   const rightPanelRef = useRef(null)
 
   // Todo #77: 화면 위에 무언가 떠 있으면 파일 패널 단축키를 막음 (키 입력이 뒤 패널로 새지 않게)
-  const overlayOpen = !!(modal || editorFile || viewerFile || deleteTarget || trashTarget
+  const overlayOpen = !!(modal || editor || viewer || deleteTarget || trashTarget
     || copyConflict || moveConflict || fileSizeError)
 
   // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
@@ -97,13 +108,17 @@ export default function App() {
 
   const tryOpenViewer = useCallback((file) => {
     if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
-    setViewerFile(file.path)
+    useEditorStore.getState().openViewer(file.path, { siblings: panelImages() })
   }, [])
 
   const tryOpenEditor = useCallback((file) => {
     if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
-    setEditorFile(file.path)
+    useEditorStore.getState().openEditor(file.path)
   }, [])
+
+  // 뷰어/에디터를 닫은 뒤: 연 쪽이 정한 곳(원격 파일 창 등), 없으면 활성 파일 패널로 포커스
+  const closeViewer = useCallback(() => { (useEditorStore.getState().closeViewer() ?? focusActivePanel)() }, [focusActivePanel])
+  const closeEditor = useCallback(() => { (useEditorStore.getState().closeEditor() ?? focusActivePanel)() }, [focusActivePanel])
 
   useEffect(() => {
     Promise.all([init(), loadBkmarks()])
@@ -120,7 +135,7 @@ export default function App() {
     try {
       const api = (await import('./wailsjs/runtime')).default
       const path = await api.CreateStarlarkScratchFile()
-      if (path) setEditorFile(path)
+      if (path) useEditorStore.getState().openEditor(path)
     } catch (e) {
       console.error('Starlark scratch 생성 실패:', e)
     }
@@ -402,19 +417,12 @@ export default function App() {
         />
       )}
       <Suspense fallback={null}>
-      {viewerFile && <FileViewer path={viewerFile} onClose={() => { setViewerFile(null); focusActivePanel() }}
-        onSwitchToEditor={() => { const p = viewerFile; setViewerFile(null); setEditorFile(p) }}
-        siblingImages={(() => {
-          // 활성 패널의 visible 파일 중 이미지만 절대 경로로 추출 (←/→ 네비게이션용)
-          const s = useFileStore.getState()
-          const panel = s[s.activePanel]
-          if (!panel) return null
-          const visible = panel.showHidden ? panel.files : panel.files.filter(f => !f.isHidden)
-          return visible.filter(f => !f.isDir && isImageFile(f.extension || '')).map(f => f.path)
-        })()}
-        onChangePath={(p) => setViewerFile(p)} />}
-      {editorFile && <TextEditor path={editorFile} onClose={() => { setEditorFile(null); focusActivePanel() }}
-        onSwitchToViewer={() => { const p = editorFile; setEditorFile(null); setViewerFile(p) }} />}
+      {viewer && <FileViewer path={viewer.path} source={viewer.source} onClose={closeViewer}
+        onSwitchToEditor={() => useEditorStore.getState().viewerToEditor()}
+        siblingImages={viewer.siblings ?? null}
+        onChangePath={(p) => useEditorStore.getState().changeViewerPath(p)} />}
+      {editor && <TextEditor path={editor.path} source={editor.source} onClose={closeEditor}
+        onSwitchToViewer={() => useEditorStore.getState().editorToViewer()} />}
       </Suspense>
     </div>
   )

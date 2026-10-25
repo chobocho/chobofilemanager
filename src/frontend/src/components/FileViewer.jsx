@@ -158,7 +158,8 @@ export function getImageStyle(imageScale) {
   }
 }
 
-export default function FileViewer({ path, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
+// source: 파일을 읽는 곳 (없으면 이 PC의 파일, 원격 파일은 terminal/core/remoteSource — Todo #123)
+export default function FileViewer({ path, source, onClose, onSwitchToEditor, siblingImages, onChangePath }) {
   const [content, setContent]     = useState('')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -181,7 +182,10 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
   const mdBodyRef         = useRef(null)
   const imageContainerRef = useRef(null)
 
-  const { readFile, readImage } = useFileStore.getState()
+  const local = useFileStore.getState()
+  const readFile = source ? source.read : local.readFile
+  const readImage = source ? source.readImage : local.readImage
+  const [note, setNote] = useState('')
   const fileName = path?.split(/[/\\]/).pop() || 'file'
 
 
@@ -200,7 +204,10 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
       try {
         const data = isImage ? await readImage(path) : await readFile(path, encoding)
         // 텍스트는 LF로 통일해 표시 (줄 수 계산이 편집기와 같도록, Todo #112)
-        if (!cancelled) setContent(isImage ? data : data.replace(/\r\n/g, '\n'))
+        if (!cancelled) {
+          setContent(isImage ? data : data.replace(/\r\n/g, '\n'))
+          setNote(source?.note?.() ?? '')
+        }
       } catch (e) {
         if (!cancelled) setError(String(e))
       } finally {
@@ -374,7 +381,7 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
     if (!isMarkdown || !mdRendered || !mdHtml) return
     const root = mdBodyRef.current
     const { resolveRepoImage } = useFileStore.getState()
-    if (!root || !resolveRepoImage) return
+    if (!root || !resolveRepoImage || source?.remote) return // 원격 파일 옆의 로컬 저장소는 없음
     let cancelled = false
     root.querySelectorAll('img[data-gh-path]').forEach(img => {
       const { ghOwner, ghRepo, ghPath } = img.dataset
@@ -401,7 +408,8 @@ export default function FileViewer({ path, onClose, onSwitchToEditor, siblingIma
         <div className={styles.header}>
           <Eye size={14} className={styles.fileIcon} />
           <span className={styles.fileName}>{fileName}</span>
-          <span className={styles.filePath}>{path}</span>
+          <span className={styles.filePath}>{source ? source.label(path) : path}</span>
+          {note && <span className={styles.sourceNote}>{note}</span>}
           <span className={styles.readonlyBadge}>READ ONLY</span>
 
           <div className={styles.actions}>

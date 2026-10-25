@@ -37,7 +37,8 @@ function cursorFromState(state) {
   return { line: line.number, col: pos - line.from + 1 }
 }
 
-export default function TextEditor({ path, onClose, onSwitchToViewer }) {
+// source: 파일을 읽고 쓰는 곳 (없으면 이 PC의 파일, 원격 파일은 terminal/core/remoteSource — Todo #123)
+export default function TextEditor({ path, source, onClose, onSwitchToViewer }) {
   // Todo #110: 편집 내용은 CodeMirror 문서가 보관 — 키 입력마다 전체 문자열을 상태로 복사하지 않음
   const [loadedText, setLoadedText]     = useState('')
   const [stats, setStats]               = useState({ lines: 1, length: 0 })
@@ -64,10 +65,13 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
   const searchInputRef = useRef(null)
   const saveConfirmRef = useRef(null)
 
-  const { readFile, writeFile } = useFileStore.getState()
+  const local = useFileStore.getState()
+  const readFile = source ? source.read : local.readFile
+  const writeFile = source ? source.write : local.writeFile
+  const [note, setNote] = useState('')
   const fileName = path?.split(/[/\\]/).pop() || 'file'
   const ext = path ? '.' + (path.split('.').pop() || '') : ''
-  const isStarlark = isStarlarkFile(ext)
+  const isStarlark = !source?.remote && isStarlarkFile(ext) // 실행은 이 PC의 Starlark만
   const languageKey = languageKeyForPath(path)
 
   useEffect(() => {
@@ -82,6 +86,7 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
         const text = raw.replace(/\r\n/g, '\n')
         const doc = Text.of(text.split('\n'))
         originalDocRef.current = doc
+        setNote(source?.note?.() ?? '')
         setLoadedText(text)
         setStats({ lines: doc.lines, length: doc.length })
         setIsDirty(false)
@@ -327,7 +332,8 @@ export default function TextEditor({ path, onClose, onSwitchToViewer }) {
             {fileName}
             {isDirty && <span className={styles.dirty}>●</span>}
           </span>
-          <span className={styles.filePath}>{path}</span>
+          <span className={styles.filePath}>{source ? source.label(path) : path}</span>
+          {note && <span className={styles.sourceNote}>{note}</span>}
 
           <div className={styles.actions}>
             {onSwitchToViewer && (

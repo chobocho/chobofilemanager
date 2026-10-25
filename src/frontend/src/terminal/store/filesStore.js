@@ -6,6 +6,14 @@ import {
   folderKey, keepAfterDelete, isUp,
 } from '../core/remoteFiles'
 import { useFileStore, getCursorFile } from '../../stores/fileStore'
+import { useEditorStore } from '../../stores/editorStore'
+import { createRemoteSource } from '../core/remoteSource'
+import { viewable } from '../core/remoteFiles'
+import { isImageFile } from '../../utils/fileTypes.js'
+
+const extOf = (name) => (name.includes('.') ? '.' + name.split('.').pop() : '')
+// 보기를 닫은 뒤 포커스를 돌려줄 곳: 원격 파일 목록
+const focusRemoteList = () => requestAnimationFrame(() => document.querySelector('[aria-label="원격 파일 목록"]')?.focus())
 
 // 원격 파일 창 (Todo #123, choboTerm files.ts). 탭마다 창 하나 — 보이는 건 활성 탭의 창이고,
 // 다른 탭의 창은 폴더·선택·진행 중인 전송을 그대로 둡니다.
@@ -212,6 +220,27 @@ export const useFilesStore = create((set, get) => {
       patch(id, { busy: false })
       await get().load(id, view(id).cwd, [name])
     }),
+
+    // F3 보기 / F4 편집 (App의 뷰어·에디터, 원격 소스). 이미지는 폴더의 다른 이미지와 함께
+    view: (id, edit = false) => {
+      const v = view(id)
+      const e = v && viewable(v)
+      if (!e || v.busy) return
+      const dir = v.cwd
+      const host = v.heading.replace(/^.* - /, '')
+      const path = joinPath(dir, e.name)
+      const images = v.entries.filter(x => !x.isDir && !isUp(x) && isImageFile(extOf(x.name)))
+      const source = createRemoteSource(id, {
+        host, path, size: e.size,
+        sizes: Object.fromEntries(images.map(x => [joinPath(dir, x.name), x.size])),
+        // 저장하면 목록의 크기·시각도 새로
+        onSaved: () => { const now = view(id); if (now && !now.busy && now.cwd === dir) get().load(id, dir, [e.name]) },
+      })
+      const ed = useEditorStore.getState()
+      if (edit) return ed.openEditor(path, { source, onClose: focusRemoteList })
+      const isImg = isImageFile(extOf(e.name))
+      ed.openViewer(path, { source, onClose: focusRemoteList, siblings: isImg ? images.map(x => joinPath(dir, x.name)) : undefined })
+    },
 
     // ── 즐겨찾기 (같은 서버의 다른 탭과 공유) ──
     reloadMarks: async (id) => {

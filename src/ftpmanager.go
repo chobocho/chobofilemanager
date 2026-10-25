@@ -324,8 +324,20 @@ func (fm *FTPManager) CreateDirectory(id, path string) error {
 	})
 }
 
+// RenameItem: 같은 폴더에 같은 이름이 있으면 거부 — FTP 서버는 RNTO로 기존 파일을 덮어씀 (Todo #130-1).
+// 대소문자만 바꾸는 것은 허용
 func (fm *FTPManager) RenameItem(id, oldPath, newPath string) error {
 	return fm.withConn(id, func(c *ftp.ServerConn) error {
+		oldName, newName := path.Base(oldPath), path.Base(newPath)
+		if !strings.EqualFold(oldName, newName) || path.Dir(oldPath) != path.Dir(newPath) {
+			if entries, err := c.List(path.Dir(newPath)); err == nil {
+				for _, e := range entries {
+					if e.Name == newName {
+						return fmt.Errorf("같은 이름이 이미 있습니다: %s", newName)
+					}
+				}
+			}
+		}
 		return c.Rename(oldPath, newPath)
 	})
 }

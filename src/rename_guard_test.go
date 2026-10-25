@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -59,5 +60,39 @@ func TestRenameItemToANewName(t *testing.T) {
 	os.WriteFile(a, []byte("x"), 0o644)
 	if err := NewFileManager().RenameItem(a, filepath.Join(dir, "new.txt")); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// FTP 보기의 이름 바꾸기도 같은 이름이 있으면 RNFR/RNTO를 보내지 않음 (서버가 덮어씀)
+func TestFTPRenameRefusesAnExistingName(t *testing.T) {
+	a := newCovApp(t)
+	srv := startFakeFTP(t)
+	srv.listings = map[string][]string{"/": {lsFileA, lsDirSub}}
+	srv.handler = func(cmd, arg string) string {
+		switch cmd {
+		case "RNFR":
+			return "350 ready"
+		case "RNTO":
+			return "250 ok"
+		}
+		return ""
+	}
+	id, err := a.FTPConnect(srv.config())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.FTPRenameItem(id, "/other.txt", "/a.TXT"); err == nil {
+		t.Fatal("rename onto an existing name must fail")
+	}
+	for _, c := range srv.received() {
+		if strings.HasPrefix(c, "RNFR") {
+			t.Fatalf("RNFR sent: %v", srv.received())
+		}
+	}
+	if err := a.FTPRenameItem(id, "/a.TXT", "/A.txt"); err != nil {
+		t.Fatalf("case-only rename: %v", err)
+	}
+	if err := a.FTPRenameItem(id, "/a.TXT", "/new.txt"); err != nil {
+		t.Fatalf("new name: %v", err)
 	}
 }

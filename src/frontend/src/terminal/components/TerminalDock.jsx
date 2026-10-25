@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { RotateCw, X, FolderOpen } from 'lucide-react'
-import { TermSession, startEventRouter } from '../core/session'
+import { TermSession } from '../core/session'
+import { acquireTerminalEvents } from '../store/termEvents'
 import { lookOptions } from '../core/look'
 import { settings, loadSettings } from '../core/settings'
 import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, quoteForShell, clampDockHeight, localPathFromCwd } from '../core/dock'
@@ -45,7 +46,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
   }
 
   useEffect(() => {
-    startEventRouter()
+    const releaseEvents = acquireTerminalEvents() // Terminal 보기와 함께 씀
     loadSettings().then(() => { const s = sessionRef.current; if (s) Object.assign(s.term.options, lookOptions(settings)) })
     const s = new TermSession(DOCK_ID_BASE, { createTerminal, addons, options: lookOptions(settings) })
     sessionRef.current = s
@@ -71,6 +72,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
       useDockStore.getState().setSink(null)
       sessionRef.current = null
       s.close()
+      releaseEvents()
     }
   }, [createTerminal, addons])
 

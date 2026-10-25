@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { Plus, X, TerminalSquare, Star, Settings, Command } from 'lucide-react'
-import { startEventRouter, sessionById, allSessions } from '../core/session'
+import { sessionById, allSessions } from '../core/session'
+import { acquireTerminalEvents } from '../store/termEvents'
 import { loadSettings } from '../core/settings'
 import { loadRules } from '../core/highlight'
 import { startI18n, resolveLang } from '../core/i18n'
@@ -35,9 +36,9 @@ import TransferProgress from './TransferProgress.jsx'
 import ForwardsDialog from './ForwardsDialog.jsx'
 import ContainersDialog from './ContainersDialog.jsx'
 import ScriptBox from './ScriptBox.jsx'
-import { useScriptStore, startScriptEvents, stopScriptEvents } from '../store/scriptStore'
+import { useScriptStore } from '../store/scriptStore'
 import { scriptBadge } from '../core/luaScript'
-import { useFilesStore, startTransferEvents, stopTransferEvents } from '../store/filesStore'
+import { useFilesStore } from '../store/filesStore'
 import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
 
@@ -112,10 +113,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   }, [cat])
 
   useEffect(() => {
-    startEventRouter()
+    const releaseEvents = acquireTerminalEvents() // 도크와 함께 씀: 마지막이 놓으면 끊김
     installDebug()
-    startTransferEvents()
-    startScriptEvents()
     loadSettings().then(async () => {
       loadRules()
       // 언어: 설정, 비면 Go가 정한 언어 (Todo #124)
@@ -126,7 +125,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     })
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
     const offWeb = onTermEvent('web:status', (running, clients) => setWebServer(running ? { clients } : null))
-    return () => { stopTransferEvents(); stopScriptEvents(); offWeb() }
+    return () => { releaseEvents(); offWeb() }
   }, [])
 
   function onKeyDown(e) {

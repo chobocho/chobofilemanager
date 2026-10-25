@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, FolderPlus, FilePlus, Edit3, Search as SearchIcon, X, Terminal, Play, Eye, FileEdit } from 'lucide-react'
-import { useFileStore, getCursorFile } from '../stores/fileStore'
+import { useFileStore, getCursorFile, parentDir } from '../stores/fileStore'
 import api from '../wailsjs/runtime'
 import { isTextFile } from '../utils/fileTypes.js'
 import styles from '../styles/Dialogs.module.css'
@@ -377,11 +377,10 @@ export function SearchDialog({ onClose, onView, onEdit }) {
       store.navigate(store.activePanel, file.path)
     } else {
       // Todo.md #66: 파일 선택 시 부모 폴더로 이동한 뒤 해당 파일에 커서를 둔다.
-      // Windows(\) / Unix(/) 구분자 모두 처리.
+      // Windows(\) / Unix(/) 구분자 모두 처리. 드라이브·최상위 바로 아래는 "C:\"·"/" (parentDir, Todo #130-3)
       const lastSep = Math.max(file.path.lastIndexOf('/'), file.path.lastIndexOf('\\'))
-      const dir = lastSep > 0 ? file.path.substring(0, lastSep) : file.path
       const fileName = lastSep >= 0 ? file.path.substring(lastSep + 1) : file.path
-      store.navigateAndFocus(store.activePanel, dir, fileName)
+      store.navigateAndFocus(store.activePanel, parentDir(file.path), fileName)
     }
     onClose()
   }

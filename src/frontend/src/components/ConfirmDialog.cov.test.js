@@ -369,6 +369,21 @@ describe('SearchDialog 커버리지', () => {
     expect(navigateAndFocus).toHaveBeenLastCalledWith('left', '/u', 'app.exe')
   })
 
+  it('SD-10: 드라이브·최상위 폴더 바로 아래 파일 → "C:\\"·"/"로 이동 (Todo #130-3, 전에는 "C:"·파일 경로)', async () => {
+    api.SearchFiles.mockResolvedValue([
+      { name: 'top.txt', path: 'D:\\top.txt', isDir: false, size: 1, extension: '.txt' },
+      { name: 'root.txt', path: '/root.txt', isDir: false, size: 1, extension: '.txt' },
+    ])
+    render(h(SearchDialog, { onClose: vi.fn() }))
+    const input = screen.getByPlaceholderText(/Search pattern/)
+    fireEvent.change(input, { target: { value: 'x' } })
+    await act(async () => { fireEvent.submit(input.closest('form')) })
+    fireEvent.click(screen.getByTitle('D:\\top.txt'))
+    expect(navigateAndFocus).toHaveBeenLastCalledWith('left', 'D:\\', 'top.txt')
+    fireEvent.click(screen.getByTitle('/root.txt'))
+    expect(navigateAndFocus).toHaveBeenLastCalledWith('left', '/', 'root.txt')
+  })
+
   it('SD-06: 텍스트 파일에만 보기/편집 버튼, 실행 버튼은 모든 파일 — 클릭은 행 이동을 막음', async () => {
     api.SearchFiles.mockResolvedValue(results)
     const onView = vi.fn(), onEdit = vi.fn(), onClose = vi.fn()

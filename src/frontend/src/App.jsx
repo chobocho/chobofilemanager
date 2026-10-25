@@ -283,6 +283,11 @@ function FileManagerApp() {
 
   // 이름 변경 대상이 없으면([..] 또는 빈 폴더) 대화상자를 열지 않음 — RenameDialog가 null을 렌더링해
   // 보이지 않는 modal이 단축키를 막는 상태 방지 (Todo #78)
+  // F3/F4 (도구 막대·F키 막대): 활성 패널 커서 파일을 보기/편집 (Todo #131-4)
+  const cursorFileOnly = () => { const s = useFileStore.getState(); const f = getCursorFile(s[s.activePanel]); return f && !f.isDir ? f : null }
+  const handleViewCursor = () => { const f = cursorFileOnly(); if (f) tryOpenViewer(f) }
+  const handleEditCursor = () => { const f = cursorFileOnly(); if (f) tryOpenEditor(f) }
+
   const handleRename = () => {
     const s = useFileStore.getState()
     if (getCursorFile(s[s.activePanel])) setModal('rename')
@@ -308,16 +313,8 @@ function FileManagerApp() {
         onCompress={handleCompress}
         onExtract={handleExtract}
         onRename={handleRename}
-        onView={() => {
-          const s = useFileStore.getState()
-          const file = getCursorFile(s[s.activePanel])
-          if (file && !file.isDir) tryOpenViewer(file)
-        }}
-        onEdit={() => {
-          const s = useFileStore.getState()
-          const file = getCursorFile(s[s.activePanel])
-          if (file && !file.isDir) tryOpenEditor(file)
-        }}
+        onView={handleViewCursor}
+        onEdit={handleEditCursor}
         onCopy={handleCopy}
         onMove={handleMove}
         onNewDir={() => setModal('newdir')}
@@ -366,16 +363,8 @@ function FileManagerApp() {
         fileView={view === 'files'}
         onHelp={() => setModal('help')}
         onRename={handleRename}
-        onView={() => {
-          const s = useFileStore.getState()
-          const file = getCursorFile(s[s.activePanel])
-          if (file && !file.isDir) tryOpenViewer(file)
-        }}
-        onEdit={() => {
-          const s = useFileStore.getState()
-          const file = getCursorFile(s[s.activePanel])
-          if (file && !file.isDir) tryOpenEditor(file)
-        }}
+        onView={handleViewCursor}
+        onEdit={handleEditCursor}
         onCopy={handleCopy}
         onMove={handleMove}
         onNewDir={() => setModal('newdir')}

@@ -227,6 +227,19 @@ ${names}
 계속하시겠습니까?`
 }
 
+// 받는/올리는 쪽에 이미 있는 이름 (Todo #130-3 — FTP 전송은 묻지 않고 덮어씀). 로컬(Windows)은 대소문자 무시
+export function existingNames(names, files, ignoreCase) {
+  const norm = ignoreCase ? (n) => n.toLowerCase() : (n) => n
+  const have = new Set((files || []).map(f => norm(f.name)))
+  return names.filter(n => have.has(norm(n)))
+}
+
+export function overwriteMessage(names) {
+  const list = names.slice(0, 5).join(', ') + (names.length > 5 ? ' ...' : '')
+  return `${names.length}개 항목이 이미 있습니다. 덮어쓸까요?
+${list}`
+}
+
 export default function FTPManager() {
   const ftpStore  = useFTPStore()
   const fileStore = useFileStore()
@@ -309,6 +322,8 @@ export default function FTPManager() {
 
   const handleDownload = async () => {
     if (!activeConn || ftpSelected.size === 0) return
+    const clash = existingNames([...ftpSelected].map(p => p.split('/').pop()), localStore.files, true)
+    if (clash.length && !window.confirm(overwriteMessage(clash))) return
     const api = (await import('../wailsjs/runtime')).default
     let count = 0
     const failures = []
@@ -327,6 +342,8 @@ export default function FTPManager() {
     if (!activeConn) return
     const localSelected = [...localStore.selected]
     if (!localSelected.length) return
+    const clash = existingNames(localSelected.map(p => p.split(/[/\\]/).pop()), ftpFiles, false)
+    if (clash.length && !window.confirm(overwriteMessage(clash))) return
     const api = (await import('../wailsjs/runtime')).default
     let count = 0
     const failures = []

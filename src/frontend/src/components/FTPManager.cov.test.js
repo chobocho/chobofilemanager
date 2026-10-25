@@ -251,6 +251,45 @@ describe('FTPManager 통합 흐름', () => {
     await waitFor(() => expect(api.FTPUpload).toHaveBeenCalledWith('c1', 'C:\\work\\x.txt', '/x.txt'))
   })
 
+  it('FM-30: 받을 폴더에 같은 이름이 있으면 덮어쓸지 물음 — 취소면 받지 않음 (Todo #130-3)', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, files: [...s.left.files, { name: 'A.TXT', path: 'C:\\work\\A.TXT', isDir: false, size: 1, modified: '' }] } }))
+    const { container } = await renderMgr()
+    await connect(container)
+    const { ftp } = panels(container)
+    await click(ftp.querySelector('[title="/a.txt"]'), { ctrlKey: true })
+    window.confirm = vi.fn(() => false)
+    await click(screen.getByText('Download', { selector: 'button' }))
+    expect(window.confirm).toHaveBeenCalledTimes(1)
+    expect(window.confirm.mock.calls[0][0]).toContain('a.txt')
+    expect(api.FTPDownload).not.toHaveBeenCalled()
+    window.confirm = vi.fn(() => true)
+    await click(screen.getByText('Download', { selector: 'button' }))
+    await waitFor(() => expect(api.FTPDownload).toHaveBeenCalledWith('c1', '/a.txt', 'C:\\work'))
+  })
+
+  it('FM-31: 원격 폴더에 같은 이름이 있으면 올리기 전에 물음 — 취소면 올리지 않음', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(['C:\\work\\a.txt']) } }))
+    const { container } = await renderMgr()
+    await connect(container)
+    window.confirm = vi.fn(() => false)
+    await click(screen.getByText('Upload', { selector: 'button' }))
+    expect(window.confirm).toHaveBeenCalledTimes(1)
+    expect(api.FTPUpload).not.toHaveBeenCalled()
+    window.confirm = vi.fn(() => true)
+    await click(screen.getByText('Upload', { selector: 'button' }))
+    await waitFor(() => expect(api.FTPUpload).toHaveBeenCalledWith('c1', 'C:\\work\\a.txt', '/a.txt'))
+  })
+
+  it('FM-32: 겹치는 이름이 없으면 묻지 않음', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, selected: new Set(['C:\\work\\x.txt']) } }))
+    const { container } = await renderMgr()
+    await connect(container)
+    window.confirm = vi.fn(() => false)
+    await click(screen.getByText('Upload', { selector: 'button' }))
+    await waitFor(() => expect(api.FTPUpload).toHaveBeenCalled())
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
   it('FM-10: 업로드할 로컬 선택이 없으면 Upload 비활성', async () => {
     const { container } = await renderMgr()
     await connect(container)

@@ -388,7 +388,7 @@
 - [x] 130-2 Go internal (termapp 통합부·host·appdir·localshell 변경분) — SCP 가짜 서버 테스트, 손상 설정/세션 백업(atomicfile), Telnet 협상 반복 차단
 - 130-3 프론트 앱 (App·stores·components)
   - [x] a. 이름 바꾸기 창이 제출 시점 커서 파일을 바꿈 (복사 완료 등으로 커서 이동 시 다른 파일)
-  - [ ] b. FTP 다운로드/업로드가 같은 이름을 묻지 않고 덮어씀
+  - [x] b. FTP 다운로드/업로드가 같은 이름을 묻지 않고 덮어씀
   - [ ] c. 복사/이동 충돌 창 단추 연타 시 작업 두 번 실행
   - [ ] d. 검색 결과 열기가 드라이브 루트 파일이면 "C:"로 이동
   - [ ] e. Ctrl+W가 탭 닫은 뒤 엉뚱한 탭을 닫음 (useCallback 의존성)

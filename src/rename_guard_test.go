@@ -96,3 +96,40 @@ func TestFTPRenameRefusesAnExistingName(t *testing.T) {
 		t.Fatalf("new name: %v", err)
 	}
 }
+
+// F6 이동: 앞쪽 충돌 검사 뒤에 생긴 같은 이름 파일을 조용히 덮어쓰지 않음 (Windows os.Rename은 덮어씀)
+func TestMoveItemsRefusesToOverwriteAnExistingFile(t *testing.T) {
+	src, dst := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(src, "a.txt"), []byte("NEW"), 0o644)
+	os.WriteFile(filepath.Join(dst, "a.txt"), []byte("OLD"), 0o644)
+	if err := NewFileManager().MoveItems([]string{filepath.Join(src, "a.txt")}, dst); err == nil {
+		t.Fatal("moving onto an existing file must fail")
+	}
+	if got, _ := os.ReadFile(filepath.Join(dst, "a.txt")); string(got) != "OLD" {
+		t.Fatalf("existing file was replaced: %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(src, "a.txt")); err != nil {
+		t.Fatal("source must stay when the move is refused")
+	}
+}
+
+// 덮어쓰기·새 이름 모드는 그대로 동작
+func TestMoveItemsOverwriteAndRenameStillWork(t *testing.T) {
+	fm := NewFileManager()
+	src, dst := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(src, "a.txt"), []byte("NEW"), 0o644)
+	os.WriteFile(filepath.Join(dst, "a.txt"), []byte("OLD"), 0o644)
+	if err := fm.MoveItemsOverwrite([]string{filepath.Join(src, "a.txt")}, dst); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dst, "a.txt")); string(got) != "NEW" {
+		t.Fatalf("overwrite: got %q", got)
+	}
+	os.WriteFile(filepath.Join(src, "a.txt"), []byte("THIRD"), 0o644)
+	if err := fm.MoveItemsRename([]string{filepath.Join(src, "a.txt")}, dst); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dst, "a (1).txt")); string(got) != "THIRD" {
+		t.Fatalf("rename: got %q", got)
+	}
+}

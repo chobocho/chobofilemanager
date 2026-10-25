@@ -224,6 +224,10 @@ func (fm *FileManager) moveOne(src, destPath string) error {
 	if isSubPath(src, destPath) {
 		return errIntoSelf(src)
 	}
+	// 충돌 검사 뒤에 생긴 같은 이름 항목도 덮어쓰지 않음 (Todo #130-1, 덮어쓰기 모드는 대상을 먼저 치움)
+	if err := refuseOtherAt(src, destPath); err != nil {
+		return err
+	}
 	err := os.Rename(src, destPath)
 	if err == nil || !isCrossDevice(err) {
 		return err
@@ -336,16 +340,26 @@ func (fm *FileManager) CreateFile(path string) error {
 // RenameItem: 이름 바꾸기. 같은 이름의 다른 항목이 있으면 거부 — Windows의 os.Rename은 파일을 말없이 덮어씀 (Todo #130-1).
 // 대소문자만 바꾸는 것(a.txt → A.txt)은 같은 파일이므로 허용
 func (fm *FileManager) RenameItem(oldPath, newPath string) error {
-	if dst, err := os.Lstat(newPath); err == nil {
-		src, serr := os.Lstat(oldPath)
-		if serr != nil {
-			return serr
-		}
-		if !os.SameFile(src, dst) {
-			return fmt.Errorf("같은 이름이 이미 있습니다: %s", filepath.Base(newPath))
-		}
+	if err := refuseOtherAt(oldPath, newPath); err != nil {
+		return err
 	}
 	return os.Rename(oldPath, newPath)
+}
+
+// refuseOtherAt: dst에 src가 아닌 다른 항목이 있으면 오류 — os.Rename이 덮어쓰기 전에 (이름 바꾸기·이동 공용)
+func refuseOtherAt(src, dst string) error {
+	d, err := os.Lstat(dst)
+	if err != nil {
+		return nil
+	}
+	sInfo, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
+	if !os.SameFile(sInfo, d) {
+		return fmt.Errorf("같은 이름이 이미 있습니다: %s", filepath.Base(dst))
+	}
+	return nil
 }
 
 func (fm *FileManager) GetFileInfo(path string) (*FileInfo, error) {

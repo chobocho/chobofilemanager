@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #130-1: F6 이동도 같은 이름 파일을 조용히 덮어쓰지 않게
+- 앞쪽 충돌 검사 뒤에 대상에 같은 이름 파일이 생기면, Windows os.Rename이 그 파일을 말없이 덮어쓰던 구멍을 막음. 이제 "같은 이름이 이미 있습니다" 오류가 나고 원본은 그대로 남음.
+- 이름 바꾸기와 이동이 같은 검사(refuseOtherAt)를 씀. 덮어쓰기·새 이름 모드는 그대로 동작.
+- 테스트: TestMoveItemsRefusesToOverwriteAnExistingFile, TestMoveItemsOverwriteAndRenameStillWork.
+
 ## 2026-10-25 Todo.md #130-1: FTP 보기 이름 바꾸기도 같은 이름이면 거부
 - 파일 관리자 FTP 보기의 이름 바꾸기(RNFR/RNTO)가 같은 폴더의 같은 이름 파일을 덮어쓰던 문제 수정. 바꾸기 전에 목록을 확인해 있으면 "같은 이름이 이미 있습니다" 오류.
 - 대소문자만 바꾸는 이름 바꾸기는 그대로 허용.

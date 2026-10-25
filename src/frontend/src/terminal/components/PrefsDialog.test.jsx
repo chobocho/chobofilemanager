@@ -117,6 +117,15 @@ describe('설정 창 (PD)', () => {
     expect(settings.pasteNoConfirm).toBe(true)
   })
 
+  it('PD-12: 파일 관리자 — FTP 버튼 보이기를 끄면 hideFtpButton=true', async () => {
+    const dlg = await openPrefs()
+    const box = within(dlg).getByLabelText('왼쪽 위에 FTP 버튼 보이기')
+    expect(box.checked).toBe(true)
+    fireEvent.click(box)
+    await act(async () => { fireEvent.click(within(dlg).getByRole('button', { name: '확인' })) })
+    expect(settings.hideFtpButton).toBe(true)
+  })
+
   it('PD-10: 언어 — 고르면 저장, 영어로 바꾸면 터미널 화면이 바로 영어', async () => {
     const dlg = await openPrefs()
     expect(within(dlg).getByLabelText('언어').value).toBe('')

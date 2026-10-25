@@ -56,7 +56,9 @@ describe('지연 로딩 (Todo #115)', () => {
 
   it('LZ-04: 터미널 코드(src/terminal/)는 초기 그래프에 없음 — 처음 열 때 불러옴 (Todo #119)', () => {
     // 예외: Go 바인딩 창구(termApi, xterm 없음). 창 닫기 확인(CloseGuard)이 터미널을 열지 않아도 답해야 함 (Todo #124)
-    expect(graph.files.filter(f => f.startsWith('terminal/') && f !== 'terminal/core/termApi.ts')).toEqual([])
+    // settings(termApi만 씀): 상단 툴바가 FTP 버튼 숨기기 설정을 읽음
+    const allowed = ['terminal/core/termApi.ts', 'terminal/core/settings.ts']
+    expect(graph.files.filter(f => f.startsWith('terminal/') && !allowed.includes(f))).toEqual([])
   })
 
   it('LZ-03: 그래프 검사가 실제로 동작 (App과 FilePanel은 포함)', () => {

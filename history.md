@@ -2,6 +2,13 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 설정에 "왼쪽 위에 FTP 버튼 보이기" 추가
+- 터미널 설정 창(⚙, Ctrl+Shift+O)에 "파일 관리자" 칸 추가. 끄면 상단 FTP 버튼이 바로 사라지고, 다시 켜면 나타남.
+- 저장: 설정 파일에 `hideFtpButton`(기본 false = 보임, 예전 설정 파일도 보임). Go `internal/config.Settings`와 TS 설정에 추가.
+- 툴바는 `onSettingsChange` 구독으로 즉시 반영, 시작할 때 저장된 설정을 읽음. FTP 화면에서 숨기면 Files 화면으로 전환.
+- 초기 로딩 그래프에 `terminal/core/settings.ts`(termApi만 사용) 허용, wire.golden 갱신.
+- 테스트: Go `TestHideFtpButtonRoundTripsAndDefaultsToShown`, PF-08, PD-12, `Toolbar.ftp.test.jsx`(TF-01~03) 추가. 프론트 1239개·Go 전체 통과.
+
 ## 2026-10-25 Lua 결과 창이 닫히지 않던 문제, 종료 확인 글자가 흐리던 문제 수정
 - Lua 결과 창: 닫기를 눌러도 사라지지 않음. 원인은 cat.css의 `#luaResult.dialog { display: flex }`가 `#luaResult[hidden] { display: none }`과 우선순위가 같고 뒤에 있어 hidden을 덮어씀. .dialog 규칙에서 display를 빼서 수정(display는 #luaResult 규칙에 이미 있음).
 - 종료 확인 대화상자(CloseGuard): 본문 `<p>`에 클래스가 없어 흐린 기본 글자색으로 보임 → 다른 확인 상자처럼 `styles.message` 적용.

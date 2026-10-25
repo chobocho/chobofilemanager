@@ -57,6 +57,13 @@ describe('prefs (PF)', () => {
         expect(r.values.language).toBe('en');
     });
 
+    it('PF-08: FTP 버튼 보이기 — 기본은 보임, 끄면 hideFtpButton 저장', () => {
+        expect(prefsForm(defaultSettings()).ftpButton).toBe(true);
+        const r = readPrefs({...prefsForm(defaultSettings()), ftpButton: false}) as any;
+        expect(r.values.hideFtpButton).toBe(true);
+        expect(prefsForm({...defaultSettings(), hideFtpButton: true}).ftpButton).toBe(false);
+    });
+
     it('PF-06: 테마 미리보기 — 프롬프트·ls·오류/경고/완료 줄, 16색', () => {
         const p = previewLines('dracula');
         const pal = paletteOf(themeByName('dracula').theme);

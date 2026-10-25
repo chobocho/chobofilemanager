@@ -339,6 +339,7 @@ settings {
     "updateCheck" bool
     "cat" bool
     "catIntro" bool
+    "hideFtpButton" bool
     "dockerEngines,omitempty" map[string]string
     "window,omitempty" *windowState
     "update,omitempty" *updateState
@@ -483,5 +484,6 @@ xferProgress {
   "macros": [],
   "updateCheck": false,
   "cat": true,
-  "catIntro": false
+  "catIntro": false,
+  "hideFtpButton": false
 }

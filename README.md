@@ -23,7 +23,7 @@
 ### 터미널 (Terminal 보기 · 하단 도크)
 - **Terminal 보기**: SSH(키·에이전트·ssh_config·ProxyJump), Telnet, FTP, 시리얼, 로컬 셸(cmd / PowerShell / pwsh / WSL) 탭
 - 화면 분할(Ctrl+Shift+\\ / -), 탭 우클릭 메뉴, 검색(Ctrl+Shift+S), 단어 강조, 자동 재접속
-- 세션 관리자(Ctrl+Shift+H, PuTTY 가져오기), 설정(Ctrl+Shift+O), 매크로(Ctrl+Shift+M, F키), 세션 로그(Ctrl+Shift+L), 메모장(Ctrl+Shift+B)
+- 세션 관리자(Ctrl+Shift+H, PuTTY 가져오기), 설정(Ctrl+Shift+O, 왼쪽 위 FTP 버튼 숨기기 포함), 매크로(Ctrl+Shift+M, F키), 세션 로그(Ctrl+Shift+L), 메모장(Ctrl+Shift+B)
 - 원격 파일 창(Ctrl+Shift+F, SFTP/SCP/FTP): 받기/올리기, 즐겨찾기, **원격 파일 보기·편집(F3/F4)**, 파일 패널 폴더로 받기 / 패널의 선택 항목 올리기
 - 포트 포워딩(Ctrl+Shift+P), 도커 컨테이너(Ctrl+Shift+J), Lua 콘솔(Ctrl+Shift+K)·스크립트, Zmodem(sz/rz)
 - 영어 화면, 창 투명도, 웹 서버(다른 PC의 브라우저에서 터미널 사용), 업데이트 확인, 고양이 🐈

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useSyncExternalStore } from 'react'
 import {
   FilePlus, Search, Globe, Monitor, Sun, Moon, TerminalSquare,
   Archive, PackageOpen
@@ -6,6 +6,7 @@ import {
 import styles from '../styles/Toolbar.module.css'
 import { useThemeStore } from '../stores/themeStore'
 import { isTerminalTarget } from '../utils/keyboard.js'
+import { settings, loadSettings, onSettingsChange } from '../terminal/core/settings'
 
 // Todo #54: 영구 삭제는 Shift+Delete만 허용 (단독 Delete는 트래시 — Todo #57)
 export function isPermanentDeleteShortcut(e) {
@@ -27,6 +28,11 @@ export default function Toolbar({
 }) {
   const theme       = useThemeStore(s => s.theme)
   const toggleTheme = useThemeStore(s => s.toggleTheme)
+  // FTP 버튼 숨기기 (터미널 설정 > 파일 관리자). 시작할 때 저장된 설정을 읽음
+  const hideFtp = useSyncExternalStore(onSettingsChange, () => !!settings.hideFtpButton)
+  useEffect(() => { loadSettings() }, [])
+  // FTP 화면에서 숨기면 돌아갈 버튼이 없으므로 Files로
+  useEffect(() => { if (hideFtp && view === 'ftp') onViewChange('files') }, [hideFtp, view, onViewChange])
 
   // 키보드 단축키 (F키바와 동일하게 유지)
   useEffect(() => {
@@ -96,14 +102,14 @@ export default function Toolbar({
           <Monitor size={13} />
           <span>Files</span>
         </button>
-        <button
+        {!hideFtp && <button
           className={`${styles.viewBtn} ${view === 'ftp' ? styles.viewBtnActive : ''}`}
           onClick={() => onViewChange('ftp')}
           title="FTP Manager"
         >
           <Globe size={13} />
           <span>FTP</span>
-        </button>
+        </button>}
         <button
           className={`${styles.viewBtn} ${view === 'terminal' ? styles.viewBtnActive : ''}`}
           onClick={() => onViewChange('terminal')}

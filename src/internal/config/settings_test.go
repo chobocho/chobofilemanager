@@ -77,3 +77,18 @@ func TestCorruptSettingsAreBackedUpBeforeTheNextSave(t *testing.T) {
 		t.Fatal("the new save must be readable")
 	}
 }
+
+// The FTP button on the file manager's toolbar is shown unless hidden (old files: shown).
+func TestHideFtpButtonRoundTripsAndDefaultsToShown(t *testing.T) {
+	p := useTempSettings(t)
+	os.WriteFile(p, []byte(`{"fontSize": 18}`), 0o600)
+	if Load().HideFtpButton {
+		t.Fatal("an old settings file should show the FTP button")
+	}
+	if err := Update(func(s *Settings) { s.HideFtpButton = true }); err != nil {
+		t.Fatal(err)
+	}
+	if !Load().HideFtpButton {
+		t.Fatal("hideFtpButton not kept")
+	}
+}

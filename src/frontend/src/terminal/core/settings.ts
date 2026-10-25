@@ -27,6 +27,7 @@ export interface TermSettings {
     updateCheck: boolean;
     cat: boolean;
     catIntro: boolean;
+    hideFtpButton: boolean;
     dockerEngines: Record<string, string>;
     language: string;
     highlight: {on: boolean; red: string; yellow: string; green: string};
@@ -57,6 +58,7 @@ export function defaultSettings(): TermSettings {
         updateCheck: false,
         cat: true,
         catIntro: false,
+        hideFtpButton: false,
         dockerEngines: {},
         language: '',
         highlight: {
@@ -73,6 +75,14 @@ export let settings: TermSettings = defaultSettings();
 
 let timer = 0;
 
+// Who shows a setting outside the terminal (the file manager's toolbar) hears of changes.
+const listeners = new Set<() => void>();
+export function onSettingsChange(fn: () => void): () => void {
+    listeners.add(fn);
+    return () => { listeners.delete(fn); };
+}
+const changed = () => listeners.forEach(fn => fn());
+
 export async function loadSettings(): Promise<TermSettings> {
     try {
         const s = await termApi.GetSettings();
@@ -81,12 +91,14 @@ export async function loadSettings(): Promise<TermSettings> {
     } catch {
         // Keep the defaults.
     }
+    changed();
     return settings;
 }
 
 /** Changes settings and writes them shortly after (several quick changes are written once). */
 export function saveSettings(change: (s: TermSettings) => void) {
     change(settings);
+    changed();
     clearTimeout(timer);
     timer = window.setTimeout(() => {
         termApi.SaveSettings(settings).catch(() => undefined);

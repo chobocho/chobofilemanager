@@ -66,6 +66,9 @@ type Settings struct {
 	// clicking and dragging do, how to hide it) has been shown.
 	Cat      bool `json:"cat"`
 	CatIntro bool `json:"catIntro"`
+	// HideFtpButton hides the FTP button on the file manager's toolbar
+	// (false = shown, so settings files from before it show it).
+	HideFtpButton bool `json:"hideFtpButton"`
 	// DockerEngines is the container engine chosen in the container window
 	// per place: "host:port" of an SSH server, or "local" for this PC; the
 	// value is "docker" or "podman" (none: docker, else podman).

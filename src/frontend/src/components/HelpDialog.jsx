@@ -97,6 +97,7 @@ const SECTIONS = [
       { keys: ['Ctrl+H'],          desc: '숨김 파일(.으로 시작) 표시 / 숨김 토글' },
       { keys: ['Ctrl+D'],          desc: '바로가기 목록 (추가 / 이동 / 삭제)' },
       { keys: ['Ctrl+F'],          desc: '파일 검색 (하위 폴더까지)' },
+      { keys: ['드라이브 목록 → FTP'], desc: 'FTP 연결... 로 접속하면 패널이 FTP 폴더가 됨 — F5/F6 받기·올리기, F7 F8 F2, F3/F4 보기·편집, 연결 끊기 단추' },
       { keys: ['Files / FTP / Terminal'], desc: '왼쪽 위 단추로 보기 전환 (FTP 단추는 터미널 설정에서 숨길 수 있음)' },
       { keys: ['테마 버튼'],       desc: '라이트 / 다크 테마 전환' },
     ],

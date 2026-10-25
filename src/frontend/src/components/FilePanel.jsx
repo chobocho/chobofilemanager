@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState, forwardRef, useImperativeHandle, memo } from 'react'
 import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
+import { useFTPStore } from '../stores/ftpStore'
+import { isFtpPath, ftpId, ftpRoot, ftpLabel } from '../utils/ftpPath.js'
 import { isViewableFile, isTextFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
   FileCode, ArrowUp, RefreshCw, ChevronRight,
-  Eye, EyeOff, Plus, X as XIcon
+  Eye, EyeOff, Plus, X as XIcon, Unplug
 } from 'lucide-react'
 
 const FILE_ICONS_DARK = {
@@ -133,13 +135,16 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, onMaskSelect, keyboardDisabled = false }, ref) {
+const FTP_CONNECT = '__ftp_connect__'
+
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, onMaskSelect, onFtpConnect, keyboardDisabled = false }, ref) {
   // Todo #98: 필요한 조각만 구독 — 상태 표시줄 등 무관한 변경으로 목록 전체가 다시 그려지지 않도록.
   // 액션은 안정적인 함수이므로 getState()로 사용
   const store = useFileStore.getState()
   const panel = useFileStore(s => s[side])
   const isActive = useFileStore(s => s.activePanel === side)
   const drives = useFileStore(s => s.drives)
+  const ftpConns = useFTPStore(s => s.connections)
   const theme = useThemeStore(s => s.theme)
   const listRef = useRef(null)
 
@@ -506,9 +511,12 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     listRef.current?.focus()
   }
 
+  // 드라이브 목록: 드라이브 · FTP 연결 · "FTP 연결..." (Todo #133-8)
   const handleDriveChange = (e) => {
+    if (e.target.value === FTP_CONNECT) { onFtpConnect?.(); return }
     store.navigate(side, e.target.value)
   }
+  const onFtp = isFtpPath(panel.path)
 
   rowHandlersRef.current = { click: handleRowClick, dbl: handleRowDoubleClick }
 
@@ -527,7 +535,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       tabIndex={0}
       ref={listRef}
     >
-      <TabBar side={side} panel={panel} store={store} />
+      <TabBar side={side} panel={panel} store={store} ftpConns={ftpConns} />
       {/* Panel Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -543,9 +551,19 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
                 {d.name} ({d.driveType})
               </option>
             ))}
+            {ftpConns.map(c => (
+              <option key={c.id} value={ftpRoot(c.id)}>FTP: {ftpLabel(ftpRoot(c.id), ftpConns)}</option>
+            ))}
+            <option value={FTP_CONNECT}>FTP 연결...</option>
           </select>
         </div>
         <div className={styles.headerRight}>
+          {onFtp && (
+            <button className={styles.iconBtn} title="FTP 연결 끊기"
+              onClick={(e) => { e.stopPropagation(); store.ftpDisconnect(ftpId(panel.path)) }}>
+              <Unplug size={13} />
+            </button>
+          )}
           {panel.readOnly && <span className={styles.readOnlyBadge} title="압축 파일 안 — F5로 꺼내서 쓰세요">읽기 전용</span>}
           <button
             className={styles.iconBtn}
@@ -590,7 +608,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             onClick={(e) => { e.stopPropagation(); setEditingPath(true) }}
             title="Click to edit path"
           >
-            <BreadcrumbPath path={panel.path} onNavigate={(p) => store.navigate(side, p)} />
+            <BreadcrumbPath path={panel.path} ftpConns={ftpConns} onNavigate={(p) => store.navigate(side, p)} />
           </div>
         )}
       </div>
@@ -726,9 +744,10 @@ const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirS
   )
 })
 
-function TabBar({ side, panel, store }) {
+function TabBar({ side, panel, store, ftpConns }) {
   const getLabel = (path) => {
     if (!path) return 'Home'
+    if (isFtpPath(path) && /^ftp:\/\/[^/]+\/?$/.test(path)) return ftpLabel(path, ftpConns)
     const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
     return parts[parts.length - 1] || path
   }
@@ -769,8 +788,9 @@ function TabBar({ side, panel, store }) {
   )
 }
 
-function BreadcrumbPath({ path, onNavigate }) {
+function BreadcrumbPath({ path, ftpConns, onNavigate }) {
   if (!path) return <span>/</span>
+  if (isFtpPath(path)) return <FtpBreadcrumb path={path} ftpConns={ftpConns} onNavigate={onNavigate} />
   const isWindows = path.includes('\\') || /^[A-Za-z]:/.test(path)
   const sep = isWindows ? '\\' : '/'
   const parts = []
@@ -810,6 +830,24 @@ function BreadcrumbPath({ path, onNavigate }) {
           >
             {part.name}
           </span>
+          {i < parts.length - 1 && <span className={styles.breadcrumbSep}>/</span>}
+        </React.Fragment>
+      ))}
+    </div>
+  )
+}
+
+// FTP 경로: [user@host] / pub / docs (Todo #133-8)
+function FtpBreadcrumb({ path, ftpConns, onNavigate }) {
+  const root = ftpRoot(ftpId(path))
+  const segs = path.slice(root.length).split('/').filter(Boolean)
+  const parts = [{ name: ftpLabel(path, ftpConns), path: root }]
+  segs.forEach((seg, i) => parts.push({ name: seg, path: root + segs.slice(0, i + 1).join('/') }))
+  return (
+    <div className={styles.breadcrumb}>
+      {parts.map((part, i) => (
+        <React.Fragment key={part.path}>
+          <span className={styles.breadcrumbPart} onClick={(e) => { e.stopPropagation(); onNavigate(part.path) }}>{part.name}</span>
           {i < parts.length - 1 && <span className={styles.breadcrumbSep}>/</span>}
         </React.Fragment>
       ))}

@@ -3,12 +3,21 @@ import api from '../wailsjs/runtime'
 import { formatSize } from '../utils/fileTypes.js'
 import { parseMask, matchMask } from '../utils/mask.js'
 import { compareListings } from '../utils/compareDirs.js'
+import { isFtpPath, ftpId, ftpRoot } from '../utils/ftpPath.js'
+import { useFTPStore } from './ftpStore'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
 // 경로에서 부모 디렉토리를 반환합니다.
 // 드라이브 루트('C:\\foo' → 'C:\\')와 '/'('/foo' → '/')도 처리 (Todo #91)
 export function parentDir(path) {
+  // FTP 패널 경로 (Todo #133-8): 루트는 "ftp://id/"
+  if (isFtpPath(path)) {
+    const root = ftpRoot(ftpId(path))
+    const rest = path.slice(root.length).replace(/\/+$/, '')
+    const i = rest.lastIndexOf('/')
+    return i < 0 ? root : root + rest.slice(0, i)
+  }
   const last = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
   if (last < 0) return path
   if (last === 0) return path.substring(0, 1)
@@ -34,7 +43,7 @@ export function getLastPathSegment(path) {
 // 반환: 새 커서 인덱스, 또는 -1(변경하지 않음 — 못 찾았거나 빈 목록)
 // 루트 경로 여부 ('/' 또는 'C:', 'C:\', 'C:/') — [..] 표시 여부 판단에 사용
 export function isRootPath(path) {
-  return path === '/' || /^[A-Za-z]:[\\/]?$/.test(path)
+  return path === '/' || /^[A-Za-z]:[\\/]?$/.test(path) || /^ftp:\/\/[^/]+\/?$/.test(path)
 }
 
 // 보이는 항목이 없고 [..]가 표시되는 폴더면 커서를 [..]에 둡니다 (Todo #103).
@@ -178,7 +187,8 @@ export const useFileStore = create((set, get) => ({
 
   // 저장된 탭 목록으로 패널을 복원합니다.
   _restorePanel: async (panel, tabsState, legacyPath, home) => {
-    const paths = (tabsState?.paths?.length > 0) ? tabsState.paths : [legacyPath || home]
+    // FTP 탭은 다시 시작하면 연결이 없으므로 홈으로 (Todo #133-8)
+    const paths = ((tabsState?.paths?.length > 0) ? tabsState.paths : [legacyPath || home]).map(p => isFtpPath(p) ? home : p)
     const activeIdx = Math.min(tabsState?.activeIdx ?? 0, paths.length - 1)
 
     // 탭 배열 미리 구성 (비활성 탭은 lazy 로딩)
@@ -443,6 +453,19 @@ export const useFileStore = create((set, get) => ({
         : '두 폴더의 파일이 같습니다'
       return { left: { ...s.left, selected: left }, right: { ...s.right, selected: right }, status }
     })
+  },
+
+  // FTP 연결 끊기 (Todo #133-8): 그 연결을 보던 패널은 홈으로
+  ftpDisconnect: async (id) => {
+    try {
+      await useFTPStore.getState().disconnect(id)
+    } catch (err) {
+      set({ status: `FTP 연결 끊기 실패: ${err?.message ?? err}` })
+    }
+    const home = await api.GetHomeDirectory()
+    for (const p of ['left', 'right']) {
+      if (ftpId(get()[p].path) === id) await get().navigate(p, home)
+    }
   },
 
   clearSelection: (panel) => {

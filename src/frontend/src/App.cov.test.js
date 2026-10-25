@@ -374,6 +374,36 @@ describe('App 커버리지 — 뷰어/에디터', () => {
   })
 })
 
+describe('FTP를 패널에서 (Todo #133-8)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-FTP1: 드라이브 목록 "FTP 연결..." → 접속하면 활성 패널이 FTP 루트', async () => {
+    const id = 'h_21_1_1'
+    fs[`ftp://${id}/`] = [file(`ftp://${id}`, 'remote.txt')]
+    api.FTPConnect = vi.fn().mockResolvedValue(id)
+    api.FTPGetConnections = vi.fn().mockResolvedValue([{ id, host: 'h', port: 21, username: 'u' }])
+    api.FTPAddHistory = vi.fn().mockResolvedValue(null)
+    await renderApp()
+    const select = document.querySelectorAll('select')[0]
+    await act(async () => { fireEvent.change(select, { target: { value: '__ftp_connect__' } }) })
+    fireEvent.change(screen.getByPlaceholderText('ftp.example.com'), { target: { value: 'h' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Connect/ })) })
+    expect(api.FTPConnect).toHaveBeenCalledWith(expect.objectContaining({ host: 'h' }))
+    await waitFor(() => expect(useFileStore.getState().left.path).toBe(`ftp://${id}/`))
+    expect(screen.getAllByText('remote.txt').length).toBeGreaterThan(0)
+  })
+
+  it('AP-FTP2: FTP 패널에서 F8은 휴지통 대신 영구 삭제 확인', async () => {
+    const id = 'h_21_1_1'
+    fs[`ftp://${id}/`] = [file(`ftp://${id}`, 'remote.txt')]
+    await renderApp()
+    await act(async () => { await useFileStore.getState().navigate('left', `ftp://${id}/`) })
+    await key({ key: 'F8' })
+    expect(screen.getByText('영구 삭제', { selector: 'span' })).toBeTruthy()
+    expect(api.TrashItems).not.toHaveBeenCalled()
+  })
+})
+
 describe('파일 내용 비교 (Todo #133-7)', () => {
   afterEach(() => cleanup())
 

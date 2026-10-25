@@ -6,7 +6,8 @@ import Toolbar from './components/Toolbar'
 import FilePanel from './components/FilePanel'
 import StatusBar from './components/StatusBar'
 import FKeyBar from './components/FKeyBar'
-import FTPManager from './components/FTPManager'
+import FTPManager, { ConnectModal } from './components/FTPManager'
+import { isFtpPath, ftpRoot } from './utils/ftpPath.js'
 import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandDialog } from './components/ConfirmDialog'
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
@@ -256,6 +257,9 @@ function FileManagerApp() {
 
   // Todo #57: F8/Delete 휴지통 이동 흐름 (영구 삭제와 분리된 별도 확인 다이얼로그)
   const handleTrash = async () => {
+    // FTP에는 휴지통이 없음 → 영구 삭제 확인 (Todo #133-8)
+    const st = useFileStore.getState()
+    if (isFtpPath(st[st.activePanel].path)) return handleDelete()
     const result = await useFileStore.getState().trash()
     if (result.count > 0) setTrashTarget(result)
   }
@@ -336,6 +340,22 @@ function FileManagerApp() {
     if (getCursorFile(s[s.activePanel])) setModal('rename')
   }
 
+  // 드라이브 목록의 "FTP 연결..." → 연결하면 활성 패널에 그 FTP 루트 (Todo #133-8)
+  const openFtpConnect = useCallback(() => setModal('ftpconnect'), [])
+  const handleFtpConnect = async (config) => {
+    const st = useFileStore.getState()
+    const panel = st.activePanel
+    try {
+      const conn = await useFTPStore.getState().connect(config)
+      useFTPStore.getState().addHistory(config)
+      closeModal()
+      if (conn) await useFileStore.getState().navigate(panel, ftpRoot(conn.id))
+    } catch (err) {
+      st.setStatus(`FTP 연결 실패: ${err?.message ?? err}`)
+      closeModal()
+    }
+  }
+
   // Num+ / Num- (Todo #133-2)
   const openMaskSelect = useCallback((mode) => setModal(mode === 'deselect' ? 'deselect' : 'select'), [])
 
@@ -374,14 +394,14 @@ function FileManagerApp() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect}
+            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
                 requestAnimationFrame(() => ref.current?.focus())
               }} />
             <div className={styles.divider} />
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect}
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
               onSwitchToPanel={(target) => {
                 useFileStore.getState().setActivePanel(target)
                 const ref = target === 'left' ? leftPanelRef : rightPanelRef
@@ -438,6 +458,7 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {modal === 'ftpconnect' && <ConnectModal onConnect={handleFtpConnect} onClose={closeModal} />}
       {modal === 'sync' && (() => {
         const s = useFileStore.getState()
         return <SyncDialog left={s.left.path} right={s.right.path} onClose={closeModal}

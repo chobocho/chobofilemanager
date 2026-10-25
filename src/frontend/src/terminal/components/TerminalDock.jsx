@@ -13,7 +13,11 @@ import { useFileStore } from '../../stores/fileStore'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
-const activePath = (s) => s[s.activePanel]?.path
+// 이 PC의 폴더일 때만 (FTP · 압축 파일 안은 셸이 갈 수 없음, Todo #133-8)
+const activePath = (s) => {
+  const p = s[s.activePanel]
+  return p && !p.readOnly && !p.path?.startsWith('ftp://') ? p.path : undefined
+}
 
 // 파일 패널 아래 터미널 도크 (Todo #122): 활성 패널 폴더에서 로컬 셸을 시작하고,
 // "패널 따라가기"를 켜면 패널 폴더가 바뀔 때마다 cd 합니다. F9로 열고 닫습니다.

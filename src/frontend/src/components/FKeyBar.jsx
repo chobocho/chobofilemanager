@@ -2,7 +2,8 @@ import React from 'react'
 import { Quit } from '../../wailsjs/runtime/runtime'
 import styles from '../styles/FKeyBar.module.css'
 
-export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onTrash, onRename, onHelp, onView, onEdit, onShell, onCmd }) {
+// fileView: 파일 보기일 때만 파일 패널에 작용하는 버튼을 켬 (FTP·Terminal 보기에서는 Help·Quit만, Todo #126)
+export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onTrash, onRename, onHelp, onView, onEdit, onShell, onCmd, fileView = true }) {
   const handleQuit = () => {
     try { Quit() } catch { /* 브라우저 개발 환경에서는 무시 */ }
   }
@@ -21,7 +22,7 @@ export default function FKeyBar({ onCopy, onMove, onNewDir, onDelete, onTrash, o
     { num: 'F9',     label: 'Term',   action: onCmd,    active: !!onCmd },
     { num: 'Ctrl+O',     label: 'Shell',  action: onShell,  active: !!onShell },
     { num: 'Alt+F4', label: 'Quit',   action: handleQuit, active: true },
-  ]
+  ].map(k => (fileView || k.num === 'F1' || k.num === 'Alt+F4' ? k : { ...k, active: false }))
 
   return (
     <div className={styles.fkeyBar}>

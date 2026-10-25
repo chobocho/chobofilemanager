@@ -167,6 +167,9 @@ function FileManagerApp() {
     const handler = (e) => {
       if (overlayOpen) return
       if (isTerminalTarget(e.target)) return // 터미널 안의 키는 셸로 (Todo #119)
+      // Todo #126: 모두 파일 패널에 작용하는 키 — 파일 보기에서만, 입력 칸 안에서는 그 칸의 키 (Toolbar와 같은 규칙)
+      if (view !== 'files') return
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       if (e.ctrlKey && e.key === 'o') {
         e.preventDefault()
         setModal('shell')
@@ -175,7 +178,7 @@ function FileManagerApp() {
       if (e.key === 'F9' && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
         if (e.shiftKey) openCmdWindow()
-        else if (view === 'files') useDockStore.getState().toggle()
+        else useDockStore.getState().toggle()
       }
       // 다른 다이얼로그/뷰어/에디터가 떠 있으면 무시 (그쪽 단축키와 충돌 방지)
       if (isStarlarkScratchShortcut(e)) {
@@ -356,6 +359,7 @@ function FileManagerApp() {
       </div>
       <StatusBar />
       <FKeyBar
+        fileView={view === 'files'}
         onHelp={() => setModal('help')}
         onRename={handleRename}
         onView={() => {

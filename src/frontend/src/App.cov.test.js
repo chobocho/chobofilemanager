@@ -694,3 +694,43 @@ describe('App 웹 화면 (WM)', () => {
     expect(screen.getByRole('dialog', { name: '종료' })).toBeTruthy()
   })
 })
+
+// ─── Todo #126: 앱 단축키는 파일 보기에서만, 입력 칸에서는 무시 ───────────────────
+describe('App 단축키 범위 (SC)', () => {
+  afterEach(() => cleanup())
+
+  it('SC-01: FTP 보기에서 Ctrl+O·Ctrl+M·F9·Shift+F9는 숨은 파일 패널에 작용하지 않음', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('FTP Manager'))
+    await key({ key: 'o', ctrlKey: true })
+    await key({ key: 'm', ctrlKey: true })
+    await key({ key: 'F9' })
+    await key({ key: 'F9', shiftKey: true })
+    await flush()
+    expect(screen.queryByText('Shell Command')).toBeNull()
+    expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
+    expect(api.OpenCmdWindow).not.toHaveBeenCalled()
+    expect(useDockStore.getState().open).toBe(false)
+  })
+
+  it('SC-02: 입력 칸 안의 Ctrl+O·Ctrl+M은 그 칸의 키', async () => {
+    await renderApp()
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'o', ctrlKey: true })
+      fireEvent.keyDown(input, { key: 'm', ctrlKey: true })
+    })
+    expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
+    expect(screen.queryAllByRole('textbox').filter(el => el !== input)).toEqual([])
+    input.remove()
+  })
+
+  it('SC-03: F키 막대도 FTP 보기에서는 Copy 등이 꺼짐', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('FTP Manager'))
+    expect(screen.getByText('Copy').closest('button').disabled).toBe(true)
+    fireEvent.click(screen.getByTitle('File Manager'))
+    expect(screen.getByText('Copy').closest('button').disabled).toBe(false)
+  })
+})

@@ -42,6 +42,19 @@ describe('FKeyBar 커버리지', () => {
     expect(hs.onDelete).not.toHaveBeenCalled()
   })
 
+  it('FK-03: 파일 보기가 아니면(FTP·Terminal) 파일 패널 버튼은 꺼짐 — Help·Quit만 (Todo #126)', () => {
+    const hs = all()
+    render(h(FKeyBar, { ...hs, fileView: false }))
+    for (const label of ['Rename', 'View', 'Edit', 'Copy', 'Move', 'NewDir', 'Trash', 'Term', 'Shell']) {
+      expect(screen.getByText(label).closest('button').disabled, label).toBe(true)
+    }
+    fireEvent.click(screen.getByText('Copy').closest('button'))
+    expect(hs.onCopy).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Help').closest('button'))
+    expect(hs.onHelp).toHaveBeenCalled()
+    expect(screen.getByText('Quit').closest('button').disabled).toBe(false)
+  })
+
   it('FK-02: onTrash가 없으면 F8은 onDelete로 폴백', () => {
     const onDelete = vi.fn()
     render(h(FKeyBar, { onDelete }))

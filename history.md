@@ -2,6 +2,12 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 build.bat 실행 오류 수정 (줄바꿈 LF → CRLF)
+- 증상: build.bat 실행 시 "'om'은(는) 내부 또는 외부 명령... 이 아닙니다" 등 명령이 조각나며 실패.
+- 원인: 저장소에 LF 줄바꿈으로 저장되어 cmd.exe가 UTF-8 한글이 섞인 줄을 엉뚱한 위치에서 잘라 해석.
+- 수정: `.gitattributes` 추가(`*.bat`/`*.cmd`는 CRLF, `*.sh`는 LF로 고정) 후 build.bat을 CRLF로 다시 체크아웃.
+- 테스트: `src/buildscript_test.go`(build.bat 모든 줄이 CRLF인지 확인) 추가. build.bat 5단계(프론트·Go 테스트, wails build, 복사, 헤드리스 빌드) 끝까지 통과.
+
 ## 2026-10-25 Todo.md #130~#132 마무리: README 구조 갱신
 - README 프로젝트 구조에 나뉜 파일(fileops/filetext/filearchive/fileshell)과 새 패키지(textenc, atomicfile) 반영. #130(코드 리뷰·테스트), #131(중복 제거), #132(구조 개선) 완료.
 - 최종 확인: Go 전체 통과, 프론트 1233개 통과, 빌드 통과.

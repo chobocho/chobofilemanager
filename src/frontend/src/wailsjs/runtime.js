@@ -62,6 +62,9 @@ const createMockAPI = () => ({
   CompareDirs: async () => [],
   SyncDirs: async () => null,
   ReadThumbnail: async () => '',
+  GetUserButtons: async () => [],
+  SaveUserButtons: async () => null,
+  RunUserCommand: async () => null,
   CompareFileBytes: async () => ({ equal: false, binary: false, firstDiff: 0, sizeA: 0, sizeB: 0 }),
 
   FTPConnect: async () => null,

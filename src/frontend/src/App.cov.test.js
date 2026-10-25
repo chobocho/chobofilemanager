@@ -374,6 +374,39 @@ describe('App 커버리지 — 뷰어/에디터', () => {
   })
 })
 
+describe('사용자 단추 막대 (Todo #133-12)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-BB1: 저장된 단추를 그리고, 프로그램 단추는 자리 표시를 바꿔 실행, @sync는 동기화 창', async () => {
+    api.GetUserButtons = vi.fn().mockResolvedValue([
+      { id: '1', name: '편집기', command: 'code.exe', params: '"%F" %T', startDir: '%P' },
+      { id: '2', name: '동기화', command: '@sync' },
+    ])
+    api.RunUserCommand = vi.fn().mockResolvedValue(null)
+    api.CompareDirs = vi.fn().mockResolvedValue([])
+    await renderApp()
+    cursorTo('x.txt')
+    await act(async () => { fireEvent.click(await screen.findByRole('button', { name: '편집기' })) })
+    expect(api.RunUserCommand).toHaveBeenCalledWith('code.exe', '"/a/x.txt" /b', '/a')
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '동기화' })) })
+    expect(await screen.findByText('폴더 동기화')).toBeTruthy()
+  })
+
+  it('AP-BB2: + → 새 단추 창, 저장하면 SaveUserButtons, 창이 떠 있는 동안 F5는 막힘', async () => {
+    api.GetUserButtons = vi.fn().mockResolvedValue([])
+    api.SaveUserButtons = vi.fn().mockResolvedValue(null)
+    await renderApp()
+    fireEvent.click(screen.getByTitle('단추 추가'))
+    await key({ key: 'F5' })
+    expect(api.CheckCopyConflicts).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '메모장' } })
+    fireEvent.change(screen.getByLabelText('명령'), { target: { value: 'notepad.exe' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '저장' })) })
+    expect(api.SaveUserButtons).toHaveBeenCalledWith([expect.objectContaining({ name: '메모장', command: 'notepad.exe' })])
+    expect(screen.getByRole('button', { name: '메모장' })).toBeTruthy()
+  })
+})
+
 describe('빠른 보기 (Todo #133-9)', () => {
   afterEach(() => cleanup())
 

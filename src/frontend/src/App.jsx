@@ -15,6 +15,10 @@ import SelectMaskDialog from './components/SelectMaskDialog'
 import MultiRenameDialog from './components/MultiRenameDialog'
 import SyncDialog from './components/SyncDialog'
 import { pickDiffTargets } from './utils/diffTargets.js'
+import ButtonBar from './components/ButtonBar'
+import ButtonEditDialog from './components/ButtonEditDialog'
+import { useButtonStore } from './stores/buttonStore'
+import { expandParams } from './utils/buttonParams.js'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
@@ -123,12 +127,13 @@ function FileManagerApp() {
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
   const [diff, setDiff] = useState(null) // { left, right } 파일 내용 비교 (Todo #133-7)
   const [quickView, setQuickView] = useState(null) // 빠른 보기가 차지한 쪽 'left' | 'right' (Todo #133-9)
+  const [buttonEdit, setButtonEdit] = useState(undefined) // 단추 고치기: 단추 | null(새 단추) | undefined(닫힘) (Todo #133-12)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
   // Todo #77: 화면 위에 무언가 떠 있으면 파일 패널 단축키를 막음 (키 입력이 뒤 패널로 새지 않게)
   const overlayOpen = !!(modal || editor || viewer || deleteTarget || trashTarget
-    || copyConflict || moveConflict || fileSizeError || diff)
+    || copyConflict || moveConflict || fileSizeError || diff || buttonEdit !== undefined)
 
   // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
   const focusActivePanel = useCallback(() => {
@@ -211,6 +216,18 @@ function FileManagerApp() {
     setModal('multirename')
   }, [])
 
+  const toggleQuickView = useCallback(() => {
+    const active = useFileStore.getState().activePanel
+    setQuickView(q => q ? null : (active === 'left' ? 'right' : 'left'))
+    focusActivePanel()
+  }, [focusActivePanel])
+
+  const openDiff = useCallback(() => {
+    const t = pickDiffTargets(useFileStore.getState())
+    if (t) setDiff({ left: t[0], right: t[1] })
+    else useFileStore.getState().setStatus('비교할 파일: 한 패널에서 두 개를 고르거나, 양쪽 패널의 커서를 파일에 두세요')
+  }, [])
+
   useEffect(() => {
     const handler = (e) => {
       if (overlayOpen) return
@@ -240,20 +257,16 @@ function FileManagerApp() {
       // Ctrl+Q 빠른 보기: 반대 패널 자리에 커서 파일 미리 보기 (Todo #133-9)
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'q' || e.key === 'Q')) {
         e.preventDefault()
-        const active = useFileStore.getState().activePanel
-        setQuickView(q => q ? null : (active === 'left' ? 'right' : 'left'))
-        focusActivePanel()
+        toggleQuickView()
       }
       if (isDiffShortcut(e)) {
         e.preventDefault()
-        const t = pickDiffTargets(useFileStore.getState())
-        if (t) setDiff({ left: t[0], right: t[1] })
-        else useFileStore.getState().setStatus('비교할 파일: 한 패널에서 두 개를 고르거나, 양쪽 패널의 커서를 파일에 두세요')
+        openDiff()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view, focusActivePanel])
+  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view, toggleQuickView, openDiff])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -384,6 +397,36 @@ function FileManagerApp() {
     const ref = next === 'left' ? leftPanelRef : rightPanelRef
     requestAnimationFrame(() => ref.current?.focus())
   }, [])
+  // 사용자 단추 실행 (Todo #133-12): "@기능"은 앱 안의 기능, 그 밖은 자리 표시를 바꿔 프로그램 실행
+  const runInternal = (cmd) => {
+    const s = useFileStore.getState()
+    const actions = {
+      '@copy': handleCopy, '@move': handleMove, '@mkdir': () => setModal('newdir'), '@delete': handleTrash,
+      '@search': () => setModal('search'), '@compare': () => s.compareDirsSelect(), '@sync': () => setModal('sync'),
+      '@diff': openDiff, '@multirename': openMultiRename, '@quickview': toggleQuickView,
+      '@tree': () => s.toggleTree(s.activePanel), '@terminal': () => useDockStore.getState().toggle(),
+      '@ftp': () => setModal('ftpconnect'), '@refresh': () => s.refresh(s.activePanel), '@hidden': () => s.toggleHidden(s.activePanel),
+    }
+    const fn = actions[cmd.toLowerCase()]
+    if (fn) fn()
+    else s.setStatus(`모르는 기능: ${cmd}`)
+  }
+  const runUserButton = async (btn) => {
+    if (btn.command.startsWith('@')) { runInternal(btn.command); return }
+    const s = useFileStore.getState()
+    const active = s[s.activePanel], other = s[s.activePanel === 'left' ? 'right' : 'left']
+    const ctx = { activePath: active.path, targetPath: other.path, cursor: getCursorFile(active), selected: [...active.selected] }
+    try {
+      const api = (await import('./wailsjs/runtime')).default
+      await api.RunUserCommand(btn.command, expandParams(btn.params, ctx), expandParams(btn.startDir || '%P', ctx))
+      s.setStatus(`실행: ${btn.name}`)
+    } catch (err) {
+      s.setStatus(`실행 실패: ${btn.name}: ${err?.message ?? err}`)
+    }
+    focusActivePanel()
+  }
+  const closeButtonEdit = () => { setButtonEdit(undefined); focusActivePanel() }
+
   const quickViewRef = useRef(null)
   quickViewRef.current = quickView
   const switchToPanel = (target) => {
@@ -418,6 +461,7 @@ function FileManagerApp() {
         onCompareDirs={() => useFileStore.getState().compareDirsSelect()}
         onSyncDirs={() => setModal('sync')}
       />
+      {view === 'files' && <ButtonBar onRun={runUserButton} onEdit={setButtonEdit} />}
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
@@ -479,6 +523,13 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {buttonEdit !== undefined && (
+        <ButtonEditDialog button={buttonEdit}
+          onSave={async (b) => { await useButtonStore.getState().upsert(b); closeButtonEdit() }}
+          onDelete={async (id) => { await useButtonStore.getState().remove(id); closeButtonEdit() }}
+          onMove={(id, dir) => useButtonStore.getState().move(id, dir)}
+          onClose={closeButtonEdit} />
+      )}
       {modal === 'ftpconnect' && <ConnectModal onConnect={handleFtpConnect} onClose={closeModal} />}
       {modal === 'sync' && (() => {
         const s = useFileStore.getState()

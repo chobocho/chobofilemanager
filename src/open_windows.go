@@ -14,6 +14,11 @@ const swShowNormal = 1
 
 // 테스트에서 대체할 수 있도록 변수로 둡니다.
 var shellOpen = func(file, dir string) error {
+	return shellExecute(file, "", dir)
+}
+
+// shellExecute: ShellExecuteW(file, 인자, 작업 폴더). 사용자 단추(Todo #133-12)도 같은 경로로 실행
+func shellExecute(file, params, dir string) error {
 	filePtr, err := syscall.UTF16PtrFromString(file)
 	if err != nil {
 		return err
@@ -22,12 +27,20 @@ var shellOpen = func(file, dir string) error {
 	if err != nil {
 		return err
 	}
+	var paramsPtr uintptr
+	if params != "" {
+		pp, err := syscall.UTF16PtrFromString(params)
+		if err != nil {
+			return err
+		}
+		paramsPtr = uintptr(unsafe.Pointer(pp))
+	}
 	shellExecuteW := syscall.NewLazyDLL("shell32.dll").NewProc("ShellExecuteW")
 	// lpOperation=NULL → 기본 동작(verb) 사용
 	ret, _, _ := shellExecuteW.Call(
 		0, 0,
 		uintptr(unsafe.Pointer(filePtr)),
-		0,
+		paramsPtr,
 		uintptr(unsafe.Pointer(dirPtr)),
 		swShowNormal,
 	)

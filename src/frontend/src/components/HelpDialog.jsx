@@ -101,6 +101,7 @@ const SECTIONS = [
       { keys: ['Ctrl+D'],          desc: '바로가기 목록 (추가 / 이동 / 삭제)' },
       { keys: ['Ctrl+F'],          desc: '파일 검색 (하위 폴더까지)' },
       { keys: ['드라이브 목록 → FTP'], desc: 'FTP 연결... 로 접속하면 패널이 FTP 폴더가 됨 — F5/F6 받기·올리기, F7 F8 F2, F3/F4 보기·편집, 연결 끊기 단추' },
+      { keys: ['단추 막대'],       desc: '위쪽 사용자 단추: + 로 추가, 클릭 실행, 우클릭 고치기 — 프로그램 + 인자(%P %T %N %F %S) 또는 @sync · @diff 같은 앱 기능' },
       { keys: ['Files / FTP / Terminal'], desc: '왼쪽 위 단추로 보기 전환 (FTP 단추는 터미널 설정에서 숨길 수 있음)' },
       { keys: ['테마 버튼'],       desc: '라이트 / 다크 테마 전환' },
     ],

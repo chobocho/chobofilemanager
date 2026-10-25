@@ -2,6 +2,13 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #133-12: 사용자 단추 막대
+- Files 보기 위쪽에 `ButtonBar`: 클릭 실행, 우클릭 고치기, + 새 단추. `ButtonEditDialog`: 이름 · 명령 · 인자 · 시작 폴더, 앞으로/뒤로 · 지우기, 명령 칸에 앱 기능 목록(datalist)
+- 자리 표시(`utils/buttonParams.js`, TC와 같은 글자): %P 활성 패널 · %T 반대 패널 · %N 커서 이름 · %F 커서 경로 · %S 고른 파일들(따옴표, 없으면 커서) · %%
+- "@" 명령 = 앱 기능: @copy @move @mkdir @delete @search @compare @sync @diff @multirename @quickview @tree @terminal @ftp @refresh @hidden
+- Go: 단추 목록 `~/.chobocho-commander/buttonbar.json`(원자적 저장, 손상되면 백업 후 빈 목록), `RunUserCommand` — Windows는 ShellExecute(프로그램 · 문서 · 웹 주소, 셸 구문 해석 없음, 기존 열기와 같은 함수에 인자 추가), 그 밖은 따옴표를 고려해 인자를 나눠 바로 실행. 시작 폴더가 FTP · 압축 안이면 홈
+- 테스트: userbuttons_test.go 4개, ButtonBar.test.js(BP 4 · BS 1 · BB 1 · BE 2), App AP-BB1~2 — Go 전체 · 프론트 1368개 통과
+
 ## 2026-10-26 Todo.md #133-11: 보기 방식 — 자세히(Ctrl+F2) · 간단히(Ctrl+F1) · 썸네일(Ctrl+Shift+F1)
 - 패널마다 보기 방식: 간단히는 이름만 세로로 채운 여러 열(창 높이에 맞춰 줄 수 계산), 썸네일은 그림 미리 보기 칸. 열 머리글은 자세히에서만
 - 화살표: 간단히는 ↑↓ 한 칸 · ←→ 한 열, 썸네일은 ←→ 한 칸 · ↑↓ 한 줄, 맨 위에서 ↑는 [..] (`gridMove`). 선택·클릭·더블클릭·Enter는 같은 규칙

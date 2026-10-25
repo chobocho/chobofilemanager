@@ -635,6 +635,15 @@ export const useFileStore = create((set, get) => ({
     }
   },
 
+  // 여러 이름 바꾸기 (Ctrl+M, Todo #133-4): 실패는 예외로 — 창이 오류를 보여 줌
+  multiRename: async (panel, pairs) => {
+    await api.RenameBatch(pairs)
+    await get()._refreshAffected([get()[panel].path])
+    const first = pairs[0] && getLastPathSegment(pairs[0].new)
+    if (first) get()._focusByName(panel, first)
+    set({ status: `이름 ${pairs.length}개 바꿈` })
+  },
+
   compress: async (panel) => {
     const state = get()[panel]
     const selected = state.error || state.loading ? [] : [...state.selected]

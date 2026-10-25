@@ -354,9 +354,9 @@ describe('App 커버리지 — 뷰어/에디터', () => {
     expect(api.ReadImageFile).toHaveBeenCalledWith('/a/pic.png')
   })
 
-  it('AP-24: Ctrl+M → 스크래치 파일 생성 후 에디터 열기', async () => {
+  it('AP-24: Ctrl+Shift+M → 스크래치 파일 생성 후 에디터 열기', async () => {
     await renderApp()
-    await key({ key: 'm', ctrlKey: true })
+    await key({ key: 'M', ctrlKey: true, shiftKey: true })
     await flush()
     expect(api.CreateStarlarkScratchFile).toHaveBeenCalled()
     await waitFor(() => expect(api.ReadTextFile).toHaveBeenCalledWith('/tmp/scratch.star'))
@@ -366,11 +366,28 @@ describe('App 커버리지 — 뷰어/에디터', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     api.CreateStarlarkScratchFile.mockRejectedValue('no tmp')
     await renderApp()
-    await key({ key: 'm', ctrlKey: true })
+    await key({ key: 'M', ctrlKey: true, shiftKey: true })
     await flush()
     expect(err).toHaveBeenCalled()
     expect(api.ReadTextFile).not.toHaveBeenCalled()
     err.mockRestore()
+  })
+})
+
+describe('여러 이름 바꾸기 (Todo #133-4)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-MR1: Ctrl+M → 선택한 파일(없으면 커서 파일)로 여러 이름 바꾸기 창, 바꾸면 RenameBatch', async () => {
+    api.RenameBatch = vi.fn().mockResolvedValue(null)
+    await renderApp()
+    cursorTo('x.txt')
+    await key({ key: 'm', ctrlKey: true })
+    expect(screen.getByText('여러 이름 바꾸기 (1개)')).toBeTruthy()
+    expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('이름 마스크'), { target: { value: 'renamed' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '바꾸기' })) })
+    expect(api.RenameBatch).toHaveBeenCalledWith([{ old: '/a/x.txt', new: '/a/renamed.txt' }])
+    expect(screen.queryByText(/여러 이름 바꾸기/)).toBeNull()
   })
 })
 
@@ -525,6 +542,7 @@ describe('App 키보드 소유권 (KO)', () => {
       fireEvent.keyDown(ta, { key: 'F9' })
       fireEvent.keyDown(ta, { key: 'o', ctrlKey: true })
       fireEvent.keyDown(ta, { key: 'm', ctrlKey: true })
+      fireEvent.keyDown(ta, { key: 'M', ctrlKey: true, shiftKey: true })
     })
     expect(api.OpenCmdWindow).not.toHaveBeenCalled()
     expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
@@ -704,6 +722,7 @@ describe('App 단축키 범위 (SC)', () => {
     fireEvent.click(screen.getByTitle('FTP Manager'))
     await key({ key: 'o', ctrlKey: true })
     await key({ key: 'm', ctrlKey: true })
+    await key({ key: 'M', ctrlKey: true, shiftKey: true })
     await key({ key: 'F9' })
     await key({ key: 'F9', shiftKey: true })
     await flush()
@@ -720,6 +739,7 @@ describe('App 단축키 범위 (SC)', () => {
     await act(async () => {
       fireEvent.keyDown(input, { key: 'o', ctrlKey: true })
       fireEvent.keyDown(input, { key: 'm', ctrlKey: true })
+      fireEvent.keyDown(input, { key: 'M', ctrlKey: true, shiftKey: true })
     })
     expect(api.CreateStarlarkScratchFile).not.toHaveBeenCalled()
     expect(screen.queryAllByRole('textbox').filter(el => el !== input)).toEqual([])

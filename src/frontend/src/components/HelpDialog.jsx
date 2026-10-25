@@ -9,6 +9,7 @@ const SECTIONS = [
     title: '파일 조작',
     rows: [
       { keys: ['F2'],              desc: '이름 바꾸기' },
+      { keys: ['Ctrl+M'],          desc: '여러 이름 바꾸기 — [N] [E] [C] [YMD] 마스크, 찾아 바꾸기(정규식), 대소문자, 미리 보기' },
       { keys: ['F3'],              desc: '파일 보기 (내장 뷰어: 텍스트 · 이미지 · 마크다운)' },
       { keys: ['F4'],              desc: '내장 에디터로 파일 편집 (CodeMirror, 구문 강조)' },
       { keys: ['F5'],              desc: '복사 (반대 패널로, 같은 이름은 물어봄)' },
@@ -87,7 +88,7 @@ const SECTIONS = [
     rows: [
       { keys: ['F1'],              desc: '이 도움말 표시' },
       { keys: ['Ctrl+O'],          desc: '명령 실행 창 — 지금 폴더에서 명령을 실행하고 출력 보기' },
-      { keys: ['Ctrl+M'],          desc: 'Starlark 스크래치 — 임시 .star 파일 생성 + F4 편집기 열기' },
+      { keys: ['Ctrl+Shift+M'],    desc: 'Starlark 스크래치 — 임시 .star 파일 생성 + F4 편집기 열기' },
       { keys: ['Ctrl+R'],          desc: '현재 패널 새로고침' },
       { keys: ['Ctrl+H'],          desc: '숨김 파일(.으로 시작) 표시 / 숨김 토글' },
       { keys: ['Ctrl+D'],          desc: '바로가기 목록 (추가 / 이동 / 삭제)' },

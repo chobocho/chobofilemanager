@@ -231,3 +231,8 @@ func (a *App) ResolveRepoImage(markdownPath, owner, repo, relPath string) string
 func (a *App) DirSize(path string) (DirSizeResult, error) {
 	return a.fileManager.DirSize(path)
 }
+
+// RenameBatch: 여러 이름 바꾸기 (Ctrl+M, Todo #133-4)
+func (a *App) RenameBatch(pairs []RenamePair) error {
+	return a.fileManager.RenameBatch(pairs)
+}

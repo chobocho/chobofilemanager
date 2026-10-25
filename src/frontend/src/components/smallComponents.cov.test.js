@@ -134,7 +134,7 @@ describe('HelpDialog 커버리지', () => {
     const keys = [...container.querySelectorAll('kbd')].map(k => k.textContent)
     for (const k of [
       'j / k', 'w / s', 'h / a', 'l / d', 'Shift+글자', '-',          // FilePanel: vim·WASD·빠른 이동·뒤로
-      'Ctrl+O', 'Ctrl+M', 'F9', 'Shift+F9', 'Ctrl+Shift+Enter',      // App
+      'Ctrl+O', 'Ctrl+M', 'Ctrl+Shift+M', 'F9', 'Shift+F9', 'Ctrl+Shift+Enter', // App
       'Ctrl+F', 'Ctrl+S', '← / →', 'Ctrl + + / - / 0',               // FileViewer·TextEditor
     ]) expect(keys).toContain(k)
     // 내부 작업 번호는 사용자 화면에 보이지 않음

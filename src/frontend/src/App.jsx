@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
-import { useFileStore, getCursorFile } from './stores/fileStore'
+import { useFileStore, getCursorFile, operationPaths } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
 import { useThemeStore } from './stores/themeStore'
 import Toolbar from './components/Toolbar'
@@ -11,6 +11,7 @@ import { ConfirmDialog, NewItemDialog, RenameDialog, SearchDialog, ShellCommandD
 import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import SelectMaskDialog from './components/SelectMaskDialog'
+import MultiRenameDialog from './components/MultiRenameDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
@@ -38,11 +39,14 @@ export function prefetchViewerChunks() {
 }
 import styles from './styles/App.module.css'
 
-// Todo #55: Starlark 스크래치 단축키 — Ctrl+M (이전 Ctrl+Enter는 TextEditor 내부 Run으로만 사용)
+// Starlark 스크래치 — Ctrl+Shift+M (Todo #55, #133-4: Ctrl+M은 Total Commander처럼 여러 이름 바꾸기)
 export function isStarlarkScratchShortcut(e) {
-  if (!(e.ctrlKey || e.metaKey)) return false
-  const k = (e.key || '').toLowerCase()
-  return k === 'm'
+  if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey) return false
+  return (e.key || '').toLowerCase() === 'm'
+}
+
+export function isMultiRenameShortcut(e) {
+  return !!(e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key || '').toLowerCase() === 'm'
 }
 
 // 활성 패널에 보이는 이미지 파일들 (뷰어의 ←/→ 넘기기용)
@@ -156,7 +160,7 @@ function FileManagerApp() {
       })
   }, [])
 
-  // Ctrl+M: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기. (Todo #55, 이전 Ctrl+Enter)
+  // Ctrl+Shift+M: Starlark 스크래치 — 임시 .star 파일 생성 후 F4 에디터로 열기. (Todo #55, #133-4)
   // 에디터/뷰어/모달이 떠 있을 때는 그쪽 핸들러에 양보.
   const handleStarlarkScratch = useCallback(async () => {
     try {
@@ -166,6 +170,19 @@ function FileManagerApp() {
     } catch (e) {
       console.error('Starlark scratch 생성 실패:', e)
     }
+  }, [])
+
+  // Ctrl+M 여러 이름 바꾸기 (Todo #133-4): 선택한 항목(보이는 순서), 없으면 커서 파일
+  const [renameTargets, setRenameTargets] = useState(null)
+  const openMultiRename = useCallback(() => {
+    const s = useFileStore.getState()
+    const p = s[s.activePanel]
+    const paths = new Set(operationPaths(p))
+    const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+    const files = visible.filter(f => paths.has(f.path))
+    if (!files.length) return
+    setRenameTargets({ files, existingNames: p.files.map(f => f.name) })
+    setModal('multirename')
   }, [])
 
   useEffect(() => {
@@ -190,10 +207,14 @@ function FileManagerApp() {
         e.preventDefault()
         handleStarlarkScratch()
       }
+      if (isMultiRenameShortcut(e)) {
+        e.preventDefault()
+        openMultiRename()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, view])
+  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -394,6 +415,11 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {modal === 'multirename' && renameTargets && (
+        <MultiRenameDialog files={renameTargets.files} existingNames={renameTargets.existingNames}
+          onConfirm={async (pairs) => { const s = useFileStore.getState(); await s.multiRename(s.activePanel, pairs); closeModal() }}
+          onClose={closeModal} />
+      )}
       {(modal === 'select' || modal === 'deselect') && (
         <SelectMaskDialog mode={modal} initialMask={useFileStore.getState().lastMask}
           onConfirm={(mask, opts) => { const s = useFileStore.getState(); s.selectByMask(s.activePanel, mask, { ...opts, select: modal === 'select' }); closeModal() }}

@@ -58,6 +58,7 @@ const createMockAPI = () => ({
   OpenCmdWindow: async () => null,
   RunStarlarkFile: async () => 'hello, starlark!\n',
   DirSize: async () => ({ size: 0, files: 0, dirs: 0 }),
+  RenameBatch: async () => null,
 
   FTPConnect: async () => null,
   FTPDisconnect: async () => null,

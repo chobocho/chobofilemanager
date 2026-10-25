@@ -404,7 +404,7 @@
 - [x] 131-2b fileStore 탭 전환/닫기의 탭 상태 복원 중복
 - [x] 131-3 FilePanel 화살표/WASD 커서 이동 중복
 - [x] 131-4 App.jsx 단축키 보기/편집 분기 중복
-- [ ] 131-5 CopyConflictDialog/MoveConflictDialog → 하나의 충돌 창
+- [x] 131-5 CopyConflictDialog/MoveConflictDialog → 하나의 충돌 창
 - [ ] 131-6 termapp app.go/host.go 닫기 확인(BeforeClose) 중복
 
 ## 132. 전체 구조 재점검 후 개선

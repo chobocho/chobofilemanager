@@ -2,6 +2,10 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #131-5: 복사·이동 충돌 창을 하나의 ConflictDialog로
+- CopyConflictDialog·MoveConflictDialog가 제목·단추만 다르고 60줄 가까이 같았던 것을 공용 ConflictDialog(제목, 처리 방식 목록)로 합치고, 두 창은 방식 목록만 넘기는 얇은 껍데기로 (App·테스트는 그대로).
+- 테스트: CC/MC 테스트(연타 방지 포함) 그대로 통과, 프론트 1233개·빌드 통과.
+
 ## 2026-10-25 Todo.md #131-4: App의 F3/F4(커서 파일 보기·편집) 처리 중복 정리
 - 도구 막대와 F키 막대에 같은 "활성 패널 커서 파일이 파일이면 보기/편집" 코드가 두 벌씩 있던 것을 handleViewCursor·handleEditCursor로.
 - 테스트: 프론트 1233개 그대로 통과, 빌드 통과.

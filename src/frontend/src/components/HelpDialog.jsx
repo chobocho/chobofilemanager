@@ -28,6 +28,7 @@ const SECTIONS = [
       { keys: ['↑ / ↓', 'j / k', 'w / s'], desc: '커서 이동 (화살표 · vim · WASD)' },
       { keys: ['h / a', 'l / d'],  desc: '왼쪽 / 오른쪽 패널로' },
       { keys: ['Shift+글자'],      desc: '그 글자(숫자)로 시작하는 파일로 이동, 다시 누르면 다음 파일' },
+      { keys: ['Alt+글자'],        desc: '빠른 검색 칸: 입력한 글자로 시작하는 파일로 (* ? 쓰면 어디든), ↑↓ 이전/다음, Enter 열기, Esc 닫기' },
       { keys: ['Backspace'],       desc: '상위 폴더로 이동' },
       { keys: ['-'],               desc: '이전에 있던 폴더로 (뒤로)' },
       { keys: ['[..]'],            desc: '상위 폴더로 이동 (항목 클릭)' },

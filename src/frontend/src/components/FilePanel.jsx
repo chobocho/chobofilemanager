@@ -94,6 +94,28 @@ export function getQuickJumpTarget(files, ch, lastChar, lastMatchIdx) {
   return { fileIdx: matchIndices[matchPos], matchPos }
 }
 
+// 빠른 검색 (Alt+글자, Todo #133-3): from부터 dir(1 / -1) 방향으로 돌며 처음 맞는 인덱스, 없으면 -1.
+// 기본은 앞부분 일치, * 나 ? 가 있으면 와일드카드(끝에 * 생략). 대소문자 무시
+export function findQuickSearch(files, text, from, dir) {
+  const n = files.length
+  if (!n || !text) return -1
+  let test
+  if (/[*?]/.test(text)) {
+    const body = text.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.')
+    const re = new RegExp(`^${body}`, 'i')
+    test = (name) => re.test(name)
+  } else {
+    const lower = text.toLowerCase()
+    test = (name) => name.toLowerCase().startsWith(lower)
+  }
+  const start = ((from % n) + n) % n
+  for (let k = 0; k < n; k++) {
+    const i = (((start + dir * k) % n) + n) % n
+    if (test(files[i].name)) return i
+  }
+  return -1
+}
+
 function getFileIcon(file, theme) {
   const icons = theme === 'light' ? FILE_ICONS_LIGHT : FILE_ICONS_DARK
   const folderColor = theme === 'light' ? '#b07800' : '#f0c040'
@@ -129,6 +151,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   const [editingPath, setEditingPath] = useState(false)
   const cursorOnParent = panel.cursorOnParent
   const quickJumpRef = useRef({ char: '', matchPos: 0 })
+  const [quickSearch, setQuickSearch] = useState(null) // Alt+글자 빠른 검색 칸의 글자, 닫혀 있으면 null (Todo #133-3)
 
   useEffect(() => {
     setPathInput(panel.path)
@@ -202,6 +225,16 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
     const files = visibleFiles
     const cur = panel.cursor
+
+    // Todo #133-3: Alt+글자 = 빠른 검색 칸 (Ctrl+Alt는 AltGr이라 제외)
+    if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && e.key.length === 1 && /\S/.test(e.key)) {
+      e.preventDefault()
+      const idx = findQuickSearch(files, e.key, 0, 1)
+      if (idx < 0) return
+      jumpTo(idx)
+      setQuickSearch(e.key)
+      return
+    }
 
     // Shift+a-z/0-9: 해당 글자로 시작하는 파일로 커서 이동 (반복 입력 시 순차 이동).
     // switch보다 먼저 처리 — 'C'/'T'/'W' case가 Ctrl 조합만 처리하고 break해 퀵 점프가 막히던 문제 (Todo #100)
@@ -404,6 +437,42 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
     }
   }, [isActive, keyboardDisabled, panel.cursor, panel.path, panel.selected, visibleFiles, side, cursorOnParent, showParent, onSwitchToPanel, onPastePath, onMaskSelect])
 
+  function jumpTo(idx) {
+    store.setCursor(side, idx)
+    scrollToCursor(idx, showParent)
+  }
+
+  const closeQuickSearch = () => {
+    setQuickSearch(null)
+    requestAnimationFrame(() => listRef.current?.focus())
+  }
+
+  // 빠른 검색 칸: 맞는 파일이 없는 글자는 받지 않음, ↑↓ 이전·다음 일치, Enter 열기, Esc 닫기
+  const onQuickSearchChange = (e) => {
+    const text = e.target.value
+    if (!text) { setQuickSearch(''); return }
+    const idx = findQuickSearch(visibleFiles, text, 0, 1)
+    if (idx < 0) return
+    setQuickSearch(text)
+    jumpTo(idx)
+  }
+  const onQuickSearchKeyDown = (e) => {
+    e.stopPropagation()
+    if (e.key === 'Escape') { e.preventDefault(); closeQuickSearch() }
+    else if (e.key === 'Enter') {
+      e.preventDefault()
+      const file = visibleFiles[useFileStore.getState()[side].cursor]
+      closeQuickSearch()
+      if (file) handleEnter(file)
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const dir = e.key === 'ArrowDown' ? 1 : -1
+      const cur = useFileStore.getState()[side].cursor
+      const idx = findQuickSearch(visibleFiles, quickSearch, cur + dir, dir)
+      if (idx >= 0) jumpTo(idx)
+    } else if (e.key === 'Tab') { e.preventDefault(); closeQuickSearch() }
+  }
+
   const scrollToCursor = (index, hasParent) => {
     if (!listRef.current) return
     const rows = listRef.current.querySelectorAll('[data-row]')
@@ -588,6 +657,14 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
           />
         ))}
       </div>
+
+      {quickSearch !== null && (
+        <div className={styles.quickSearch} onClick={e => e.stopPropagation()}>
+          <span>검색:</span>
+          <input aria-label="빠른 검색" className={styles.quickSearchInput} value={quickSearch} autoFocus spellCheck={false}
+            onChange={onQuickSearchChange} onKeyDown={onQuickSearchKeyDown} onBlur={() => setQuickSearch(null)} />
+        </div>
+      )}
 
       {/* Panel footer */}
       <div className={styles.footer}>

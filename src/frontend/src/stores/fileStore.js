@@ -72,8 +72,11 @@ export function sortFiles(files, sortBy = 'name', sortDir = 'asc') {
 
 // 패널별 목록 요청 순번 — 늦게 도착한 이전 응답이 최신 이동 결과를 덮어쓰지 않도록 (Todo #92)
 const navTokens = { left: 0, right: 0 }
-function beginNav(panel) {
+// 진행 중인 이동이 가는 경로 — 끝난 작업의 새로 고침이 다른 폴더로 가는 이동을 버리지 않게 (Todo #130-3)
+const navTargets = { left: null, right: null }
+function beginNav(panel, path) {
   const token = ++navTokens[panel]
+  navTargets[panel] = path
   return () => navTokens[panel] === token
 }
 
@@ -173,7 +176,7 @@ export const useFileStore = create((set, get) => ({
 
   // 반환값: 결과가 적용되었으면 true (더 새로운 이동에 밀렸거나 실패하면 false)
   navigate: async (panel, path) => {
-    const isCurrent = beginNav(panel)
+    const isCurrent = beginNav(panel, path)
     set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
     try {
       const result = await api.ListDirectory(path)
@@ -222,7 +225,7 @@ export const useFileStore = create((set, get) => ({
   _navigateHistory: async (panel, newIndex) => {
     const state = get()[panel]
     const path = state.history[newIndex]
-    const isCurrent = beginNav(panel)
+    const isCurrent = beginNav(panel, path)
     set(s => ({ [panel]: { ...s[panel], loading: true, error: null } }))
     try {
       const result = await api.ListDirectory(path)
@@ -702,6 +705,8 @@ export const useFileStore = create((set, get) => ({
     await Promise.all(
       ['left', 'right']
         .filter(panel => lower.has(st[panel].path.toLowerCase()))
+        // 다른 폴더로 이동하는 중이면 건너뜀 — 새로 고침이 그 이동을 밀어내면 사용자가 연 폴더가 무시됨
+        .filter(panel => !st[panel].loading || (navTargets[panel] ?? '').toLowerCase() === st[panel].path.toLowerCase())
         .map(panel => get().refresh(panel))
     )
   },
@@ -801,7 +806,7 @@ export const useFileStore = create((set, get) => ({
       }
     }))
 
-    const isCurrent = beginNav(panel)
+    const isCurrent = beginNav(panel, target.path)
     try {
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return
@@ -840,7 +845,7 @@ export const useFileStore = create((set, get) => ({
       }
     }))
 
-    const isCurrent = beginNav(panel)
+    const isCurrent = beginNav(panel, target.path)
     try {
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return

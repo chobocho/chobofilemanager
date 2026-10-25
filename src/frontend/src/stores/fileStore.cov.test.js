@@ -214,6 +214,26 @@ describe('fileStore 커버리지 — 패널/정렬/새로고침', () => {
     }
   })
 
+  it('FC-09g: 다른 폴더로 이동하는 중에 끝난 작업의 새로 고침이 그 이동을 버리지 않음 (Todo #130-3)', async () => {
+    let release
+    api.ListDirectory.mockImplementationOnce(p => new Promise(r => { release = () => r({ path: p, files: fs[p] }) }))
+    const nav = st().navigate('left', '/home') // 느린 폴더로 이동 중 (아직 패널 경로는 /a)
+    await st()._refreshAffected(['/a'])      // /a로 복사가 끝남
+    release()
+    await nav
+    expect(st().left.path).toBe('/home')
+  })
+
+  it('FC-09h: 같은 폴더를 읽는 중이면 새로 고침은 그대로 (최신 목록)', async () => {
+    let release
+    api.ListDirectory.mockImplementationOnce(p => new Promise(r => { release = () => r({ path: p, files: [] }) }))
+    const first = st().refresh('left')
+    await st()._refreshAffected(['/a'])
+    release()
+    await first
+    expect(st().left.files.map(e => e.name)).toEqual(['sub', 'x.txt', 'y.txt'])
+  })
+
   it('FC-10: 패널 이동도 프로세스 작업 폴더를 바꾸지 않음 (활성·비활성 모두)', async () => {
     await st().navigate('right', '/home')
     await st().navigate('left', '/home')

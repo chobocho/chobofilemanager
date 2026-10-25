@@ -124,10 +124,6 @@ func (a *App) OpenFile(path string) error {
 	return a.fileManager.OpenFile(path)
 }
 
-func (a *App) GetPathParts(path string) []PathPart {
-	return a.fileManager.GetPathParts(path)
-}
-
 func (a *App) JoinPath(parts ...string) string {
 	return a.fileManager.JoinPath(parts...)
 }
@@ -146,10 +142,6 @@ func (a *App) RunShellCommand(command, workDir string) (string, error) {
 
 func (a *App) OpenCmdWindow(workDir string) error {
 	return a.fileManager.OpenCmdWindow(workDir)
-}
-
-func (a *App) GetFileSize(path string) (int64, error) {
-	return a.fileManager.GetFileSize(path)
 }
 
 func (a *App) CompressItems(sources []string, destPath string) error {

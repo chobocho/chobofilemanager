@@ -357,50 +357,6 @@ func TestReadTextFileWithEncoding_Missing(t *testing.T) {
 	}
 }
 
-// ─── GetPathParts ─────────────────────────────────────────────────────────────
-
-func TestGetPathParts_WindowsNestedAndRoot(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows 전용")
-	}
-	fm := newTestFM()
-	parts := fm.GetPathParts(`D:\a\b\`)
-	want := []PathPart{{"D:", `D:\`}, {"a", `D:\a`}, {"b", `D:\a\b`}}
-	if len(parts) != len(want) {
-		t.Fatalf("parts = %+v", parts)
-	}
-	for i := range want {
-		if parts[i] != want[i] {
-			t.Errorf("parts[%d] = %+v, want %+v", i, parts[i], want[i])
-		}
-	}
-	root := fm.GetPathParts(`C:\`)
-	if len(root) != 1 || root[0].Name != "C:" || root[0].Path != `C:\` {
-		t.Errorf("드라이브 루트 = %+v", root)
-	}
-	// 정리되지 않은 경로(.., 중복 구분자)도 Clean 후 분해
-	messy := fm.GetPathParts(`C:\x\\y\..\z`)
-	if len(messy) != 3 || messy[2].Path != `C:\x\z` {
-		t.Errorf("Clean 처리 오류: %+v", messy)
-	}
-}
-
-func TestGetPathParts_LinuxNested(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Linux 전용")
-	}
-	parts := newTestFM().GetPathParts("/a//b/../c/")
-	want := []PathPart{{"/", "/"}, {"a", "/a"}, {"c", "/a/c"}}
-	if len(parts) != len(want) {
-		t.Fatalf("parts = %+v", parts)
-	}
-	for i := range want {
-		if parts[i] != want[i] {
-			t.Errorf("parts[%d] = %+v, want %+v", i, parts[i], want[i])
-		}
-	}
-}
-
 // ─── CreateStarlarkScratchFile / RunStarlarkFile ──────────────────────────────
 
 func setTempDirEnv(t *testing.T, dir string) {
@@ -678,20 +634,6 @@ func TestListDirectory_EmptyPathUsesHome(t *testing.T) {
 	home, _ := os.UserHomeDir()
 	if listing.Path != home {
 		t.Errorf("빈 경로는 홈 폴더: %q", listing.Path)
-	}
-}
-
-func TestGetFileSize_DirSumsRecursively(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, "a"), "123")
-	writeFile(t, filepath.Join(dir, "s", "b"), "4567")
-	n, err := newTestFM().GetFileSize(dir)
-	if err != nil || n != 7 {
-		t.Errorf("GetFileSize = %d, %v; want 7", n, err)
-	}
-	n, _ = newTestFM().GetFileSize(filepath.Join(dir, "missing"))
-	if n != 0 {
-		t.Errorf("없는 경로는 0: %d", n)
 	}
 }
 

@@ -49,23 +49,10 @@ const createMockAPI = () => ({
   DeleteFileBookmark: async () => null,
   RunShellCommand: async (command) => `(mock) ${command}`,
   OpenFile: async () => null,
-  GetPathParts: async (path) => {
-    const parts = [{ name: '/', path: '/' }]
-    const segments = path.replace(/^\//, '').split('/')
-    let acc = ''
-    for (const seg of segments) {
-      if (seg) {
-        acc += '/' + seg
-        parts.push({ name: seg, path: acc })
-      }
-    }
-    return parts
-  },
   JoinPath: async (...parts) => parts.join('/').replace(/\/+/g, '/'),
   GetParentPath: async (path) => path.split('/').slice(0, -1).join('/') || '/',
   SaveSessionState: async () => null,
   SearchFiles: async () => mockFiles.slice(0, 3),
-  GetFileSize: async () => 1024000,
   CompressItems: async () => null,
   ExtractArchive: async () => null,
   OpenCmdWindow: async () => null,

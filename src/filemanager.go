@@ -49,10 +49,6 @@ type DriveInfo struct {
 	FreeSpace  int64  `json:"freeSpace"`
 }
 
-type PathPart struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
 
 func NewFileManager() *FileManager {
 	return &FileManager{}
@@ -580,53 +576,6 @@ func (fm *FileManager) OpenCmdWindow(workDir string) error {
 	return cmd.Start()
 }
 
-func (fm *FileManager) GetPathParts(path string) []PathPart {
-	path = filepath.Clean(path)
-	var parts []PathPart
-
-	if runtime.GOOS == "windows" {
-		// UNC 경로(\\server\share\...)는 "\\server\share"를 첫 조각으로 (Todo #99)
-		if vol := filepath.VolumeName(path); strings.HasPrefix(vol, `\\`) {
-			root := vol + `\`
-			parts = append(parts, PathPart{Name: vol, Path: root})
-			accumulated := root
-			for _, seg := range strings.Split(strings.TrimPrefix(path[len(vol):], `\`), `\`) {
-				if seg == "" {
-					continue
-				}
-				accumulated = filepath.Join(accumulated, seg)
-				parts = append(parts, PathPart{Name: seg, Path: accumulated})
-			}
-			return parts
-		}
-		segments := strings.Split(path, string(filepath.Separator))
-		accumulated := ""
-		for _, seg := range segments {
-			if seg == "" {
-				continue
-			}
-			if accumulated == "" {
-				accumulated = seg + string(filepath.Separator)
-			} else {
-				accumulated = filepath.Join(accumulated, seg)
-			}
-			parts = append(parts, PathPart{Name: seg, Path: accumulated})
-		}
-	} else {
-		parts = append(parts, PathPart{Name: "/", Path: "/"})
-		segments := strings.Split(strings.TrimPrefix(path, "/"), "/")
-		accumulated := "/"
-		for _, seg := range segments {
-			if seg == "" {
-				continue
-			}
-			accumulated = filepath.Join(accumulated, seg)
-			parts = append(parts, PathPart{Name: seg, Path: accumulated})
-		}
-	}
-	return parts
-}
-
 func (fm *FileManager) JoinPath(parts ...string) string {
 	return filepath.Join(parts...)
 }
@@ -685,23 +634,6 @@ func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]
 
 	err := filepath.WalkDir(rootPath, walkFn)
 	return results, err
-}
-
-func (fm *FileManager) GetFileSize(path string) (int64, error) {
-	var total int64
-	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !d.IsDir() {
-			info, err := d.Info()
-			if err == nil {
-				total += info.Size()
-			}
-		}
-		return nil
-	})
-	return total, err
 }
 
 // CompressItems: 임시 파일에 압축한 뒤 성공 시에만 destPath로 교체합니다 (Todo #89).

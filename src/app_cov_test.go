@@ -76,9 +76,6 @@ func TestApp_FileWrappers_EndToEnd(t *testing.T) {
 	if err != nil || fi.Size != 5 {
 		t.Errorf("GetFileInfo = %+v, %v", fi, err)
 	}
-	if n, err := a.GetFileSize(src); err != nil || n != 5+int64(len(mustEUCKR(t, "한글"))) {
-		t.Errorf("GetFileSize = %d, %v", n, err)
-	}
 
 	// 복사 계열
 	if c := a.CheckCopyConflicts([]string{aTxt}, dst); len(c) != 0 {
@@ -150,10 +147,6 @@ func TestApp_FileWrappers_EndToEnd(t *testing.T) {
 	// 경로 도우미
 	if a.GetParentPath(renamed) != mv {
 		t.Errorf("GetParentPath = %q", a.GetParentPath(renamed))
-	}
-	parts := a.GetPathParts(renamed)
-	if len(parts) < 2 || parts[len(parts)-1].Name != "renamed.txt" || parts[len(parts)-1].Path != renamed {
-		t.Errorf("GetPathParts 마지막 조각 = %+v", parts)
 	}
 
 	// 압축 / 해제

@@ -59,18 +59,11 @@ describe('wailsjs/runtime.js 브라우저 mock', () => {
     expect(await api.CreateStarlarkScratchFile()).toMatch(/\.star$/)
     expect(await api.RunShellCommand('ls')).toBe('(mock) ls')
     expect(await api.RunStarlarkFile('/a.star')).toMatch(/starlark/)
-    expect(await api.GetFileSize('/a')).toBe(1024000)
     expect((await api.SearchFiles('/', 'x', true)).length).toBe(3)
   })
 
-  it('RT-06: 경로 유틸 mock (GetPathParts/JoinPath/GetParentPath)', async () => {
+  it('RT-06: 경로 유틸 mock (JoinPath/GetParentPath)', async () => {
     const api = (await loadMock()).default
-    expect(await api.GetPathParts('/home/user')).toEqual([
-      { name: '/', path: '/' },
-      { name: 'home', path: '/home' },
-      { name: 'user', path: '/home/user' },
-    ])
-    expect(await api.GetPathParts('/')).toEqual([{ name: '/', path: '/' }])
     expect(await api.JoinPath('/a/', '/b', 'c')).toBe('/a/b/c')
     expect(await api.GetParentPath('/a/b')).toBe('/a')
     expect(await api.GetParentPath('/a')).toBe('/')

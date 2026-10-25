@@ -43,26 +43,6 @@ func TestSearchFiles_RootItselfNotReturned(t *testing.T) {
 	}
 }
 
-func TestGetPathParts_UNC(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
-	parts := newTestFM().GetPathParts(`\\srv\share\dir\sub`)
-	want := []PathPart{
-		{Name: `\\srv\share`, Path: `\\srv\share\`},
-		{Name: "dir", Path: `\\srv\share\dir`},
-		{Name: "sub", Path: `\\srv\share\dir\sub`},
-	}
-	if len(parts) != len(want) {
-		t.Fatalf("parts = %+v", parts)
-	}
-	for i := range want {
-		if parts[i] != want[i] {
-			t.Errorf("part %d = %+v, want %+v", i, parts[i], want[i])
-		}
-	}
-}
-
 func TestUniqueName_Dotfile(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, ".bashrc"), []byte("x"), 0644)

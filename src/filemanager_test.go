@@ -982,53 +982,6 @@ func TestExtractArchive_InvalidZip(t *testing.T) {
 	}
 }
 
-// ─── GetPathParts ─────────────────────────────────────────────────────────────
-
-func TestGetPathParts_Windows(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows path test only")
-	}
-	fm := newTestFM()
-	parts := fm.GetPathParts(`C:\Users\test`)
-	if len(parts) < 2 {
-		t.Fatalf("expected at least 2 parts, got %d", len(parts))
-	}
-	if parts[0].Name != `C:` {
-		t.Errorf("first part should be drive letter, got %q", parts[0].Name)
-	}
-}
-
-func TestGetPathParts_Linux(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Linux path test only")
-	}
-	fm := newTestFM()
-	parts := fm.GetPathParts("/home/user/docs")
-	if len(parts) < 1 {
-		t.Fatalf("expected at least 1 part, got %d", len(parts))
-	}
-	if parts[0].Name != "/" || parts[0].Path != "/" {
-		t.Errorf("first part should be root /, got %+v", parts[0])
-	}
-	if len(parts) < 4 {
-		t.Fatalf("expected 4 parts for /home/user/docs, got %d", len(parts))
-	}
-	if parts[1].Name != "home" {
-		t.Errorf("second part should be 'home', got %q", parts[1].Name)
-	}
-}
-
-func TestGetPathParts_Root(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Linux path test only")
-	}
-	fm := newTestFM()
-	parts := fm.GetPathParts("/")
-	if len(parts) != 1 || parts[0].Path != "/" {
-		t.Errorf("root path should produce single root part, got %+v", parts)
-	}
-}
-
 // ─── isHiddenFile ─────────────────────────────────────────────────────────────
 
 func TestIsHiddenFile(t *testing.T) {
@@ -1063,23 +1016,6 @@ func TestGetParentPath(t *testing.T) {
 	expected := filepath.Join("a", "b")
 	if parent != expected {
 		t.Errorf("GetParentPath: want %q, got %q", expected, parent)
-	}
-}
-
-// ─── GetFileSize ──────────────────────────────────────────────────────────────
-
-func TestGetFileSize(t *testing.T) {
-	base := t.TempDir()
-	os.WriteFile(filepath.Join(base, "a.txt"), []byte("hello"), 0644)  // 5 bytes
-	os.WriteFile(filepath.Join(base, "b.txt"), []byte("world!"), 0644) // 6 bytes
-
-	fm := newTestFM()
-	size, err := fm.GetFileSize(base)
-	if err != nil {
-		t.Fatalf("GetFileSize error: %v", err)
-	}
-	if size != 11 {
-		t.Errorf("expected 11 bytes, got %d", size)
 	}
 }
 

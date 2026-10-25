@@ -9,6 +9,7 @@ import { macroForKey } from '../core/macros'
 import { needsPasteConfirm, copySelection, pasteClipboard, isLocalPasteKey } from '../core/clipboard'
 import { toast } from '../core/toast'
 import { useTermStore } from '../store/termStore'
+import { rectStyle } from '../core/drag'
 import styles from '../styles/Terminal.module.css'
 
 // 탭 하나의 터미널 화면 (Todo #120). 탭이 살아 있는 동안 마운트를 유지하고
@@ -112,8 +113,7 @@ export default function TerminalPane({ id, active, visible = active, rect, creat
   // 분할 비율이 바뀌면 다시 맞춤
   useEffect(() => { if (visible) sessionRef.current?.fit() }, [visible, rect?.x, rect?.y, rect?.w, rect?.h])
 
-  const pct = (v) => `${Math.round(v * 10000) / 100}%`
-  const style = rect ? { left: pct(rect.x), top: pct(rect.y), width: pct(rect.w), height: pct(rect.h) } : undefined
+  const style = rect ? rectStyle(rect) : undefined
   return (
     <div data-term-pane={id} hidden={!visible} style={style} ref={hostRef}
       className={`${styles.pane} ${active ? styles.paneActive : ''}`}

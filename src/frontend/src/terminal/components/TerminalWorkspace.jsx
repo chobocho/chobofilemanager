@@ -1,29 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { Plus, X, TerminalSquare, Star, Settings, Command } from 'lucide-react'
-import { sessionById, allSessions } from '../core/session'
-import { acquireTerminalEvents } from '../store/termEvents'
-import { loadSettings } from '../core/settings'
-import { loadRules } from '../core/highlight'
-import { startI18n, resolveLang } from '../core/i18n'
-import { termApi } from '../core/termApi'
-import { settings } from '../core/settings'
+import { TerminalSquare } from 'lucide-react'
+import { sessionById } from '../core/session'
 import { isPaneMoveKey } from '../core/look'
 import { workspaceAction } from '../core/workspaceKeys'
 import { leaves, paneRects, gutters, ARROWS } from '../core/layout'
+import { startWindowDrag, pct, rectStyle } from '../core/drag'
+import { copySelection, pasteClipboard } from '../core/clipboard'
+import { macroForKey } from '../core/macros'
 import { useTermStore } from '../store/termStore'
+import { useScriptStore } from '../store/scriptStore'
+import { useFilesStore } from '../store/filesStore'
+import { useTerminalBootstrap, useWindowTitle, useCat } from './workspaceHooks'
+import TabBar from './TabBar.jsx'
 import TerminalPane from './TerminalPane.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
 import AuthPrompt from './AuthPrompt.jsx'
 import { PasteConfirm } from './TerminalModals.jsx'
-import { checkUpdate } from '../core/update'
-import { applySavedTranslucency } from '../core/look'
-import { onTermEvent } from '../core/termApi'
-import { copySelection, pasteClipboard } from '../core/clipboard'
 import TerminalHelp from './TerminalHelp.jsx'
-import { terminalTitle } from '../core/title'
-import { installDebug } from '../core/debug'
 import SearchBar from './SearchBar.jsx'
 import TabMenu from './TabMenu.jsx'
 import SessionManager from './SessionManager.jsx'
@@ -36,10 +31,6 @@ import TransferProgress from './TransferProgress.jsx'
 import ForwardsDialog from './ForwardsDialog.jsx'
 import ContainersDialog from './ContainersDialog.jsx'
 import ScriptBox from './ScriptBox.jsx'
-import { useScriptStore } from '../store/scriptStore'
-import { scriptBadge } from '../core/luaScript'
-import { useFilesStore } from '../store/filesStore'
-import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
@@ -60,14 +51,6 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const memos = useTermStore(s => s.memos)
   const panel = useTermStore(s => s.panel)
   const scripts = useScriptStore(s => s.tabs)
-  // 스크립트가 도는 동안 탭 배지의 시간이 흐름
-  const [, tick] = useState(0)
-  const anyRunning = Object.values(scripts).some(x => x.script)
-  useEffect(() => {
-    if (!anyRunning) return
-    const t = setInterval(() => tick(n => n + 1), 1000)
-    return () => clearInterval(t)
-  }, [anyRunning])
   const filesView = useFilesStore(s => (activeId != null ? s.views[activeId] : undefined))
   const xfer = useFilesStore(s => s.xfer)
   const active = tabs.find(t => t.id === activeId)
@@ -76,57 +59,11 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const [searchOpen, setSearchOpen] = useState(false)
   const [menu, setMenu] = useState(null) // { id, x, y }
   const [helpOpen, setHelpOpen] = useState(false)
-  const dragGroup = useRef(null) // 끌고 있는 탭(그룹) id
-  const [webServer, setWebServer] = useState(null) // 웹 서버가 켜져 있으면 { clients }
   const areaRef = useRef(null)
-  const catRef = useRef(null)
 
-  // 창 제목: 보이는 동안 활성 탭의 연결, 숨기면 원래 제목 (Todo #124)
-  const baseTitle = useRef(typeof document !== 'undefined' ? document.title : '')
-  useEffect(() => {
-    const set = (title) => { document.title = title; window.runtime?.WindowSetTitle?.(title) }
-    if (!shown) { set(baseTitle.current); return }
-    const s = sessionById(activeId)
-    set(terminalTitle(baseTitle.current, active && s ? { state: active.state, proto: active.proto, encoding: s.encoding, req: s.req, docker: active.docker } : undefined))
-  }, [shown, activeId, active?.state, active?.proto, active?.label])
-  useEffect(() => () => { document.title = baseTitle.current }, [])
-
-  // 고양이: 칸들의 아래쪽을 걸어 다님, 설정을 따름
-  useEffect(() => {
-    if (!cat) return
-    let alive = true
-    let handle
-    import('../core/cat').then(({ mountCat }) => {
-      if (!alive) return
-      handle = mountCat({
-        floor: () => areaRef.current,
-        cursorTerm: (ae) => {
-          const own = allSessions().find(s => ae && s.term.element?.contains(ae))
-          return (own ?? sessionById(useTermStore.getState().activeId))?.term
-        },
-        focusActive: () => sessionById(useTermStore.getState().activeId)?.focus(),
-      })
-      catRef.current = handle
-      loadSettings().then(() => { if (alive) handle.apply() })
-    })
-    return () => { alive = false; handle?.dispose(); catRef.current = null }
-  }, [cat])
-
-  useEffect(() => {
-    const releaseEvents = acquireTerminalEvents() // 도크와 함께 씀: 마지막이 놓으면 끊김
-    installDebug()
-    loadSettings().then(async () => {
-      loadRules()
-      // 언어: 설정, 비면 Go가 정한 언어 (Todo #124)
-      const go = await Promise.resolve(termApi.GetLanguage()).catch(() => '')
-      startI18n(resolveLang(settings.language, go))
-      applySavedTranslucency()
-      if (settings.updateCheck) checkUpdate(false)
-    })
-    if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
-    const offWeb = onTermEvent('web:status', (running, clients) => setWebServer(running ? { clients } : null))
-    return () => { releaseEvents(); offWeb() }
-  }, [])
+  const webServer = useTerminalBootstrap()
+  useWindowTitle(shown, active)
+  useCat(cat, areaRef)
 
   function onKeyDown(e) {
     const st = useTermStore.getState()
@@ -185,68 +122,25 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   function dragGutter(e, groupId, g) {
     if (e.button !== 0) return
     e.preventDefault()
-    const move = (ev) => {
+    startWindowDrag((ev) => {
       const r = areaRef.current.getBoundingClientRect()
       const pos = g.dir === 'row' ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height
       const start = g.dir === 'row' ? g.area.x : g.area.y
       const size = g.dir === 'row' ? g.area.w : g.area.h
       useTermStore.getState().setRatio(groupId, g.path, (pos - start) / size)
-    }
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
+    })
   }
 
   const rectsOf = new Map(groups.map(g => [g.id, paneRects(g.layout)]))
-  const pct = (v) => `${Math.round(v * 10000) / 100}%`
+  const shownIds = activeGroup ? leaves(activeGroup.layout) : []
+  // 칸 위에 뜨는 것(메모장·스크립트 상자)은 그 칸의 자리에
+  const overPane = (id, key, child) => (
+    <div key={key} className={styles.memoArea} style={rectStyle(rectsOf.get(activeGroup.id)[id])}>{child}</div>
+  )
 
   return (
     <div className={styles.workspace} onKeyDown={onKeyDown} data-terminal-root>
-      <div className={styles.tabBar} role="tablist"
-        onDoubleClick={(e) => { if (e.target === e.currentTarget) useTermStore.getState().newTab() }}>
-        {groups.map(g => {
-          const ids = leaves(g.layout)
-          const current = g === activeGroup
-          return (
-            <div key={g.id} role="tab" aria-selected={current} draggable
-              onDragStart={(e) => { dragGroup.current = g.id; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move' }}
-              onDragOver={(e) => { if (dragGroup.current != null && dragGroup.current !== g.id) e.preventDefault() }}
-              onDrop={(e) => { e.preventDefault(); if (dragGroup.current != null) useTermStore.getState().moveGroup(dragGroup.current, g.id); dragGroup.current = null }}
-              onDragEnd={() => { dragGroup.current = null }}
-              className={`${styles.tab} ${current ? styles.tabActive : ''}`}
-              onClick={() => { if (!current) useTermStore.getState().setActive(ids[0]) }}>
-              {ids.map(id => {
-                const t = tabs.find(x => x.id === id)
-                if (!t) return null
-                return (
-                  <span key={id} title={(t.tooltip || t.label) + (t.log ? `\n로그 기록 중: ${t.log}` : '')} data-logging={t.log ? '' : undefined} data-busy={xfer?.tabId === id ? '' : undefined}
-                    className={`${styles.paneChip} ${id === activeId ? styles.paneChipActive : ''} ${t.activity ? styles.tabActivity : ''}`}
-                    onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}
-                    onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); e.stopPropagation(); useTermStore.getState().closeTab(id) } }}>
-                    <span className={`${styles.dot} ${t.state !== 'idle' ? styles.dotOn : ''}`} />
-                    <span data-tab-label>{t.label}</span>
-                    {(() => {
-                      const b = scriptBadge(scripts[id]?.script, scripts[id]?.box?.busy, Date.now())
-                      return b && <span className={styles.runBadge} title={b.title}>{b.text}</span>
-                    })()}
-                    <button type="button" className={styles.tabClose} title="탭 닫기 (Ctrl+Shift+W)"
-                      onClick={(e) => { e.stopPropagation(); useTermStore.getState().closeTab(id) }}><X size={11} /></button>
-                  </span>
-                )
-              })}
-            </div>
-          )
-        })}
-        <button type="button" className={styles.newTab} title="새 탭 (Ctrl+Shift+T)" onClick={() => useTermStore.getState().newTab()}><Plus size={13} /></button>
-        <button type="button" className={styles.newTab} title="세션 관리 (Ctrl+Shift+H)" onClick={() => useTermStore.getState().openSessionManager()}><Star size={13} /></button>
-        <button type="button" className={styles.newTab} title="설정 (Ctrl+Shift+O)" onClick={() => useTermStore.getState().openPrefs()}><Settings size={13} /></button>
-        <button type="button" className={styles.newTab} title="매크로 (Ctrl+Shift+M)" onClick={() => useTermStore.getState().openMacros()}><Command size={13} /></button>
-        {webServer && <span className={styles.webBadge} title="웹 서버가 켜져 있습니다 (설정 > 웹 서버)">{`🌐 웹 서버 · 브라우저 ${webServer.clients}개`}</span>}
-      </div>
+      <TabBar onMenu={setMenu} webServer={webServer} />
       <div className={styles.panes}>
         <div className={styles.groupArea} ref={areaRef} data-group-area>
           {tabs.map(t => {
@@ -257,22 +151,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                 onPasteRequest={setPasteRequest} />
             )
           })}
-          {activeGroup && memos.filter(id => leaves(activeGroup.layout).includes(id)).map(id => {
-            const r = rectsOf.get(activeGroup.id)[id]
-            return (
-              <div key={`memo${id}`} className={styles.memoArea} style={{ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) }}>
-                <MemoPad id={id} />
-              </div>
-            )
-          })}
-          {activeGroup && leaves(activeGroup.layout).filter(id => scripts[id]?.box).map(id => {
-            const r = rectsOf.get(activeGroup.id)[id]
-            return (
-              <div key={`script${id}`} className={styles.memoArea} style={{ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) }}>
-                <ScriptBox id={id} />
-              </div>
-            )
-          })}
+          {shownIds.filter(id => memos.includes(id)).map(id => overPane(id, `memo${id}`, <MemoPad id={id} />))}
+          {shownIds.filter(id => scripts[id]?.box).map(id => overPane(id, `script${id}`, <ScriptBox id={id} />))}
           {activeGroup && gutters(activeGroup.layout).map(gt => (
             <div key={gt.path} data-gutter className={gt.dir === 'row' ? styles.gutterRow : styles.gutterCol}
               title="끌어서 크기 조절 · 더블클릭: 반반"

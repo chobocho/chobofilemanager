@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 12: TerminalWorkspace 나누기)
+
+### 변경
+- `TabBar.jsx`(탭 막대·칩·스크립트 배지 시간·끌어서 순서·웹 서버 표시), `workspaceHooks.js`(`useTerminalBootstrap`·`useWindowTitle`·`useCat`)로 나눔 — 작업 공간은 키 처리·칸 배치·창 띄우기만 (308 → 약 200줄)
+- `core/drag.ts`: `startWindowDrag`(분할 경계선·도크 높이 끌기가 함께 씀), `pct`·`rectStyle`(칸 좌표 → 위치, 작업 공간·칸·메모장·스크립트 상자에 같던 계산)
+- 메모장·스크립트 상자를 칸 위에 띄우는 같은 코드 두 벌을 하나로
+
+### 테스트
+- `drag.test.ts`(DR-01~03), 기존 작업 공간 테스트 그대로 통과 — 프론트 1198개, 빌드 성공
+
 ## 2026-10-25 (Todo.md #126 리팩터링 11: 뷰어·에디터 찾기 하나로, 인코딩 목록 옮김)
 
 ### 변경

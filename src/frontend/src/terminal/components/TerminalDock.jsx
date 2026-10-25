@@ -8,6 +8,7 @@ import { lookOptions } from '../core/look'
 import { settings, loadSettings } from '../core/settings'
 import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, quoteForShell, clampDockHeight, localPathFromCwd } from '../core/dock'
 import { useDockStore } from '../../stores/dockStore'
+import { startWindowDrag } from '../core/drag'
 import { useFileStore } from '../../stores/fileStore'
 import styles from '../styles/Terminal.module.css'
 
@@ -110,13 +111,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
     e.preventDefault()
     const startY = e.clientY
     const startH = useDockStore.getState().height
-    const move = (ev) => useDockStore.getState().setHeight(clampDockHeight(startH + (startY - ev.clientY), window.innerHeight))
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
+    startWindowDrag(ev => useDockStore.getState().setHeight(clampDockHeight(startH + (startY - ev.clientY), window.innerHeight)))
   }
 
   function onKeyDown(e) {

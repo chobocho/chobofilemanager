@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Eye, X, AArrowDown, AArrowUp, FileText, Search, ChevronUp, ChevronDown, Code, BookOpen, Pencil, WrapText } from 'lucide-react'
+import { Eye, X, AArrowDown, AArrowUp, FileText, Search, Code, BookOpen, Pencil, WrapText } from 'lucide-react'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useFileStore } from '../stores/fileStore'
@@ -7,6 +7,7 @@ import { isImageFile } from '../utils/fileTypes.js'
 import CodeSurface from './CodeSurface.jsx'
 import { languageKeyForPath } from './codeLanguages.js'
 import styles from '../styles/FileViewer.module.css'
+import { useSurfaceSearch, SurfaceSearchBar } from './SurfaceSearch.jsx'
 
 // Todo #73: 마크다운의 원시 HTML이 Wails 웹뷰에서 실행되면 Go 바인딩(셸 실행·삭제)을 호출할 수 있으므로
 // marked 출력을 DOMPurify로 정리합니다 (script, 이벤트 핸들러, javascript: URL, iframe 등 제거).
@@ -77,22 +78,9 @@ export function getWordWrapStyle(wordWrap) {
   return { whiteSpace: 'pre', overflowX: 'auto', overflowWrap: 'normal' }
 }
 
-// 인코딩 순환 — F3/F4 뷰어/편집기 UI에서 자동 판별이 틀렸을 때 수동 변경.
-// 백엔드 ReadTextFileWithEncoding 의 encName 인자와 일치해야 함.
-export const ENCODINGS = ['auto', 'utf-8', 'utf-16le', 'utf-16be', 'cp949', 'johab']
-export const ENCODING_LABELS = {
-  'auto':     'Auto',
-  'utf-8':    'UTF-8',
-  'utf-16le': 'UTF-16 LE',
-  'utf-16be': 'UTF-16 BE',
-  'cp949':    'CP949',
-  'johab':    'Johab',
-}
-export function nextEncoding(current) {
-  const idx = ENCODINGS.indexOf(current)
-  if (idx === -1) return 'auto'
-  return ENCODINGS[(idx + 1) % ENCODINGS.length]
-}
+// 인코딩 목록은 utils/encodings.js (에디터와 함께 씀), 예전 import를 위해 다시 내보냄
+export { ENCODINGS, ENCODING_LABELS, nextEncoding } from '../utils/encodings.js'
+import { ENCODINGS, ENCODING_LABELS, nextEncoding } from '../utils/encodings.js'
 
 
 // F4: 뷰어 → 에디터 전환 단축키 (Todo #59)
@@ -165,9 +153,6 @@ export default function FileViewer({ path, source, onClose, onSwitchToEditor, si
   const [error, setError]         = useState(null)
   const [fontSize, setFontSize]   = useState(13)
   const [wordWrap, setWordWrap]       = useState(false)
-  const [searchOpen, setSearchOpen]   = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [noMatch, setNoMatch]         = useState(false)
   const [encoding, setEncoding]       = useState('auto')
   const [imageScale, setImageScale]   = useState(DEFAULT_IMAGE_SCALE)
 
@@ -178,7 +163,9 @@ export default function FileViewer({ path, source, onClose, onSwitchToEditor, si
   const [mdRendered, setMdRendered] = useState(true) // markdown 기본 렌더링 모드
 
   const surfaceRef        = useRef(null)  // Todo #111: 텍스트 모드는 CodeMirror(읽기 전용)
-  const searchInputRef    = useRef(null)
+  // 찾기 (Ctrl+F): 상태·찾기·키·막대는 SurfaceSearch (Todo #126)
+  const search = useSurfaceSearch(surfaceRef, () => lowerContent)
+  const { searchOpen, setSearchOpen, setNoMatch, searchInputRef, findNext, findPrev } = search
   const mdBodyRef         = useRef(null)
   const imageContainerRef = useRef(null)
 
@@ -318,58 +305,6 @@ export default function FileViewer({ path, source, onClose, onSwitchToEditor, si
     setFontSize(prev => clampFontSize(prev, delta))
   }, [])
 
-  const showNoMatch = useCallback(() => {
-    setNoMatch(true)
-    setTimeout(() => setNoMatch(false), 600)
-  }, [])
-
-  const findNext = useCallback(() => {
-    const surface = surfaceRef.current
-    if (!surface || !searchQuery) return
-    const lowerQuery = searchQuery.toLowerCase()
-    const startIndex = surface.getSelection()[1]
-    let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
-    if (matchIndex === -1 && startIndex > 0) {
-      matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
-    }
-    if (matchIndex === -1) { showNoMatch(); return }
-    surface.select(matchIndex, matchIndex + searchQuery.length)
-  }, [searchQuery, showNoMatch, lowerContent])
-
-  const findPrev = useCallback(() => {
-    const surface = surfaceRef.current
-    if (!surface || !searchQuery) return
-    const lowerQuery = searchQuery.toLowerCase()
-    // 선택이 맨 앞(0)이면 lastIndexOf(q, 0)이 같은 위치를 다시 찾으므로 바로 끝에서부터 순환 (Todo #107)
-    const sel = surface.getSelection()[0]
-    let matchIndex = sel > 0 ? lowerContent.lastIndexOf(lowerQuery, sel - 1) : -1
-    if (matchIndex === -1) {
-      matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
-    }
-    if (matchIndex === -1) { showNoMatch(); return }
-    surface.select(matchIndex, matchIndex + searchQuery.length)
-  }, [searchQuery, showNoMatch, lowerContent])
-
-  const handleSearchKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      e.stopPropagation()
-      setSearchOpen(false)
-      setNoMatch(false)
-      surfaceRef.current?.focus()
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      e.stopPropagation()
-      if (e.shiftKey) findPrev()
-      else findNext()
-    }
-  }, [findNext, findPrev])
-
-  const closeSearch = useCallback(() => {
-    setSearchOpen(false)
-    setNoMatch(false)
-    surfaceRef.current?.focus()
-  }, [])
 
   const mdHtml = useMemo(() => {
     if (!isMarkdown || !content) return ''
@@ -486,29 +421,7 @@ export default function FileViewer({ path, source, onClose, onSwitchToEditor, si
         </div>
 
         {/* Search bar */}
-        {searchOpen && (
-          <div className={styles.searchBar}>
-            <Search size={12} className={styles.searchIcon} />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className={`${styles.searchInput} ${noMatch ? styles.searchNoMatch : ''}`}
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setNoMatch(false) }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="검색... (Enter: 다음  Shift+Enter: 이전)"
-            />
-            <button className={styles.searchBtn} onClick={findPrev} title="이전 (Shift+Enter)">
-              <ChevronUp size={13} />
-            </button>
-            <button className={styles.searchBtn} onClick={findNext} title="다음 (Enter)">
-              <ChevronDown size={13} />
-            </button>
-            <button className={styles.searchBtnClose} onClick={closeSearch} title="닫기 (Esc)">
-              <X size={13} />
-            </button>
-          </div>
-        )}
+        {searchOpen && <SurfaceSearchBar search={search} styles={styles} />}
 
         {/* Body */}
         <div className={styles.body}>

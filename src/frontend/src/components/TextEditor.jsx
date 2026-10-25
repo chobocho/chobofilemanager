@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Text } from '@codemirror/state'
-import { Save, X, FileText, Search, ChevronUp, ChevronDown, Eye, Play, Terminal } from 'lucide-react'
+import { Save, X, FileText, Search, Eye, Play, Terminal } from 'lucide-react'
 import { useFileStore } from '../stores/fileStore'
-import { ENCODING_LABELS, nextEncoding } from './FileViewer.jsx'
+import { ENCODING_LABELS, nextEncoding } from '../utils/encodings.js'
 import CodeSurface from './CodeSurface.jsx'
 import { languageKeyForPath } from './codeLanguages.js'
 import styles from '../styles/TextEditor.module.css'
+import { useSurfaceSearch, SurfaceSearchBar } from './SurfaceSearch.jsx'
 
 export function isStarlarkFile(ext) {
   const lower = ext.toLowerCase()
@@ -50,9 +51,6 @@ export default function TextEditor({ path, source, onClose, onSwitchToViewer }) 
   const [cursor, setCursor]             = useState({ line: 1, col: 1 })
   // 미저장 상태에서 나가려 할 때 보류 중인 동작: null | 'close' | 'viewer' (Todo #75)
   const [pendingLeave, setPendingLeave] = useState(null)
-  const [searchOpen, setSearchOpen]     = useState(false)
-  const [searchQuery, setSearchQuery]   = useState('')
-  const [noMatch, setNoMatch]           = useState(false)
   const [running, setRunning]           = useState(false)
   const [runOutput, setRunOutput]       = useState(null) // null = 패널 미표시
   const [encoding, setEncoding]         = useState('auto')
@@ -60,9 +58,11 @@ export default function TextEditor({ path, source, onClose, onSwitchToViewer }) 
   const eolRef = useRef('\n')
 
   const surfaceRef     = useRef(null)
+  // 찾기 (Ctrl+F): 상태·찾기·키·막대는 SurfaceSearch (Todo #126)
+  const search = useSurfaceSearch(surfaceRef, () => lowerText())
+  const { searchOpen, setSearchOpen, setNoMatch, searchInputRef, findNext, findPrev } = search
   const originalDocRef = useRef(Text.empty) // 마지막으로 읽거나 저장한 문서 (미저장 판정 기준)
   const searchCacheRef = useRef({ doc: null, lower: '' })
-  const searchInputRef = useRef(null)
   const saveConfirmRef = useRef(null)
 
   const local = useFileStore.getState()
@@ -252,60 +252,6 @@ export default function TextEditor({ path, source, onClose, onSwitchToViewer }) 
     return searchCacheRef.current.lower
   }, [])
 
-  const showNoMatch = useCallback(() => {
-    setNoMatch(true)
-    setTimeout(() => setNoMatch(false), 600)
-  }, [])
-
-  const findNext = useCallback(() => {
-    const surface = surfaceRef.current
-    if (!surface || !searchQuery) return
-    const lowerContent = lowerText()
-    const lowerQuery = searchQuery.toLowerCase()
-    const startIndex = surface.getSelection()[1]
-    let matchIndex = lowerContent.indexOf(lowerQuery, startIndex)
-    if (matchIndex === -1 && startIndex > 0) {
-      matchIndex = lowerContent.indexOf(lowerQuery, 0)  // wrap around
-    }
-    if (matchIndex === -1) { showNoMatch(); return }
-    surface.select(matchIndex, matchIndex + searchQuery.length)
-  }, [searchQuery, showNoMatch, lowerText])
-
-  const findPrev = useCallback(() => {
-    const surface = surfaceRef.current
-    if (!surface || !searchQuery) return
-    const lowerContent = lowerText()
-    const lowerQuery = searchQuery.toLowerCase()
-    // 선택이 맨 앞(0)이면 lastIndexOf(q, 0)이 같은 위치를 다시 찾으므로 바로 끝에서부터 순환 (Todo #107)
-    const sel = surface.getSelection()[0]
-    let matchIndex = sel > 0 ? lowerContent.lastIndexOf(lowerQuery, sel - 1) : -1
-    if (matchIndex === -1) {
-      matchIndex = lowerContent.lastIndexOf(lowerQuery)  // wrap around
-    }
-    if (matchIndex === -1) { showNoMatch(); return }
-    surface.select(matchIndex, matchIndex + searchQuery.length)
-  }, [searchQuery, showNoMatch, lowerText])
-
-  const handleSearchKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      e.stopPropagation()
-      setSearchOpen(false)
-      setNoMatch(false)
-      surfaceRef.current?.focus()
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      e.stopPropagation()
-      if (e.shiftKey) findPrev()
-      else findNext()
-    }
-  }, [findNext, findPrev])
-
-  const closeSearch = useCallback(() => {
-    setSearchOpen(false)
-    setNoMatch(false)
-    surfaceRef.current?.focus()
-  }, [])
 
   return (
     <div className={styles.overlay}>
@@ -387,29 +333,7 @@ export default function TextEditor({ path, source, onClose, onSwitchToViewer }) 
         </div>
 
         {/* Search bar */}
-        {searchOpen && (
-          <div className={styles.searchBar}>
-            <Search size={12} className={styles.searchIcon} />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className={`${styles.searchInput} ${noMatch ? styles.searchNoMatch : ''}`}
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setNoMatch(false) }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="검색... (Enter: 다음  Shift+Enter: 이전)"
-            />
-            <button className={styles.searchBtn} onClick={findPrev} title="이전 (Shift+Enter)">
-              <ChevronUp size={13} />
-            </button>
-            <button className={styles.searchBtn} onClick={findNext} title="다음 (Enter)">
-              <ChevronDown size={13} />
-            </button>
-            <button className={styles.searchBtnClose} onClick={closeSearch} title="닫기 (Esc)">
-              <X size={13} />
-            </button>
-          </div>
-        )}
+        {searchOpen && <SurfaceSearchBar search={search} styles={styles} />}
 
         {/* Body */}
         <div className={styles.body}>

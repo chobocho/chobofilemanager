@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 11: 뷰어·에디터 찾기 하나로, 인코딩 목록 옮김)
+
+### 변경
+- `utils/textSearch.js`(다음/이전 찾기, 끝↔처음 돌아감) + `components/SurfaceSearch.jsx`(`useSurfaceSearch` 훅·`SurfaceSearchBar`): FileViewer·TextEditor에 같던 상태·찾기·키·막대(각 약 80줄)를 하나로. 소문자 문서는 부르는 쪽이 보관(큰 파일에서 찾을 때마다 바꾸지 않음)
+- 인코딩 목록을 `utils/encodings.js`로 — 에디터가 뷰어 컴포넌트를 가져오던 의존을 없앰 (FileViewer는 예전 import를 위해 다시 내보냄)
+
+### 테스트
+- `textSearch.test.js`(TS-01~02), 기존 뷰어·에디터 찾기 테스트 그대로 통과 — 프론트 1195개, 빌드 성공
+
 ## 2026-10-25 (Todo.md #126 리팩터링 6 보완: 빌드 오류 수정)
 
 ### 변경

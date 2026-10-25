@@ -50,6 +50,9 @@ type Session struct {
 	rows   int
 	naws   bool
 	binary bool
+	// options on our side (we WILL) and the server's (it WILL), so only
+	// changes are answered (RFC 1143) — only touched by Read
+	us, them [256]bool
 
 	// auto-login
 	login, pass   string
@@ -236,39 +239,63 @@ func (t *Session) parse(in []byte) []byte {
 	return out
 }
 
+// negotiate answers a DO/DONT/WILL/WONT only when it changes an option; an
+// acknowledgment of the current state gets no reply, or a naive server and we
+// would answer each other forever (RFC 1143, Todo #130-2).
 func (t *Session) negotiate(cmd, opt byte) {
 	reply := func(c byte) { _ = t.rawWrite([]byte{tnIAC, c, opt}) }
 	switch cmd {
 	case tnDO:
 		switch opt {
-		case optNAWS:
-			reply(tnWILL)
-			t.wmu.Lock()
-			t.naws = true
-			t.wmu.Unlock()
-			_ = t.sendNAWS()
-		case optTType, optSGA, optBinary:
-			reply(tnWILL)
-			if opt == optBinary {
-				t.setBinary(true)
+		case optNAWS, optTType, optSGA, optBinary:
+			if t.us[opt] {
+				return
 			}
+			t.us[opt] = true
+			reply(tnWILL)
+			t.setOption(opt, true)
 		default:
-			reply(tnWONT)
+			reply(tnWONT) // a refusal, sent for every request
 		}
 	case tnDONT:
-		if opt == optBinary {
-			t.setBinary(false)
+		if !t.us[opt] {
+			return
 		}
+		t.us[opt] = false
 		reply(tnWONT)
+		t.setOption(opt, false)
 	case tnWILL:
 		switch opt {
 		case optEcho, optSGA, optBinary:
+			if t.them[opt] {
+				return
+			}
+			t.them[opt] = true
 			reply(tnDO)
 		default:
-			reply(tnDONT)
+			reply(tnDONT) // a refusal, sent for every request
 		}
 	case tnWONT:
+		if !t.them[opt] {
+			return
+		}
+		t.them[opt] = false
 		reply(tnDONT)
+	}
+}
+
+// setOption applies one of our options turning on or off.
+func (t *Session) setOption(opt byte, on bool) {
+	switch opt {
+	case optBinary:
+		t.setBinary(on)
+	case optNAWS:
+		t.wmu.Lock()
+		t.naws = on
+		t.wmu.Unlock()
+		if on {
+			_ = t.sendNAWS()
+		}
 	}
 }
 

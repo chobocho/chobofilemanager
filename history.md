@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #130-2: Telnet 옵션 협상이 서버와 끝없이 주고받지 않게
+- 문제: DO/DONT/WILL/WONT에 상태와 상관없이 매번 답해, 우리가 거절(DONT)한 옵션을 서버가 WONT로 확인하면 또 DONT를 보내는 식으로 단순한 서버와 무한 반복될 수 있었음. DONT NAWS 뒤에도 창 크기 변경이 계속 전송됨.
+- 수정: 옵션별 우리 쪽/서버 쪽 상태를 기억해 상태가 바뀔 때만 답함(RFC 1143). 모르는 옵션 요청의 거절은 매번 보냄. DONT NAWS 뒤 크기 전송 중지.
+- 테스트: TestNegotiationAnswersOnlyChanges(6개 시나리오), TestBinaryAndNAWSFollowTheNegotiation(바이너리 켜고 끄기, NAWS의 255 이중화, DONT 뒤 전송 없음).
+
 ## 2026-10-25 Todo.md #130-2: 손상된 설정·세션·호스트 파일이 다음 저장에 지워지지 않게
 - 문제: 터미널 settings.json·sessions.json(저장된 세션)·hosts.json이 깨지면 읽기가 기본값/빈 목록으로 대신하고, 다음 저장이 원본을 덮어써 사용자 데이터가 사라졌음. settings·hosts는 제자리 쓰기라 저장 중 중단되면 반쪽 파일이 남을 수 있었음.
 - 새 패키지 internal/atomicfile: Write(같은 폴더 임시 파일 → rename 교체), BackupCorrupt(<이름>.corrupt-<시각>으로 보관).

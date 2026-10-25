@@ -427,4 +427,4 @@
 - [x] 133-10 폴더 트리 (Ctrl+F8): 패널 왼쪽 트리, 클릭·키보드로 이동
 - [x] 133-11 보기 방식: 자세히(Ctrl+F2) · 간단히(Ctrl+F1) · 썸네일(Ctrl+Shift+F1)
 - [x] 133-12 사용자 단추 막대: 단추 추가·편집·삭제, 명령 + 인자(%P %N %S %T)
-- [ ] 133-13 플러그인: Starlark 스크립트(~/.chobocho-commander/plugins/*.star)를 단추·명령으로 (TC DLL 플러그인 호환은 하지 않음)
+- [x] 133-13 플러그인: Starlark 스크립트(~/.chobocho-commander/plugins/*.star)를 단추·명령으로 (TC DLL 플러그인 호환은 하지 않음)

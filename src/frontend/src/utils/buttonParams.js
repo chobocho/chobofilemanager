@@ -16,7 +16,7 @@ export function expandParams(template, ctx) {
   })
 }
 
-// "@"로 시작하는 명령 = 앱 안의 기능 (App이 실행)
+// "@"로 시작하는 명령 = 앱 안의 기능 (App이 실행). "@plugin:파일.star"는 그 플러그인 실행
 export const INTERNAL_COMMANDS = [
   { id: '@copy', label: '복사 (F5)' },
   { id: '@move', label: '이동 (F6)' },
@@ -33,4 +33,5 @@ export const INTERNAL_COMMANDS = [
   { id: '@ftp', label: 'FTP 연결' },
   { id: '@refresh', label: '새로 고침 (Ctrl+R)' },
   { id: '@hidden', label: '숨김 파일 (Ctrl+H)' },
+  { id: '@plugins', label: '플러그인 창 (Ctrl+Shift+X)' },
 ]

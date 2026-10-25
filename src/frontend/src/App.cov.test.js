@@ -407,6 +407,22 @@ describe('사용자 단추 막대 (Todo #133-12)', () => {
   })
 })
 
+describe('플러그인 (Todo #133-13)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-PG1: Ctrl+Shift+X → 플러그인 창, 실행하면 지금 패널 정보를 넘김', async () => {
+    api.ListPlugins = vi.fn().mockResolvedValue([{ file: 'c.star', name: '세기', description: '' }])
+    api.RunPlugin = vi.fn().mockResolvedValue({ output: 'ok', error: '', refresh: true })
+    await renderApp()
+    cursorTo('x.txt')
+    await key({ key: 'X', ctrlKey: true, shiftKey: true })
+    expect(await screen.findByText('세기')).toBeTruthy()
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '실행' })) })
+    expect(api.RunPlugin).toHaveBeenCalledWith('c.star', { panelPath: '/a', targetPath: '/b', cursor: '/a/x.txt', selected: [] })
+    await waitFor(() => expect(screen.getByText('ok')).toBeTruthy())
+  })
+})
+
 describe('빠른 보기 (Todo #133-9)', () => {
   afterEach(() => cleanup())
 

@@ -2,6 +2,12 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #133-13: 플러그인 (Ctrl+Shift+X, Starlark)
+- TC의 DLL 플러그인(WCX/WLX/WFX) 호환 대신, 이미 있는 Starlark 실행기로 사용자 스크립트 플러그인: `~/.chobocho-commander/plugins/*.star`, 첫 줄들의 `# name:` `# description:`으로 이름·설명
+- 스크립트가 받는 것: panel_path · target_path · cursor · selected · targets(고른 파일, 없으면 커서), 함수 read_text · write_text · list_dir · exists · is_dir · file_size · join_path · basename · dirname · mkdir · rename, print 출력. 맨 위 for/while 허용, 2천만 단계 · 15초 제한(무한 반복 멈춤), 파일을 바꾸는 함수를 쓰면 끝난 뒤 두 패널 새로 고침. 압축 파일 안 쓰기는 기존처럼 읽기 전용 오류
+- `PluginDialog`: 목록(↑↓ Enter · 더블클릭 실행), 출력·오류(역추적) 표시, 폴더 열기(처음 만들 때 예제 2개: 줄 수 세기 · 파일 목록 만들기), 다시 읽기, "단추로 만들기" → 단추 막대에 `@plugin:파일.star`. 단추 막대에서 `@plugins`도
+- 테스트: plugins_test.go 4개(예제 실행 포함), PluginDialog.test.js 5개, App AP-PG1 — Go 전체 · 프론트 1374개 통과
+
 ## 2026-10-26 Todo.md #133-12: 사용자 단추 막대
 - Files 보기 위쪽에 `ButtonBar`: 클릭 실행, 우클릭 고치기, + 새 단추. `ButtonEditDialog`: 이름 · 명령 · 인자 · 시작 폴더, 앞으로/뒤로 · 지우기, 명령 칸에 앱 기능 목록(datalist)
 - 자리 표시(`utils/buttonParams.js`, TC와 같은 글자): %P 활성 패널 · %T 반대 패널 · %N 커서 이름 · %F 커서 경로 · %S 고른 파일들(따옴표, 없으면 커서) · %%

@@ -1,0 +1,40 @@
+/* 플러그인 창 (Ctrl+Shift+X, Todo #133-13) */
+.list {
+  max-height: 220px;
+  min-height: 80px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  outline: none;
+}
+
+.list:focus .active { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+.item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 8px;
+  cursor: default;
+  font-size: 12px;
+}
+
+.active { background: rgba(42, 92, 255, 0.18); }
+
+.name { font-weight: 600; white-space: nowrap; }
+.desc { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.result { margin-bottom: 8px; }
+
+.output {
+  margin: 0 0 4px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.error { color: var(--danger, #e05050); }

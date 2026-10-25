@@ -17,6 +17,7 @@ import SyncDialog from './components/SyncDialog'
 import { pickDiffTargets } from './utils/diffTargets.js'
 import ButtonBar from './components/ButtonBar'
 import ButtonEditDialog from './components/ButtonEditDialog'
+import PluginDialog from './components/PluginDialog'
 import { useButtonStore } from './stores/buttonStore'
 import { expandParams } from './utils/buttonParams.js'
 import CopyConflictDialog from './components/CopyConflictDialog'
@@ -127,13 +128,14 @@ function FileManagerApp() {
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
   const [diff, setDiff] = useState(null) // { left, right } 파일 내용 비교 (Todo #133-7)
   const [quickView, setQuickView] = useState(null) // 빠른 보기가 차지한 쪽 'left' | 'right' (Todo #133-9)
+  const [plugin, setPlugin] = useState(null) // 플러그인 창 { autoRun } (Todo #133-13)
   const [buttonEdit, setButtonEdit] = useState(undefined) // 단추 고치기: 단추 | null(새 단추) | undefined(닫힘) (Todo #133-12)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
   // Todo #77: 화면 위에 무언가 떠 있으면 파일 패널 단축키를 막음 (키 입력이 뒤 패널로 새지 않게)
   const overlayOpen = !!(modal || editor || viewer || deleteTarget || trashTarget
-    || copyConflict || moveConflict || fileSizeError || diff || buttonEdit !== undefined)
+    || copyConflict || moveConflict || fileSizeError || diff || buttonEdit !== undefined || plugin)
 
   // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
   const focusActivePanel = useCallback(() => {
@@ -262,6 +264,11 @@ function FileManagerApp() {
       if (isDiffShortcut(e)) {
         e.preventDefault()
         openDiff()
+      }
+      // Ctrl+Shift+X: 플러그인 (Todo #133-13)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key === 'x' || e.key === 'X')) {
+        e.preventDefault()
+        setPlugin({ autoRun: null })
       }
     }
     window.addEventListener('keydown', handler)
@@ -407,6 +414,8 @@ function FileManagerApp() {
       '@tree': () => s.toggleTree(s.activePanel), '@terminal': () => useDockStore.getState().toggle(),
       '@ftp': () => setModal('ftpconnect'), '@refresh': () => s.refresh(s.activePanel), '@hidden': () => s.toggleHidden(s.activePanel),
     }
+    if (cmd.toLowerCase().startsWith('@plugin:')) { setPlugin({ autoRun: cmd.slice('@plugin:'.length) }); return }
+    if (cmd.toLowerCase() === '@plugins') { setPlugin({ autoRun: null }); return }
     const fn = actions[cmd.toLowerCase()]
     if (fn) fn()
     else s.setStatus(`모르는 기능: ${cmd}`)
@@ -426,6 +435,12 @@ function FileManagerApp() {
     focusActivePanel()
   }
   const closeButtonEdit = () => { setButtonEdit(undefined); focusActivePanel() }
+  const pluginContext = useCallback(() => {
+    const s = useFileStore.getState()
+    const active = s[s.activePanel], other = s[s.activePanel === 'left' ? 'right' : 'left']
+    return { panelPath: active.path, targetPath: other.path, cursor: getCursorFile(active)?.path || '', selected: [...active.selected] }
+  }, [])
+  const refreshPanels = useCallback(() => { const s = useFileStore.getState(); s.refresh('left'); s.refresh('right') }, [])
 
   const quickViewRef = useRef(null)
   quickViewRef.current = quickView
@@ -523,6 +538,11 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {plugin && (
+        <PluginDialog getContext={pluginContext} autoRun={plugin.autoRun} onRefresh={refreshPanels}
+          onAddButton={(p) => { useButtonStore.getState().upsert({ name: p.name, command: `@plugin:${p.file}` }); useFileStore.getState().setStatus(`단추 추가: ${p.name}`) }}
+          onClose={() => { setPlugin(null); focusActivePanel() }} />
+      )}
       {buttonEdit !== undefined && (
         <ButtonEditDialog button={buttonEdit}
           onSave={async (b) => { await useButtonStore.getState().upsert(b); closeButtonEdit() }}

@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #130-2: SCP 폴백을 WSL 없이도 검사하는 가짜 서버 테스트
+- 기존 SCP 테스트(TestSCPFallback)는 CHOBOTERM_WSL이 있을 때만 돌아 CI에서 SCP 코드가 한 번도 실행되지 않았음(0%).
+- Go로 만든 가짜 SSH exec 서버(ls·scp -f·scp -t·rm·mv·mkdir 응답, 임시 폴더를 / 로 사용)를 추가해 어디서나 검사: 목록(공백·한글 이름, 날짜), 받기(작은따옴표 이름, 없는 파일, 폴더 거부), 올리기(100KB, 없는 폴더), 이름 바꾸기·폴더 만들기·삭제, scp 없는 서버 거부, shellQuote 왕복.
+- 검토 결과 SCP 코드 자체의 버그는 없음.
+
 ## 2026-10-25 Todo.md #130-1: 텍스트 읽기의 닿지 않는 폴백 정리 + 테스트
 - x/text EUC-KR 디코더는 잘못된 바이트를 U+FFFD로 바꿀 뿐 오류를 내지 않음을 확인 → ReadTextFileWithEncoding의 "EUC-KR 관용 모드"/자모 조합 폴백은 실행되지 않는 코드라 제거 (쓰지 않게 된 import도 제거).
 - 테스트: 깨진 CP949 바이트가 오류 없이 �로 보임, 32MB 초과 파일 거부.

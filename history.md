@@ -2,6 +2,12 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #134-2: 리뷰 수정 — 안정성 · 보안
+- 썸네일: 작은 파일이 거대한 크기(예 40000×40000)를 선언하면 풀다가 수 GB를 잡아 앱이 죽을 수 있던 문제 → `image.DecodeConfig`로 먼저 크기를 보고 6400만 픽셀 넘으면 거부. 압축 파일 안 그림의 캐시 키는 압축 파일의 크기·시각으로(압축 파일을 바꾸면 새로 만듦)
+- ShellExecute(사용자 단추): 인자 문자열 포인터를 Call 전에 uintptr로 바꿔 두어 GC가 치울 수 있던 문제 → Call 인자 안에서만 바꿈
+- 압축 파일에서 꺼낸 파일에 인터넷 표시(MOTW, Zone.Identifier)가 사라져 Office 보호된 보기 · SmartScreen을 건너뛸 수 있던 문제 → F5로 꺼내기 · Enter로 열기 · 압축 풀기(모든 형식) 모두 압축 파일의 표시를 꺼낸 파일마다 붙임(Windows, 7-Zip · WinRAR와 같은 처리). `archive.ExtractPaths`가 꺼낸 항목 경로를 돌려줌
+- 테스트: TestReadThumbnail_RejectsHugeDimensions, TestArchive_PropagatesMarkOfTheWeb(Windows, ADS 실제 확인) — Go 전체 통과, Linux vet 통과
+
 ## 2026-10-26 Todo.md #134-1: 리뷰 수정 — 데이터 보호
 - 파일 내용 비교: CodeMirror는 줄바꿈을 \n으로 바꾸는데 원본(CRLF)과 그대로 비교해, Ctrl+S가 안 고친 쪽까지 LF로 다시 쓰던 문제 → 원본도 \n으로 맞춰 비교, 고친 쪽만 저장하고 원래 CRLF면 CRLF로
 - 폴더 동기화: 덮어쓰기가 대상 파일을 먼저 비우고 실패하면 지워 옛 사본이 사라지던 문제 → 같은 폴더 임시 파일에 복사한 뒤 바꿔 넣음(폴더는 파일마다). 이름 안의 ".."(v1..2.txt)를 거부하던 것도 경로 조각 ".."만 거부하게

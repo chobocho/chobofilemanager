@@ -139,3 +139,15 @@ func TestReadThumbnail_InsideArchive(t *testing.T) {
 		t.Fatalf("bounds = %v", img.Bounds())
 	}
 }
+
+// Todo #134-2: 픽셀 수가 너무 많은 그림은 풀기 전에 거부 (작은 파일이 거대한 크기를 선언하면 메모리 폭주)
+func TestReadThumbnail_RejectsHugeDimensions(t *testing.T) {
+	old := maxThumbPixels
+	maxThumbPixels = 100
+	defer func() { maxThumbPixels = old }()
+	p := filepath.Join(t.TempDir(), "big.png")
+	writeImage(t, p, 20, 20, false)
+	if _, err := newTestFM().ReadThumbnail(p, 96); err == nil || !strings.Contains(err.Error(), "너무 큰") {
+		t.Fatalf("want too-large error, got %v", err)
+	}
+}

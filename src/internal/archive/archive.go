@@ -487,9 +487,16 @@ var errStop = errors.New("stop")
 // Each item lands under its own name; mode for an item whose name already exists in destDir:
 // "overwrite" (default; folders merge), "skip", or "rename" ("x (1).txt").
 func Extract(p string, items []string, destDir string, mode string) error {
+	_, err := ExtractPaths(p, items, destDir, mode)
+	return err
+}
+
+// ExtractPaths: like Extract, also returning each extracted item's path in destDir
+// (skipped items are left out, renamed ones carry their new name).
+func ExtractPaths(p string, items []string, destDir string, mode string) ([]string, error) {
 	es, err := Entries(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// 고른 항목 → 대상 폴더 안의 이름 (rename이면 겹치지 않는 이름)
 	type target struct{ inner, dest string }
@@ -502,7 +509,7 @@ func Extract(p string, items []string, destDir string, mode string) error {
 		for _, it := range items {
 			it = clean(it)
 			if _, ok := Find(es, it); !ok {
-				return fmt.Errorf("압축 파일 안에 없습니다: %s", it)
+				return nil, fmt.Errorf("압축 파일 안에 없습니다: %s", it)
 			}
 			targets = append(targets, target{it, filepath.Join(destDir, path.Base(it))})
 		}
@@ -516,7 +523,7 @@ func Extract(p string, items []string, destDir string, mode string) error {
 			case "rename":
 				u, err := uniqueName(destDir, filepath.Base(t.dest))
 				if err != nil {
-					return err
+					return nil, err
 				}
 				t.dest = u
 			}
@@ -538,13 +545,13 @@ func Extract(p string, items []string, destDir string, mode string) error {
 	for _, e := range es {
 		if d, ok := destOf(e.Name); ok && e.IsDir {
 			if err := os.MkdirAll(d, 0755); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 	w, err := open(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer w.Close()
 	var mtimes []struct {
@@ -579,7 +586,11 @@ func Extract(p string, items []string, destDir string, mode string) error {
 	for _, m := range mtimes {
 		os.Chtimes(m.path, m.t, m.t)
 	}
-	return err
+	dests := make([]string, len(keep))
+	for k, t := range keep {
+		dests[k] = t.dest
+	}
+	return dests, err
 }
 
 // uniqueName: "x (1).txt" style name that does not exist in dir.

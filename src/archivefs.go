@@ -102,9 +102,11 @@ func (fm *FileManager) extractArchiveSources(sources []string, dest, mode string
 			local = append(local, src)
 			continue
 		}
-		if err := archive.Extract(arc, []string{inner}, dest, mode); err != nil {
+		written, err := archive.ExtractPaths(arc, []string{inner}, dest, mode)
+		if err != nil {
 			return nil, err
 		}
+		copyMarkOfTheWeb(arc, written...)
 	}
 	return local, nil
 }
@@ -136,7 +138,9 @@ func materializeArchiveFile(p string) (string, error) {
 	if err := archive.Extract(arc, []string{inner}, dir, "overwrite"); err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, path.Base(inner)), nil
+	out := filepath.Join(dir, path.Base(inner))
+	copyMarkOfTheWeb(arc, out)
+	return out, nil
 }
 
 // archiveSearchRoot: 검색(Ctrl+F)을 압축 파일 안에서 시작했는지

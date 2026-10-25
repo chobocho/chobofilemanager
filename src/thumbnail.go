@@ -26,6 +26,9 @@ import (
 
 const thumbCacheMax = 300
 
+// maxThumbPixels: 이보다 픽셀이 많은 그림은 풀지 않음 — 작은 파일이 거대한 크기를 선언하면 메모리 폭주 (Todo #134-2)
+var maxThumbPixels = 64 * 1024 * 1024
+
 type thumbKey struct {
 	path string
 	size int
@@ -44,7 +47,11 @@ func (fm *FileManager) ReadThumbnail(p string, size int) (string, error) {
 		size = 96
 	}
 	key := thumbKey{path: p, size: size}
-	if fi, err := os.Stat(p); err == nil {
+	statPath := p
+	if arc, _, ok := inArchive(p); ok {
+		statPath = arc // 압축 파일 안이면 압축 파일이 바뀌었는지로 (Todo #134-3)
+	}
+	if fi, err := os.Stat(statPath); err == nil {
 		key.mod, key.len = fi.ModTime(), fi.Size()
 	}
 	thumbMu.Lock()
@@ -77,6 +84,13 @@ func (fm *FileManager) ReadThumbnail(p string, size int) (string, error) {
 }
 
 func thumbnailOf(data []byte, size int) (string, error) {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > int64(maxThumbPixels) {
+		return "", fmt.Errorf("너무 큰 그림입니다 (%d×%d)", cfg.Width, cfg.Height)
+	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return "", err

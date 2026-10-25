@@ -27,20 +27,19 @@ func shellExecute(file, params, dir string) error {
 	if err != nil {
 		return err
 	}
-	var paramsPtr uintptr
+	// 포인터는 Call 인자 안에서만 uintptr로 — 미리 바꿔 두면 GC가 문자열을 치울 수 있음 (Todo #134-2)
+	var paramsPtr *uint16
 	if params != "" {
-		pp, err := syscall.UTF16PtrFromString(params)
-		if err != nil {
+		if paramsPtr, err = syscall.UTF16PtrFromString(params); err != nil {
 			return err
 		}
-		paramsPtr = uintptr(unsafe.Pointer(pp))
 	}
 	shellExecuteW := syscall.NewLazyDLL("shell32.dll").NewProc("ShellExecuteW")
 	// lpOperation=NULL → 기본 동작(verb) 사용
 	ret, _, _ := shellExecuteW.Call(
 		0, 0,
 		uintptr(unsafe.Pointer(filePtr)),
-		paramsPtr,
+		uintptr(unsafe.Pointer(paramsPtr)),
 		uintptr(unsafe.Pointer(dirPtr)),
 		swShowNormal,
 	)

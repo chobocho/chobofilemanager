@@ -384,8 +384,8 @@
 ## ~~129. 로컬 커밋 푸시~~ ✓ 완료 (2026-10-25)
 
 ## 130. 전체 코드 리뷰 + 테스트 보강 (영역별로 나눠 진행)
-- 130-1 Go package main (파일 관리자: filemanager·ftpmanager·app·settings)
-- 130-2 Go internal (termapp 통합부·host·appdir·localshell 변경분)
+- [x] 130-1 Go package main (파일 관리자: filemanager·ftpmanager·app·settings) — 로컬/FTP 이름 바꾸기·F6 이동 덮어쓰기 차단, 닿지 않는 디코딩 폴백 정리
+- [x] 130-2 Go internal (termapp 통합부·host·appdir·localshell 변경분) — SCP 가짜 서버 테스트, 손상 설정/세션 백업(atomicfile), Telnet 협상 반복 차단
 - 130-3 프론트 앱 (App·stores·components)
 - 130-4 프론트 터미널 (core·store·components)
 

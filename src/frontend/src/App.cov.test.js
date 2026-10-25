@@ -374,6 +374,26 @@ describe('App 커버리지 — 뷰어/에디터', () => {
   })
 })
 
+describe('빠른 보기 (Todo #133-9)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-QV1: Ctrl+Q → 반대 패널 자리에 커서 파일 미리 보기, 커서를 옮기면 따라감, 다시 Ctrl+Q로 닫기', async () => {
+    await renderApp()
+    cursorTo('x.txt')
+    await key({ key: 'q', ctrlKey: true })
+    expect(await screen.findByRole('region', { name: '빠른 보기' })).toBeTruthy()
+    expect(screen.queryByText('z.txt')).toBeNull() // 오른쪽 패널 자리
+    await waitFor(() => expect(api.ReadTextFile).toHaveBeenCalledWith('/a/x.txt'))
+    cursorTo('y.txt')
+    await waitFor(() => expect(api.ReadTextFile).toHaveBeenCalledWith('/a/y.txt'))
+    await key({ key: 'Tab' }) // 빠른 보기 중에는 패널 전환 없음
+    expect(useFileStore.getState().activePanel).toBe('left')
+    await key({ key: 'q', ctrlKey: true })
+    expect(screen.queryByRole('region', { name: '빠른 보기' })).toBeNull()
+    expect(screen.getByText('z.txt')).toBeTruthy()
+  })
+})
+
 describe('FTP를 패널에서 (Todo #133-8)', () => {
   afterEach(() => cleanup())
 

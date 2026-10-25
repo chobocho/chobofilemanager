@@ -91,6 +91,7 @@ const SECTIONS = [
     title: '기타',
     rows: [
       { keys: ['F1'],              desc: '이 도움말 표시' },
+      { keys: ['Ctrl+Q'],          desc: '빠른 보기 — 반대 패널 자리에 커서 파일(텍스트 · 이미지 · 마크다운) 미리 보기, 다시 누르면 닫기' },
       { keys: ['Ctrl+O'],          desc: '명령 실행 창 — 지금 폴더에서 명령을 실행하고 출력 보기' },
       { keys: ['Ctrl+Shift+M'],    desc: 'Starlark 스크래치 — 임시 .star 파일 생성 + F4 편집기 열기' },
       { keys: ['Ctrl+R'],          desc: '현재 패널 새로고침' },

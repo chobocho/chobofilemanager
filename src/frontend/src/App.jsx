@@ -35,6 +35,16 @@ const TerminalDock = lazy(() => import('./terminal/components/TerminalDock.jsx')
 const FileViewer = lazy(loadFileViewer)
 // Todo #133-7: 파일 내용 비교 (@codemirror/merge) — 처음 열 때 불러옴
 const DiffView = lazy(() => import('./components/DiffView'))
+// Todo #133-9: 빠른 보기 (Ctrl+Q)
+const QuickView = lazy(() => import('./components/QuickView'))
+
+// 빠른 보기 자리: 반대(활성) 패널의 커서 파일을 보여 줌
+function QuickViewPane({ side }) {
+  const other = side === 'left' ? 'right' : 'left'
+  const file = useFileStore(s => getCursorFile(s[other]))
+  const dirSize = useFileStore(s => { const f = getCursorFile(s[other]); return f?.isDir ? s[other].dirSizes?.[f.path] : undefined })
+  return <Suspense fallback={null}><QuickView file={file} dirSize={dirSize} /></Suspense>
+}
 
 // 시작 후 여유 시간에 미리 받아 두어 첫 F3/F4도 바로 열리게 함
 export function prefetchViewerChunks() {
@@ -112,6 +122,7 @@ function FileManagerApp() {
   const [moveConflict, setMoveConflict] = useState(null) // { conflicts, sources, dest }
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
   const [diff, setDiff] = useState(null) // { left, right } 파일 내용 비교 (Todo #133-7)
+  const [quickView, setQuickView] = useState(null) // 빠른 보기가 차지한 쪽 'left' | 'right' (Todo #133-9)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
@@ -226,6 +237,13 @@ function FileManagerApp() {
         e.preventDefault()
         openMultiRename()
       }
+      // Ctrl+Q 빠른 보기: 반대 패널 자리에 커서 파일 미리 보기 (Todo #133-9)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'q' || e.key === 'Q')) {
+        e.preventDefault()
+        const active = useFileStore.getState().activePanel
+        setQuickView(q => q ? null : (active === 'left' ? 'right' : 'left'))
+        focusActivePanel()
+      }
       if (isDiffShortcut(e)) {
         e.preventDefault()
         const t = pickDiffTargets(useFileStore.getState())
@@ -235,7 +253,7 @@ function FileManagerApp() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view])
+  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view, focusActivePanel])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -360,11 +378,20 @@ function FileManagerApp() {
   const openMaskSelect = useCallback((mode) => setModal(mode === 'deselect' ? 'deselect' : 'select'), [])
 
   const handleSwitchPanel = useCallback(() => {
+    if (quickViewRef.current) return // 빠른 보기 중에는 반대 패널이 없음
     const next = useFileStore.getState().activePanel === 'left' ? 'right' : 'left'
     useFileStore.getState().setActivePanel(next)
     const ref = next === 'left' ? leftPanelRef : rightPanelRef
     requestAnimationFrame(() => ref.current?.focus())
   }, [])
+  const quickViewRef = useRef(null)
+  quickViewRef.current = quickView
+  const switchToPanel = (target) => {
+    if (quickView === target) return
+    useFileStore.getState().setActivePanel(target)
+    const ref = target === 'left' ? leftPanelRef : rightPanelRef
+    requestAnimationFrame(() => ref.current?.focus())
+  }
 
   return (
     <div className={styles.app} data-theme={theme} data-app-root>
@@ -394,19 +421,13 @@ function FileManagerApp() {
       <div className={styles.content}>
         {view === 'files' ? (
           <div className={styles.panels}>
-            <FilePanel side="left"  ref={leftPanelRef}  onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
-              onSwitchToPanel={(target) => {
-                useFileStore.getState().setActivePanel(target)
-                const ref = target === 'left' ? leftPanelRef : rightPanelRef
-                requestAnimationFrame(() => ref.current?.focus())
-              }} />
+            {quickView === 'left' ? <QuickViewPane side="left" /> : (
+            <FilePanel side="left" ref={leftPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
+              onSwitchToPanel={switchToPanel} />)}
             <div className={styles.divider} />
+            {quickView === 'right' ? <QuickViewPane side="right" /> : (
             <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
-              onSwitchToPanel={(target) => {
-                useFileStore.getState().setActivePanel(target)
-                const ref = target === 'left' ? leftPanelRef : rightPanelRef
-                requestAnimationFrame(() => ref.current?.focus())
-              }} />
+              onSwitchToPanel={switchToPanel} />)}
           </div>
         ) : view === 'ftp' ? (
           <FTPManager />

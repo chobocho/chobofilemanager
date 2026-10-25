@@ -2,6 +2,9 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 버전 0.2.13
+- version.go, wails.json, package.json(+lock)의 버전을 0.2.12 → 0.2.13으로 올림.
+
 ## 2026-10-25 설정에 "왼쪽 위에 FTP 버튼 보이기" 추가
 - 터미널 설정 창(⚙, Ctrl+Shift+O)에 "파일 관리자" 칸 추가. 끄면 상단 FTP 버튼이 바로 사라지고, 다시 켜면 나타남.
 - 저장: 설정 파일에 `hideFtpButton`(기본 false = 보임, 예전 설정 파일도 보임). Go `internal/config.Settings`와 TS 설정에 추가.

@@ -8,4 +8,4 @@ package version
 //
 // It must equal wails.json info.productVersion and frontend/package.json
 // version (src/version_test.go checks).
-var Version = "0.2.12"
+var Version = "0.2.13"

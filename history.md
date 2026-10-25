@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #132-3: filemanager.go(936줄)를 관심사별 파일로 분리
+- 같은 package main 안에서 코드만 옮김 (동작 변화 없음):
+  - filemanager.go(목록·정보·검색, 209줄)
+  - fileops.go(복사·이동·삭제·이름 바꾸기와 도우미)
+  - filetext.go(텍스트·이미지 읽기/쓰기, Starlark)
+  - fileshell.go(열기·셸 명령)
+  - filearchive.go(ZIP)
+- import는 gopls로 정리.
+- 테스트: Go 전체 통과.
+
 ## 2026-10-25 Todo.md #132: 아무것도 검사하지 않던 텍스트 영역 대기 테스트 7곳 수정
 - 원인: 비동기 findSurfaceWithText를 await 없이 expect(...).toBeTruthy()에 넘겨 Promise 객체가 항상 참 → 내용이 화면에 나타났는지 전혀 확인하지 않았음. 끝난 뒤 Promise가 거절되며 전체 실행에서 가끔 "Unhandled Error"로 보였음.
 - 수정: await findSurfaceWithText(...)로 실제 대기, 즉시 확인은 querySurfaceWithText. 제대로 기다리자 RE-01~03의 기대 문자열이 원래 틀려 있었음(전체 내용과 비교해야 함)이 드러나 화면 내용(줄바꿈 \n)으로 고침.

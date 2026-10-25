@@ -2,6 +2,17 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 — T8 1차: SSH 포트 포워딩)
+
+### 변경
+- `core/forwards.ts` 신규: 규칙 → ssh 옵션(-L/-R/-D, IPv6 대괄호), 같은 연결을 여는 ssh 명령(-J, -p), 상태(오류/대기/수신 중·연결 수)
+- `ForwardsDialog.jsx` 신규 (Ctrl+Shift+P, 탭 메뉴 "포트 포워딩"): 규칙 목록·추가(Enter)·삭제(Delete)·ssh 명령 복사, `fwd:changed`로 다시 읽기
+- `termStore`: 탭에 딸린 창 자리(`panel`) 도입 — 포워딩·도커·Lua 콘솔이 함께 씀, SSH가 아니면 터미널에 안내, 탭을 닫으면 창도 닫힘
+- Go `pendingPageEvents`에서 `fwd:changed` 제거
+
+### 테스트
+- `forwards.test.ts`(FW-01~04), `ForwardsDialog.test.jsx`(FD-01~08), TA-20 — 프론트 통과
+
 ## 2026-10-25 (Todo.md #123 — T7 2차: 원격 파일 보기·편집, T7 완료)
 
 ### 변경

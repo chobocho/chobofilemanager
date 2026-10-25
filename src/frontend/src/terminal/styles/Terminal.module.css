@@ -154,3 +154,12 @@
 .xfer { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; }
 .xferTrack { flex: 1; height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
 .xferBar { height: 100%; background: var(--text-accent); }
+
+/* 포트 포워딩 창 (Todo #124) */
+.forwards { width: 720px; max-width: calc(100vw - 32px); }
+.forwards .filesList { max-height: 220px; min-height: 120px; }
+.fwForm { display: flex; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.fwForm input:not(.num) { flex: 1; min-width: 0; }
+.fw_ok { color: #2ecc71; }
+.fw_wait { color: #f1c40f; }
+.fw_bad { color: #e74c3c; }

@@ -248,7 +248,6 @@ var (
 // ported from choboTerm's TypeScript page into Chobocho Commander (React), with the
 // Todo item that ports them. The list may only shrink.
 var pendingPageEvents = map[string]string{
-	"fwd:changed":   "Todo #124",
 	"script:start":  "Todo #124",
 	"script:print":  "Todo #124",
 	"script:result": "Todo #124",

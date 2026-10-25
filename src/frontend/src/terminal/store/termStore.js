@@ -36,7 +36,8 @@ function loadMemo() {
 
 // saveRequest: 열려 있는 "세션으로 저장" 창의 내용, sessionManager: 세션 관리자 열림
 const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false, macros: false, macroSel: 0,
-  memos: [], memoText: loadMemo() })
+  memos: [], memoText: loadMemo(),
+  panel: null }) // 탭에 딸린 창 하나: { kind: 'forwards' | 'containers' | 'console', id }
 
 let saveResolve = null // "세션으로 저장" 창의 결과를 기다리는 쪽
 
@@ -117,6 +118,7 @@ export const useTermStore = create((set, get) => ({
     }
     set(s => ({ tabs: tabs.filter(t => t.id !== id), groups: nextGroups, activeId: next, memos: s.memos.filter(m => m !== id) }))
     useFilesStore.getState().forget(id)
+    if (get().panel?.id === id) set({ panel: null })
     await sessionById(id)?.close()
   },
 
@@ -238,6 +240,20 @@ export const useTermStore = create((set, get) => ({
       const req = sessionById(o.id)?.req
       get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
     }
+  },
+
+  // 탭에 딸린 창 (Todo #124): 포트 포워딩은 연결된 SSH 탭에서만
+  openPanel: (kind, id) => {
+    const s = sessionById(id)
+    if (!s) return
+    if (kind === 'forwards' && !(s.state === 'on' && s.proto === 'ssh')) {
+      return s.notice('포트 포워딩은 SSH 접속에서만 사용할 수 있습니다')
+    }
+    set({ panel: { kind, id } })
+  },
+  closePanel: () => {
+    set({ panel: null })
+    sessionById(get().activeId)?.focus()
   },
 
   // 원격 파일 창 (Ctrl+Shift+F, Todo #123). 파일 접근이 안 되는 연결이면 터미널에 안내

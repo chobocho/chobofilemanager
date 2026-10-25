@@ -752,52 +752,23 @@ export const useFileStore = create((set, get) => ({
 
     // Save current state first
     const updatedTabs = get()._saveCurrentTab(panel).filter((_, i) => i !== idx)
-    const newIdx = Math.min(idx, updatedTabs.length - 1)
-    const target = updatedTabs[newIdx]
-
-    set(st => ({
-      [panel]: {
-        ...st[panel],
-        tabs: updatedTabs,
-        activeTabIdx: newIdx,
-        cursor: target.cursor || 0,
-        cursorOnParent: target.cursorOnParent || false,
-        showHidden: target.showHidden || false,
-        selected: target.selected || new Set(),
-        history: target.history || [],
-        historyIndex: target.historyIndex ?? -1,
-        sortBy: target.sortBy || 'name',
-        sortDir: target.sortDir || 'asc',
-        loading: true,
-        error: null,
-      }
-    }))
-
-    const isCurrent = beginNav(panel, target.path)
-    try {
-      const result = await api.ListDirectory(target.path)
-      if (!isCurrent()) return
-      set(st => ({
-        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), loading: false }
-      }))
-      get()._saveSession()
-    } catch (err) {
-      if (!isCurrent()) return
-      set(st => ({ [panel]: { ...st[panel], loading: false, error: err.message || String(err) } }))
-    }
+    return get()._openTab(panel, updatedTabs, Math.min(idx, updatedTabs.length - 1))
   },
 
   switchTab: async (panel, idx) => {
     const s = get()[panel]
     if (idx === s.activeTabIdx || idx < 0 || idx >= s.tabs.length) return
 
-    const updatedTabs = get()._saveCurrentTab(panel)
-    const target = updatedTabs[idx]
+    return get()._openTab(panel, get()._saveCurrentTab(panel), idx)
+  },
 
+  // 탭 idx를 활성으로: 저장해 둔 커서·선택·기록·정렬을 되살리고 그 폴더를 읽음 (탭 전환·닫기 공용, Todo #131-2b)
+  _openTab: async (panel, tabs, idx) => {
+    const target = tabs[idx]
     set(st => ({
       [panel]: {
         ...st[panel],
-        tabs: updatedTabs,
+        tabs,
         activeTabIdx: idx,
         cursor: target.cursor || 0,
         cursorOnParent: target.cursorOnParent || false,

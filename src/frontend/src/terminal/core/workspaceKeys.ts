@@ -24,6 +24,15 @@ const LETTERS: Record<string, WorkspaceAction> = {
 /** Ctrl+key, no Shift or Alt: the font size. */
 const FONT: Record<string, WorkspaceAction> = {'=': 'fontUp', '+': 'fontUp', '-': 'fontDown', '0': 'fontReset'};
 
+/** Keys an input box inside the workspace (memo pad, Lua console) keeps: its own copy / paste. */
+const KEPT_BY_INPUTS = new Set<WorkspaceAction>(['copy', 'paste']);
+
+/** A workspace key that should still reach the workspace from an input box in it (Todo #127). */
+export function passesThroughInput(ev: KeyLike): boolean {
+    const a = workspaceAction(ev);
+    return !!a && !KEPT_BY_INPUTS.has(a);
+}
+
 export function workspaceAction(ev: KeyLike): WorkspaceAction | undefined {
     const dir = splitKeyDir({ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey, code: ev.code ?? ''});
     if (dir) return dir === 'row' ? 'splitRight' : 'splitDown';

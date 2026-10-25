@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {workspaceAction, WORKSPACE_ACTIONS} from './workspaceKeys';
+import {workspaceAction, WORKSPACE_ACTIONS, passesThroughInput} from './workspaceKeys';
 import {isWorkspaceKey} from './look';
 
 // ─── Todo #126: 작업 공간 단축키 표 하나 — 판별(isWorkspaceKey)과 실행(작업 공간)이 같은 표 ──
@@ -49,5 +49,14 @@ describe('작업 공간 단축키 (WK)', () => {
         expect(isWorkspaceKey(k('F1'))).toBe(true);
         expect(WORKSPACE_ACTIONS).toContain('splitRight');
         expect(new Set(WORKSPACE_ACTIONS).size).toBe(WORKSPACE_ACTIONS.length);
+    });
+
+    it('WK-05: 입력 칸에서 통과하는 키 — 복사·붙여넣기는 칸에 남김 (Todo #127)', () => {
+        expect(passesThroughInput(cs('B'))).toBe(true);
+        expect(passesThroughInput(cs('K'))).toBe(true);
+        expect(passesThroughInput(k('Tab', {ctrlKey: true}))).toBe(true);
+        expect(passesThroughInput(cs('C'))).toBe(false);
+        expect(passesThroughInput(cs('V'))).toBe(false);
+        expect(passesThroughInput(k('a'))).toBe(false);
     });
 });

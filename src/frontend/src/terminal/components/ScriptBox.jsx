@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { sessionById } from '../core/session'
 import { boxHead, historyStep } from '../core/luaScript'
 import { useScriptStore } from '../store/scriptStore'
+import { passesThroughInput } from '../core/workspaceKeys'
 import styles from '../styles/Terminal.module.css'
 
 // 칸 구석의 Lua 스크립트 상자 / Lua 콘솔 (Todo #124). 콘솔이면 아래에 입력 줄.
@@ -28,6 +29,7 @@ export default function ScriptBox({ id }) {
   if (!box) return null
 
   async function onKeyDown(e) {
+    if (passesThroughInput(e)) return // 작업 공간 단축키(Ctrl+Shift+K 닫기 등)는 통과 (Todo #127)
     e.stopPropagation()
     const input = e.currentTarget
     const lines = input.value.split('\n')

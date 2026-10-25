@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { termApi } from '../core/termApi'
 import { useTermStore } from '../store/termStore'
+import { passesThroughInput } from '../core/workspaceKeys'
 import styles from '../styles/Terminal.module.css'
 
 // 칸 위에 뜨는 메모장 (Ctrl+Shift+B, Todo #121, choboTerm memo.ts).
@@ -32,7 +33,7 @@ export default function MemoPad({ id }) {
 
   return (
     <div className={styles.memoBox} role="region" aria-label="메모장" onMouseDown={e => e.stopPropagation()}
-      onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close() } }}>
+      onKeyDown={e => { if (passesThroughInput(e)) return; e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); close() } }}>
       <div className={styles.memoTop}>
         <span>메모장</span>
         <button type="button" title="메모를 파일로 저장" onClick={saveAs}>다른 이름으로 저장</button>

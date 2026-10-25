@@ -375,3 +375,20 @@
 - [x] 쓰지 않는 바인딩(GetPathParts·GetFileSize) 제거
 - 보류(크고 동작이 바뀜): 파일 관리자 FTP를 터미널 transfer로 통합, package main을 internal로 분리
 - 보류(사용자 결정 필요): 메모장·Lua 콘솔 입력 중에도 작업 공간 단축키(Ctrl+Shift+B/K/W 등)를 통과시킬지, 두 번째 실행 때 웹 서버 넘겨받기(Handoff)
+
+## ~~127. 메모장·Lua 콘솔에 입력 중에도 작업 공간 단축키 통과 (Ctrl+Shift+B/K/W/T/Tab 등)~~ ✓ 완료 (2026-10-25)
+- 복사·붙여넣기(Ctrl+Shift+C/V)·글꼴 크기 등 입력 칸 자체의 키와 겹치는 것은 칸에 남김
+
+## 128. 두 번째 실행 때 웹 서버 처리 — 이미 떠 있는 인스턴스로 넘기거나(Handoff) 포트 충돌을 사용자에게 알림
+
+## ~~129. 로컬 커밋 푸시~~ ✓ 완료 (2026-10-25)
+
+## 130. 전체 코드 리뷰 + 테스트 보강 (영역별로 나눠 진행)
+- 130-1 Go package main (파일 관리자: filemanager·ftpmanager·app·settings)
+- 130-2 Go internal (termapp 통합부·host·appdir·localshell 변경분)
+- 130-3 프론트 앱 (App·stores·components)
+- 130-4 프론트 터미널 (core·store·components)
+
+## 131. 중복 코드 제거 (테스트 통과 유지)
+
+## 132. 전체 구조 재점검 후 개선

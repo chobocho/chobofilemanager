@@ -116,4 +116,18 @@ describe('메모장 (MM)', () => {
     expect(within(pads()[0]).getByRole('textbox').value).toBe('x')
     expect(within(pads()[0]).getByRole('status').textContent).toContain('메모 자동 저장 실패')
   })
+  it('MM-09: 메모장에 입력 중에도 작업 공간 단축키 통과 (Todo #127) — Ctrl+Shift+B 닫기, Ctrl+Shift+T 새 탭, 복사·붙여넣기는 칸에', async () => {
+    await connected()
+    toggle()
+    const ta = within(pads()[0]).getByRole('textbox')
+    fireEvent.keyDown(ta, { key: 'T', ctrlKey: true, shiftKey: true })
+    expect(useTermStore.getState().tabs).toHaveLength(2)
+    act(() => useTermStore.getState().setActive(1))
+    const ta2 = within(pads()[0]).getByRole('textbox')
+    const ev = fireEvent.keyDown(ta2, { key: 'C', ctrlKey: true, shiftKey: true })
+    expect(ev).toBe(true) // 기본 동작(칸의 복사)을 막지 않음
+    fireEvent.keyDown(ta2, { key: 'B', ctrlKey: true, shiftKey: true })
+    expect(pads()).toHaveLength(0)
+  })
+
 })

@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #127: 메모장·Lua 콘솔 입력 중에도 작업 공간 단축키)
+
+### 변경
+- `passesThroughInput`(core/workspaceKeys): 메모장·Lua 콘솔 입력 칸에서 작업 공간 단축키(Ctrl+Shift+B/K/W/T, Ctrl+Tab 등)는 작업 공간으로 통과, 복사·붙여넣기(Ctrl+Shift+C/V)는 입력 칸이 그대로 씀
+- 이제 메모장 안에서 Ctrl+Shift+B로 닫고, 콘솔 안에서 Ctrl+Shift+K로 닫을 수 있음
+
+### 테스트
+- WK-05, MM-09, LC-09 (수정 전 실패 확인) — 프론트 1201개, 빌드 성공
+
 ## 2026-10-25 (Todo.md #126 완료: 전체 설계 재검토 후 리팩터링)
 
 ### 정리

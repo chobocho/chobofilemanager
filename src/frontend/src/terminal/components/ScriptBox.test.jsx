@@ -145,6 +145,13 @@ describe('Lua 콘솔 (LC)', () => {
     fireEvent.keyDown(input(), { key: 'Escape' })
     expect(screen.getByRole('region', { name: 'Lua 콘솔' })).toBeTruthy()
   })
+  it('LC-09: 콘솔 입력 중 Ctrl+Shift+K는 콘솔을 닫음 (작업 공간 단축키 통과, Todo #127)', async () => {
+    await openConsole()
+    await act(async () => { fireEvent.keyDown(input(), { key: 'K', ctrlKey: true, shiftKey: true }) })
+    expect(api.StopScript).toHaveBeenCalledWith(1)
+    expect(screen.queryByRole('region', { name: 'Lua 콘솔' })).toBeNull()
+  })
+
 })
 
 describe('Lua 스크립트 (LR)', () => {

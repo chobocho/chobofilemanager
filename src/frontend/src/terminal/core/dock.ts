@@ -54,6 +54,20 @@ export function quoteForShell(host: string, path: string): string {
     }
 }
 
+/**
+ * The folder a shell reported (OSC 7) as a path of this PC: "/C:/work" from a
+ * Windows shell, "/mnt/c/work" from WSL. Other paths (a Linux home) are not
+ * folders of this PC: undefined.
+ */
+export function localPathFromCwd(cwd: string | undefined): string | undefined {
+    if (!cwd) return undefined;
+    let m = /^\/?([A-Za-z]):([\\/].*)?$/.exec(cwd);
+    if (m) return `${m[1].toUpperCase()}:${(m[2] ?? '/').replace(/\//g, '\\')}`;
+    m = /^\/mnt\/([a-z])(\/.*)?$/i.exec(cwd);
+    if (m) return `${m[1].toUpperCase()}:${(m[2] ?? '/').replace(/\//g, '\\')}`;
+    return undefined;
+}
+
 export function clampDockHeight(h: number, total: number): number {
     if (!Number.isFinite(h)) return DEFAULT_DOCK_HEIGHT;
     return Math.max(MIN_HEIGHT, Math.min(h, total - PANEL_MIN));

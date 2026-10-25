@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { RotateCw, X } from 'lucide-react'
+import { RotateCw, X, FolderOpen } from 'lucide-react'
 import { TermSession, startEventRouter } from '../core/session'
 import { lookOptions } from '../core/look'
 import { settings, loadSettings } from '../core/settings'
-import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, quoteForShell, clampDockHeight } from '../core/dock'
+import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, quoteForShell, clampDockHeight, localPathFromCwd } from '../core/dock'
 import { useDockStore } from '../../stores/dockStore'
 import { useFileStore } from '../../stores/fileStore'
 import styles from '../styles/Terminal.module.css'
@@ -26,6 +26,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
   const shellRef = useRef(shell)
   shellRef.current = shell
   const restarting = useRef(false) // 셸을 바꿔 다시 시작할 때 이전 셸의 종료 안내는 생략
+  const [shellDir, setShellDir] = useState(undefined) // 셸이 알려 준 폴더 (OSC 7), 이 PC의 경로일 때만
 
   // 지금 셸로 패널 폴더에서 시작 (실패하면 화면에 이유, Enter로 다시 시도)
   async function start() {
@@ -52,6 +53,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
     // F9는 셸로 보내지 않고 도크를 닫는 키
     s.term.attachCustomKeyEventHandler(ev => !(ev.key === 'F9' && !ev.ctrlKey && !ev.altKey && !ev.shiftKey))
     const offs = [
+      s.onCwd(cwd => setShellDir(localPathFromCwd(cwd))),
       s.onClosed(() => { if (!restarting.current) s.notice('셸이 끝났습니다 — Enter: 다시 시작') }),
       s.onIdleInput(data => { if (data === '\r') start() }),
     ]
@@ -138,6 +140,8 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
         </label>
         <span className={styles.dim}>Ctrl+Enter: 파일 이름 · Ctrl+Shift+Enter: 전체 경로 붙여넣기</span>
         <span className={styles.dockSpacer} />
+        <button type="button" className={styles.iconBtn} title="셸의 지금 폴더를 파일 패널에서 열기" disabled={!shellDir}
+          onClick={() => { const fs = useFileStore.getState(); fs.navigate(fs.activePanel, shellDir) }}><FolderOpen size={12} /></button>
         <button type="button" className={styles.iconBtn} title="셸 다시 시작" onClick={restart}><RotateCw size={12} /></button>
         <button type="button" className={styles.iconBtn} title="도크 닫기 (F9)" onClick={() => st.hide()}><X size={13} /></button>
       </div>

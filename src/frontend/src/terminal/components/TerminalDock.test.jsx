@@ -127,4 +127,21 @@ describe('터미널 도크 (DKV)', () => {
     setPanel('left', W('C:', 'z'))
     expect(api.Send).not.toHaveBeenCalled()
   })
+
+  it('DKV-11: 셸이 알려 준 폴더로 패널 이동 (📁 패널로) — 모르면 비활성', async () => {
+    const navigate = vi.spyOn(useFileStore.getState(), 'navigate').mockResolvedValue(undefined)
+    await mount()
+    const btn = screen.getByTitle('셸의 지금 폴더를 파일 패널에서 열기')
+    expect(btn.disabled).toBe(true)
+    act(() => { terms[0].osc(7, 'file://pc/C:/work/sub') })
+    await waitFor(() => expect(screen.getByTitle('셸의 지금 폴더를 파일 패널에서 열기').disabled).toBe(false))
+    fireEvent.click(screen.getByTitle('셸의 지금 폴더를 파일 패널에서 열기'))
+    expect(navigate).toHaveBeenCalledWith('left', W('C:', 'work', 'sub'))
+    // cmd는 OSC 9;9로 알려 줌 (Windows Terminal 방식)
+    act(() => { terms[0].osc(9, '9;' + W('D:', 'other')) })
+    fireEvent.click(screen.getByTitle('셸의 지금 폴더를 파일 패널에서 열기'))
+    expect(navigate).toHaveBeenLastCalledWith('left', W('D:', 'other'))
+    navigate.mockRestore()
+  })
 })
+

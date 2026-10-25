@@ -283,7 +283,11 @@ func (a *App) Connect(tabID int, req terminal.ConnectRequest) (string, error) {
 	if req.Cols <= 0 || req.Rows <= 0 {
 		req.Cols, req.Rows = 80, 24
 	}
-	if cmdline, ok := localshell.Command(req.Host); ok {
+	dir := ""
+	if strings.TrimSpace(req.Dir) != "" {
+		dir = localStartDir(req.Dir)
+	}
+	if cmdline, ok := localshell.CommandIn(req.Host, dir); ok {
 		return a.connectLocal(tabID, req, cmdline)
 	}
 	if serial.IsPort(req.Host) {

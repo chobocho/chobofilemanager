@@ -101,6 +101,7 @@ export class TermSession {
     private outputListeners = new Set<Listener<[]>>();
     private idleInputListeners = new Set<Listener<[string]>>();
     private logListeners = new Set<Listener<[string | undefined]>>();
+    private cwdListeners = new Set<Listener<[string]>>();
 
     constructor(id: number, private deps: SessionDeps) {
         this.id = id;
@@ -133,7 +134,15 @@ export class TermSession {
                 } catch {
                     this.cwd = m[1];
                 }
+                this.cwdListeners.forEach(l => l(this.cwd!));
             }
+            return true;
+        });
+        // cmd reports its folder as OSC 9;9;<path> (the prompt Windows Terminal suggests, set by localshell).
+        term.parser.registerOscHandler(9, data => {
+            if (!data.startsWith('9;')) return false; // other OSC 9 (notifications): not ours
+            this.cwd = data.slice(2).replace(/^"|"$/g, '');
+            this.cwdListeners.forEach(l => l(this.cwd!));
             return true;
         });
         term.onTitleChange(title => {
@@ -219,6 +228,11 @@ export class TermSession {
     onOutput(l: Listener<[]>) {
         this.outputListeners.add(l);
         return () => this.outputListeners.delete(l);
+    }
+    /** The shell reported its folder (OSC 7). */
+    onCwd(l: Listener<[string]>) {
+        this.cwdListeners.add(l);
+        return () => this.cwdListeners.delete(l);
     }
     /** The session log started or stopped (path, or undefined). */
     onLog(l: Listener<[string | undefined]>) {

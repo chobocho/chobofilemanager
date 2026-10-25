@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {shellKind, cdCommand, quoteForShell, clampDockHeight, DOCK_ID_BASE, DOCK_SHELLS} from './dock';
+import {shellKind, cdCommand, quoteForShell, clampDockHeight, DOCK_ID_BASE, DOCK_SHELLS, localPathFromCwd} from './dock';
 
 // ─── Todo #122: 터미널 도크 — 셸별 cd·경로 따옴표, 높이 ─────────────────────
 
@@ -49,5 +49,15 @@ describe('dock (DK)', () => {
 
     it('DK-07: 도크 탭 id는 작업 공간 탭 id와 겹치지 않는 범위', () => {
         expect(DOCK_ID_BASE).toBeGreaterThanOrEqual(1_000_000);
+    });
+
+    it('DK-08: 셸이 알려 준 폴더(OSC 7) → 이 PC의 경로 (Windows 셸, WSL /mnt/드라이브), 그 밖은 없음', () => {
+        expect(localPathFromCwd('/C:/work/a b')).toBe(win('C:', 'work', 'a b'));
+        expect(localPathFromCwd('C:/Users')).toBe(win('C:', 'Users'));
+        expect(localPathFromCwd('/mnt/d/src')).toBe(win('D:', 'src'));
+        expect(localPathFromCwd('/mnt/c')).toBe('C:' + BS);
+        expect(localPathFromCwd(win('C:', 'work', 'x'))).toBe(win('C:', 'work', 'x')); // cmd의 OSC 9;9
+        expect(localPathFromCwd('/home/me')).toBeUndefined();
+        expect(localPathFromCwd(undefined)).toBeUndefined();
     });
 });

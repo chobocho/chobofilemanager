@@ -2,6 +2,17 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #122 보완: 셸의 지금 폴더 → 파일 패널, WSL 시작 폴더)
+
+### 변경
+- 설계 2.3 "터미널의 현재 폴더 → 패널을 이 폴더로": 도크에 📁 버튼 — 셸이 알려 준 폴더(OSC 7, cmd는 OSC 9;9)를 활성 파일 패널에서 엶 (`localPathFromCwd`: `/C:/x`, `C:\x`, WSL `/mnt/c/x`)
+- Go `localshell.CommandIn`: cmd는 사용자가 PROMPT를 정하지 않았으면 `prompt $E]9;9;$P$E\$P$G`(Windows Terminal 방식, 보이는 프롬프트는 그대로)로 폴더를 알림 — 실제 cmd로 ConPTY 통과 확인
+- **버그 수정**: WSL은 `--cd ~`로 시작해 도크가 패널 폴더에서 시작하지 못하던 문제 → 시작 폴더가 있으면 그 폴더에서
+- `TermSession`: OSC 9;9 처리, `onCwd` 알림
+
+### 테스트
+- Go `command_windows_test.go`, DK-08, DKV-11 — 프론트 1174개, Go 전체 통과
+
 ## 2026-10-25 (Todo.md #124 보완 2: F1 터미널 도움말 · 창 제목 · 디버그 기록)
 
 ### 변경

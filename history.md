@@ -2,6 +2,14 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #133-5: 압축 파일을 폴더처럼 (ZIP · TAR · TAR.GZ/BZ2/XZ · 7Z · RAR)
+- `internal/archive` 신규: 형식마다 다른 읽기(목록 · 순서대로 읽기)를 하나로. 이름은 '/'로 정리해 압축 루트 밖으로 못 나감(`../x` → `x`), 경로에만 있는 폴더도 만들어 줌, 최근 8개 목록 캐시. `Split`이 "C:\x\a.zip\docs" 같은 경로에서 압축 파일과 안쪽 경로를 찾음. `Extract`(고른 항목, 덮어쓰기·건너뛰기·이름 바꾸기, 수정 시각 유지)
+- 7Z: github.com/bodgit/sevenzip(BSD-3), RAR: github.com/nwaples/rardecode/v2(BSD-2), TAR.XZ: ulikunitz/xz. THIRD_PARTY_NOTICES 다시 생성
+- package main(`archivefs.go`): ListDirectory가 압축 파일·그 안 경로를 목록으로(`readOnly`), F5 복사는 풀어서 꺼내기(충돌 방식 그대로), F3 보기·Space 크기·Ctrl+F 검색도 안에서, Enter로 기본 앱 열기는 임시 폴더에 풀어서. 이동·삭제·휴지통·이름 바꾸기·새 폴더/파일·저장·압축은 "읽기 전용" 오류
+- 압축 풀기 단추: ZIP 말고도 모든 형식 (.tar.gz는 확장자를 모두 뺀 폴더 이름)
+- 프론트: 압축 파일에서 Enter/더블클릭 → 안으로, 머리글에 "읽기 전용", F6/F7/F8/F2/Ctrl+M/F4/압축은 바로 막고 상태 표시줄 안내
+- 테스트: internal/archive 10개(ZIP·TAR 계열·7Z 실제 파일·RAR 오류·Split·Extract 모드), archivefs_test.go 6개, archivePanel.test.js 6개 — Go 전체 · 프론트 1303개 통과. RAR는 만들 도구가 없어 실제 파일로는 확인 못 함
+
 ## 2026-10-25 Todo.md #133-4: 여러 이름 바꾸기 (Ctrl+M)
 - `utils/multiRename.js`: TC 마스크 — [N] [N2-5] [N3] [N2-] [E] [C](시작·증가·자릿수) [P] [YMD] [hms] [Y][M][D][h][m][s], 찾아 바꾸기(글자는 대소문자 무시, 정규식은 $1 그룹), 대소문자(소문자·대문자·단어 첫 글자). 계획 단계에서 빈 이름·쓸 수 없는 글자·끝 공백/점·묶음 안 중복·묶음 밖 기존 이름 충돌 검사
 - `MultiRenameDialog`: 마스크 단추(커서 자리에 넣기), 미리 보기 표(바뀌는 것·오류 색 표시), 충돌이 있으면 바꾸기 꺼짐, 실패하면 창에 오류

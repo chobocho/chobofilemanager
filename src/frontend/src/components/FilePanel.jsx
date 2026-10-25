@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState, forwardRef, useImperativeHandle, memo } from 'react'
 import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
-import { isViewableFile, isTextFile, formatSize, formatDate } from '../utils/fileTypes.js'
+import { isViewableFile, isTextFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
 import styles from '../styles/FilePanel.module.css'
 import {
   Folder, File, FileText, FileImage, FileArchive,
@@ -193,7 +193,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   const onRowDoubleClick = useCallback((file) => rowHandlersRef.current.dbl(file), [])
 
   const handleRowDoubleClick = async (file) => {
-    if (file.isDir) {
+    // 압축 파일은 폴더처럼 들어감 (Todo #133-5)
+    if (file.isDir || isArchiveName(file.name)) {
       await store.navigate(side, file.path)
     } else {
       // .bat은 더블클릭 시 기존처럼 실행 (Enter는 뷰어)
@@ -207,7 +208,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
 
   // Enter 키 동작 (Todo #51): 텍스트/소스 파일이면 F3 뷰어, 그 외는 더블클릭과 동일.
   const handleEnter = async (file) => {
-    if (file.isDir) {
+    if (file.isDir || isArchiveName(file.name)) {
       await store.navigate(side, file.path)
       return
     }
@@ -545,6 +546,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
           </select>
         </div>
         <div className={styles.headerRight}>
+          {panel.readOnly && <span className={styles.readOnlyBadge} title="압축 파일 안 — F5로 꺼내서 쓰세요">읽기 전용</span>}
           <button
             className={styles.iconBtn}
             onClick={(e) => { e.stopPropagation(); store.navigateUp(side) }}

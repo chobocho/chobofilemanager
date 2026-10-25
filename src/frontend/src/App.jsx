@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
-import { useFileStore, getCursorFile, operationPaths } from './stores/fileStore'
+import { useFileStore, getCursorFile, operationPaths, READ_ONLY_MSG } from './stores/fileStore'
 import { useFTPStore } from './stores/ftpStore'
 import { useThemeStore } from './stores/themeStore'
 import Toolbar from './components/Toolbar'
@@ -144,6 +144,9 @@ function FileManagerApp() {
 
   const tryOpenEditor = useCallback((file) => {
     if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
+    // 압축 파일 안은 F3 보기만 (Todo #133-5)
+    const s = useFileStore.getState()
+    if (s[s.activePanel].readOnly && file.path.startsWith(s[s.activePanel].path)) { s.setStatus(READ_ONLY_MSG); return }
     useEditorStore.getState().openEditor(file.path)
   }, [])
 
@@ -177,6 +180,7 @@ function FileManagerApp() {
   const openMultiRename = useCallback(() => {
     const s = useFileStore.getState()
     const p = s[s.activePanel]
+    if (p.readOnly) { s.setStatus(READ_ONLY_MSG); return }
     const paths = new Set(operationPaths(p))
     const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
     const files = visible.filter(f => paths.has(f.path))
@@ -312,6 +316,7 @@ function FileManagerApp() {
 
   const handleRename = () => {
     const s = useFileStore.getState()
+    if (s[s.activePanel].readOnly) { s.setStatus(READ_ONLY_MSG); return }
     if (getCursorFile(s[s.activePanel])) setModal('rename')
   }
 

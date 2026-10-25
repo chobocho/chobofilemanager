@@ -32,6 +32,10 @@ func (fm *FileManager) CheckCopyConflicts(sources []string, destination string) 
 }
 
 func (fm *FileManager) CopyItems(sources []string, destination string) error {
+	sources, err := fm.extractArchiveSources(sources, destination, "overwrite")
+	if err != nil {
+		return err
+	}
 	for _, src := range sources {
 		info, err := os.Stat(src)
 		if err != nil {
@@ -52,6 +56,10 @@ func (fm *FileManager) CopyItems(sources []string, destination string) error {
 }
 
 func (fm *FileManager) CopyItemsRename(sources []string, destination string) error {
+	sources, err := fm.extractArchiveSources(sources, destination, "rename")
+	if err != nil {
+		return err
+	}
 	for _, src := range sources {
 		info, err := os.Stat(src)
 		if err != nil {
@@ -78,6 +86,10 @@ func (fm *FileManager) CopyItemsRename(sources []string, destination string) err
 }
 
 func (fm *FileManager) CopyItemsSkipConflicts(sources []string, destination string) error {
+	sources, err := fm.extractArchiveSources(sources, destination, "skip")
+	if err != nil {
+		return err
+	}
 	for _, src := range sources {
 		info, err := os.Stat(src)
 		if err != nil {
@@ -129,7 +141,18 @@ func (fm *FileManager) moveOne(src, destPath string) error {
 	return os.Remove(src)
 }
 
+// refuseArchiveMove: 압축 파일 안에서 꺼내 옮기거나 안으로 옮기는 것은 거부 (Todo #133-5)
+func refuseArchiveMove(sources []string, destination string) error {
+	if archiveTarget(destination) {
+		return errArchiveReadOnly
+	}
+	return refuseInArchive(sources...)
+}
+
 func (fm *FileManager) MoveItems(sources []string, destination string) error {
+	if err := refuseArchiveMove(sources, destination); err != nil {
+		return err
+	}
 	for _, src := range sources {
 		destPath := filepath.Join(destination, filepath.Base(src))
 		if err := fm.moveOne(src, destPath); err != nil {
@@ -142,6 +165,9 @@ func (fm *FileManager) MoveItems(sources []string, destination string) error {
 // MoveItemsOverwrite: 대상에 같은 이름 항목이 있으면 교체하며 이동합니다.
 // 원본과 대상이 같으면 거부하고, 이동 실패 시 기존 대상을 복원합니다 (Todo #68).
 func (fm *FileManager) MoveItemsOverwrite(sources []string, destination string) error {
+	if err := refuseArchiveMove(sources, destination); err != nil {
+		return err
+	}
 	for _, src := range sources {
 		destPath := filepath.Join(destination, filepath.Base(src))
 		if samePath(src, destPath) {
@@ -159,6 +185,9 @@ func (fm *FileManager) MoveItemsOverwrite(sources []string, destination string) 
 
 // MoveItemsRename: 대상에 같은 이름 파일이 있으면 자동으로 이름을 변경하여 이동합니다.
 func (fm *FileManager) MoveItemsRename(sources []string, destination string) error {
+	if err := refuseArchiveMove(sources, destination); err != nil {
+		return err
+	}
 	for _, src := range sources {
 		name := filepath.Base(src)
 		destPath := filepath.Join(destination, name)
@@ -175,6 +204,9 @@ func (fm *FileManager) MoveItemsRename(sources []string, destination string) err
 }
 
 func (fm *FileManager) DeleteItems(paths []string) error {
+	if err := refuseInArchive(paths...); err != nil {
+		return err
+	}
 	for _, p := range paths {
 		if err := guardDeletable(p); err != nil {
 			return err
@@ -190,6 +222,9 @@ func (fm *FileManager) DeleteItems(paths []string) error {
 
 // Todo #57: 휴지통(Recycle Bin)으로 이동. Windows: SHFileOperationW, 그 외: 미지원.
 func (fm *FileManager) TrashItems(paths []string) error {
+	if err := refuseInArchive(paths...); err != nil {
+		return err
+	}
 	for _, p := range paths {
 		if err := guardDeletable(p); err != nil {
 			return err
@@ -199,6 +234,9 @@ func (fm *FileManager) TrashItems(paths []string) error {
 }
 
 func (fm *FileManager) CreateDirectory(path string) error {
+	if err := refuseInArchive(path); err != nil {
+		return err
+	}
 	if _, err := os.Stat(path); err == nil {
 		return fmt.Errorf("폴더가 이미 존재합니다: %s", filepath.Base(path))
 	}
@@ -206,6 +244,9 @@ func (fm *FileManager) CreateDirectory(path string) error {
 }
 
 func (fm *FileManager) CreateFile(path string) error {
+	if err := refuseInArchive(path); err != nil {
+		return err
+	}
 	// O_EXCL: 확인과 생성 사이에 만들어진 파일을 비우지 않도록 (Todo #99)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if os.IsExist(err) {
@@ -220,6 +261,9 @@ func (fm *FileManager) CreateFile(path string) error {
 // RenameItem: 이름 바꾸기. 같은 이름의 다른 항목이 있으면 거부 — Windows의 os.Rename은 파일을 말없이 덮어씀 (Todo #130-1).
 // 대소문자만 바꾸는 것(a.txt → A.txt)은 같은 파일이므로 허용
 func (fm *FileManager) RenameItem(oldPath, newPath string) error {
+	if err := refuseInArchive(oldPath, newPath); err != nil {
+		return err
+	}
 	if err := refuseOtherAt(oldPath, newPath); err != nil {
 		return err
 	}

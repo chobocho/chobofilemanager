@@ -9,11 +9,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"totalcmd/internal/archive"
 )
 
 // CompressItems: 임시 파일에 압축한 뒤 성공 시에만 destPath로 교체합니다 (Todo #89).
 // 엔트리 이름은 zip 규격대로 '/'를 사용하고 빈 폴더도 포함합니다. 모든 에러를 보고합니다.
 func (fm *FileManager) CompressItems(sources []string, destPath string) error {
+	if err := refuseInArchive(append([]string{destPath}, sources...)...); err != nil {
+		return err
+	}
 	if !strings.HasSuffix(destPath, ".zip") {
 		destPath += ".zip"
 	}
@@ -114,6 +119,20 @@ func addZipEntry(w *zip.Writer, path, name string, info os.FileInfo) error {
 }
 
 func (fm *FileManager) ExtractArchive(archivePath, destDir string) error {
+	if archiveTarget(destDir) {
+		return errArchiveReadOnly
+	}
+	// ZIP 말고 다른 형식(TAR, 7Z, RAR)은 internal/archive로 (Todo #133-5)
+	if kind := archive.Kind(archivePath); kind != "" && kind != "zip" {
+		sub, err := uniqueName(destDir, archive.BaseName(filepath.Base(archivePath)))
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(sub, 0755); err != nil {
+			return err
+		}
+		return archive.Extract(archivePath, nil, sub, "overwrite")
+	}
 	// 압축 파일명(확장자 제거)으로 서브폴더 생성, 이미 존재하면 (N) 접미사 추가
 	base := filepath.Base(archivePath)
 	folderName := strings.TrimSuffix(base, filepath.Ext(base))

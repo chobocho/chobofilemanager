@@ -21,6 +21,11 @@ func (fm *FileManager) RenameBatch(pairs []RenamePair) error {
 	if len(pairs) == 0 {
 		return nil
 	}
+	for _, p := range pairs {
+		if err := refuseInArchive(p.Old, p.New); err != nil {
+			return err
+		}
+	}
 	key := func(p string) string { return strings.ToLower(filepath.Clean(p)) }
 	olds := map[string]bool{}
 	news := map[string]bool{}

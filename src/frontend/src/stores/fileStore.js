@@ -72,6 +72,9 @@ export function sortFiles(files, sortBy = 'name', sortDir = 'asc') {
   })
 }
 
+// 압축 파일 안(Todo #133-5)은 읽기 전용 — 백엔드도 거부하지만 확인 창 전에 바로 알림
+export const READ_ONLY_MSG = '압축 파일 안은 읽기 전용입니다 (F5로 꺼내서 쓰세요)'
+
 // 복사·이동 방식별 백엔드 함수 이름(api는 테스트에서 바뀌므로 호출할 때 찾음)과 새로 고칠 폴더
 const TRANSFERS = {
   copy: {
@@ -141,6 +144,7 @@ const createPanelState = (side) => ({
   cursor: 0,
   cursorOnParent: false,
   dirSizes: {}, // Space로 계산한 폴더 크기 (경로 → 바이트), 다른 폴더로 가면 비움 (Todo #133-1)
+  readOnly: false, // 압축 파일 안 (Todo #133-5)
   tabs: [createTabState('')],
   activeTabIdx: 0,
 })
@@ -212,6 +216,7 @@ export const useFileStore = create((set, get) => ({
           files,
           selected: new Set(),
           dirSizes: result.path === s[panel].path ? s[panel].dirSizes : {},
+          readOnly: !!result.readOnly,
           loading: false,
           history: newHistory,
           historyIndex: newHistory.length - 1,
@@ -257,6 +262,7 @@ export const useFileStore = create((set, get) => ({
           files,
           selected: new Set(),
           dirSizes: {},
+          readOnly: !!result.readOnly,
           loading: false,
           historyIndex: newIndex,
           cursor: 0,
@@ -485,6 +491,11 @@ export const useFileStore = create((set, get) => ({
     const none = { conflicts: [], sources: [], dest: '' }
     if (!selected.length) return none
 
+    // 압축 파일 안으로는 복사·이동 불가, 안에서 밖으로는 복사(풀기)만 (Todo #133-5)
+    if (state[other].readOnly || (kind === 'move' && state[panel].readOnly)) {
+      set({ status: READ_ONLY_MSG })
+      return none
+    }
     const dest = state[other].path
     const conflicts = await api.CheckCopyConflicts(selected, dest)
     if (conflicts && conflicts.length > 0) {
@@ -512,6 +523,10 @@ export const useFileStore = create((set, get) => ({
   delete: async () => {
     const state = get()
     const panel = state.activePanel
+    if (state[panel].readOnly) {
+      set({ status: READ_ONLY_MSG })
+      return { paths: [], count: 0 }
+    }
     const selected = operationPaths(state[panel])
     if (!selected.length) {
       set({ status: '삭제할 파일이 없습니다.' })
@@ -579,6 +594,7 @@ export const useFileStore = create((set, get) => ({
 
   createDirectory: async (panel, name) => {
     const state = get()[panel]
+    if (state.readOnly) throw new Error(READ_ONLY_MSG)
     const path = joinPath(state.path, name)
     try {
       await api.CreateDirectory(path)
@@ -595,6 +611,7 @@ export const useFileStore = create((set, get) => ({
   // (이전에는 App.jsx handleNewFile에서 직접 api.CreateFile을 호출했음)
   createFile: async (panel, name) => {
     const state = get()[panel]
+    if (state.readOnly) throw new Error(READ_ONLY_MSG)
     const path = joinPath(state.path, name)
     try {
       await api.CreateFile(path)
@@ -617,6 +634,7 @@ export const useFileStore = create((set, get) => ({
   },
 
   rename: async (panel, oldPath, newName) => {
+    if (get()[panel].readOnly) { set({ status: READ_ONLY_MSG }); return }
     const lastSep = Math.max(oldPath.lastIndexOf('/'), oldPath.lastIndexOf('\\'))
     const newPath = oldPath.substring(0, lastSep + 1) + newName
     try {
@@ -646,6 +664,7 @@ export const useFileStore = create((set, get) => ({
 
   compress: async (panel) => {
     const state = get()[panel]
+    if (state.readOnly) { set({ status: READ_ONLY_MSG }); return }
     const selected = state.error || state.loading ? [] : [...state.selected]
     if (!selected.length) return
     const destPath = joinPath(state.path, 'archive.zip')
@@ -661,6 +680,7 @@ export const useFileStore = create((set, get) => ({
   // 백엔드가 실패(손상, 안전하지 않은 경로 등)를 보고하므로 상태 표시줄에 표시 (Todo #89)
   extract: async (panel, archivePath) => {
     const state = get()[panel]
+    if (state.readOnly) { set({ status: READ_ONLY_MSG }); return }
     try {
       await api.ExtractArchive(archivePath, state.path)
       set({ status: 'Extracted successfully' })
@@ -865,7 +885,7 @@ export const useFileStore = create((set, get) => ({
       const result = await api.ListDirectory(target.path)
       if (!isCurrent()) return
       set(st => ({
-        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), dirSizes: {}, loading: false }
+        [panel]: { ...st[panel], path: result.path, files: sortFiles(result.files || [], st[panel].sortBy, st[panel].sortDir), dirSizes: {}, readOnly: !!result.readOnly, loading: false }
       }))
       get()._saveSession()
     } catch (err) {

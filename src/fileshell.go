@@ -24,6 +24,11 @@ func buildOpenCmd(path string) (*exec.Cmd, error) {
 }
 
 func (fm *FileManager) OpenFile(path string) error {
+	// 압축 파일 안의 파일은 임시 폴더로 풀어서 연다 (Todo #133-5)
+	path, err := materializeArchiveFile(path)
+	if err != nil {
+		return err
+	}
 	if runtime.GOOS == "windows" {
 		return shellOpen(path, filepath.Dir(path))
 	}

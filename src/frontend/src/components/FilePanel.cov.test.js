@@ -131,7 +131,7 @@ describe('FilePanel 커버리지 (FPC)', () => {
   })
 
   it('FPC-09: Enter — 폴더 navigate / 뷰어 대상 onView / 기타 openFile / [..] navigateUp', async () => {
-    const files = [dir('sub'), f('a.txt'), f('c.zip')]
+    const files = [dir('sub'), f('a.txt'), f('c.exe')]
     const { list, onView } = setup({ files })
     await act(async () => { fireEvent.keyDown(list, { key: 'Enter' }) })
     expect(actions.navigate).toHaveBeenCalledWith('left', '/d/sub')
@@ -140,7 +140,7 @@ describe('FilePanel 커버리지 (FPC)', () => {
     expect(onView).toHaveBeenCalledWith(files[1])
     act(() => useFileStore.getState().setCursor('left', 2))
     await act(async () => { fireEvent.keyDown(list, { key: 'Enter' }) })
-    expect(actions.openFile).toHaveBeenCalledWith('/d/c.zip')
+    expect(actions.openFile).toHaveBeenCalledWith('/d/c.exe') // 압축 파일은 들어감 (archivePanel.test.js)
     act(() => useFileStore.getState().setCursorOnParent('left', true))
     fireEvent.keyDown(list, { key: 'Enter' })
     expect(actions.navigateUp).toHaveBeenCalledWith('left')

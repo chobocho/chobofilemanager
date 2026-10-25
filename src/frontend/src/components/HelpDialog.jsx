@@ -80,7 +80,8 @@ const SECTIONS = [
     title: '압축',
     rows: [
       { keys: ['압축하기'],        desc: '선택한 파일을 ZIP으로 압축' },
-      { keys: ['압축 풀기'],       desc: 'ZIP 파일을 동일 폴더 내 서브폴더에 해제' },
+      { keys: ['압축 풀기'],       desc: '압축 파일을 같은 폴더 안 하위 폴더에 풀기 (ZIP · TAR · TAR.GZ · TAR.BZ2 · TAR.XZ · 7Z · RAR)' },
+      { keys: ['Enter (압축 파일)'], desc: '압축 파일 안으로 들어가 폴더처럼 보기 — 읽기 전용, F5로 꺼내기, F3 보기, Backspace로 나오기' },
     ],
   },
   {

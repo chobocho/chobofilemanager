@@ -27,9 +27,10 @@ type FileInfo struct {
 }
 
 type DirectoryListing struct {
-	Path  string     `json:"path"`
-	Files []FileInfo `json:"files"`
-	Error string     `json:"error,omitempty"`
+	Path     string     `json:"path"`
+	Files    []FileInfo `json:"files"`
+	Error    string     `json:"error,omitempty"`
+	ReadOnly bool       `json:"readOnly,omitempty"` // 압축 파일 안 (Todo #133-5)
 }
 
 type DriveInfo struct {
@@ -47,6 +48,10 @@ func NewFileManager() *FileManager {
 func (fm *FileManager) ListDirectory(path string) (*DirectoryListing, error) {
 	if path == "" {
 		path = fm.GetHomeDirectory()
+	}
+	// 압축 파일(또는 그 안)은 폴더처럼 (Todo #133-5)
+	if l, err, ok := fm.listArchiveFor(path); ok {
+		return l, err
 	}
 
 	entries, err := os.ReadDir(path)
@@ -154,6 +159,9 @@ func (fm *FileManager) GetParentPath(path string) string {
 
 func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]FileInfo, error) {
 	var results []FileInfo
+	if _, _, ok := archiveSearchRoot(rootPath); ok {
+		return fm.searchArchive(rootPath, pattern, recursive)
+	}
 
 	// 쉼표로 분리한 후 각 키워드를 모두 포함하는 AND 검색
 	rawTerms := strings.Split(pattern, ",")

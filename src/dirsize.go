@@ -17,6 +17,9 @@ type DirSizeResult struct {
 // DirSize: 폴더 안 모든 파일 크기의 합. 읽을 수 없는 하위 항목은 건너뜀, 링크는 따라가지 않음.
 // 파일을 주면 그 파일 하나의 크기.
 func (fm *FileManager) DirSize(path string) (DirSizeResult, error) {
+	if r, ok, err := archiveDirSize(path); ok {
+		return r, err
+	}
 	var r DirSizeResult
 	if _, err := os.Stat(path); err != nil {
 		return r, err

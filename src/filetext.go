@@ -38,6 +38,10 @@ func (fm *FileManager) ReadTextFile(path string) (string, error) {
 const maxViewerFileSize = 32 * 1024 * 1024
 
 func readLimited(path string) ([]byte, error) {
+	// 압축 파일 안의 파일 (Todo #133-5)
+	if data, ok, err := readArchiveFile(path); ok {
+		return data, err
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -69,6 +73,9 @@ func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (st
 }
 
 func (fm *FileManager) WriteTextFile(path string, content string) error {
+	if err := refuseInArchive(path); err != nil {
+		return err
+	}
 	return writeUserFile(path, []byte(content))
 }
 
@@ -76,6 +83,9 @@ func (fm *FileManager) WriteTextFile(path string, content string) error {
 // encName이 auto/빈 값이면 기존 파일의 인코딩을 판별해 유지하고, 새/빈 파일은 UTF-8로 저장합니다.
 // 인코딩할 수 없는 문자가 있으면 파일을 건드리지 않고 에러를 반환합니다.
 func (fm *FileManager) WriteTextFileWithEncoding(path string, content string, encName string) error {
+	if err := refuseInArchive(path); err != nil {
+		return err
+	}
 	enc, isAuto := textenc.ParseName(encName)
 	if isAuto {
 		enc = textenc.EncUTF8

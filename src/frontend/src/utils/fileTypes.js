@@ -35,6 +35,13 @@ export function isViewableFile(ext) {
   return isTextFile(ext) || isImageFile(ext)
 }
 
+// 폴더처럼 들어갈 수 있는 압축 파일 (Todo #133-5, Go internal/archive의 Kind와 같은 목록)
+const ARCHIVE_SUFFIXES = ['.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz', '.tar', '.zip', '.jar', '.7z', '.rar']
+export function isArchiveName(name) {
+  const lower = (name || '').toLowerCase()
+  return ARCHIVE_SUFFIXES.some(s => lower.endsWith(s) && lower.length > s.length)
+}
+
 export function formatSize(bytes, isDir) {
   if (isDir) return '<DIR>'
   if (!bytes) return '0 B'

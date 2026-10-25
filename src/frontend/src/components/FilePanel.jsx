@@ -218,29 +218,37 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       return
     }
 
+    // 한 줄 위·아래 ([..] 줄 포함) — 화살표·vim(j/k)·WASD(w/s) 공용 (Todo #131-3)
+    const moveUp = () => {
+      if (cursorOnParent) {
+        // already on [..], do nothing
+      } else if (cur > 0) {
+        store.setCursor(side, cur - 1)
+        scrollToCursor(cur - 1, showParent)
+      } else if (showParent) {
+        store.setCursorOnParent(side, true)
+        scrollToParentRow()
+      }
+    }
+    const moveDown = () => {
+      if (cursorOnParent) {
+        store.setCursorOnParent(side, false)
+        store.setCursor(side, 0)
+        scrollToCursor(0, showParent)
+      } else if (cur < files.length - 1) {
+        store.setCursor(side, cur + 1)
+        scrollToCursor(cur + 1, showParent)
+      }
+    }
+
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault()
-        if (cursorOnParent) {
-          // already on [..], do nothing
-        } else if (cur > 0) {
-          store.setCursor(side, cur - 1)
-          scrollToCursor(cur - 1, showParent)
-        } else if (showParent) {
-          store.setCursorOnParent(side, true)
-          scrollToParentRow()
-        }
+        moveUp()
         break
       case 'ArrowDown':
         e.preventDefault()
-        if (cursorOnParent) {
-          store.setCursorOnParent(side, false)
-          store.setCursor(side, 0)
-          scrollToCursor(0, showParent)
-        } else if (cur < files.length - 1) {
-          store.setCursor(side, cur + 1)
-          scrollToCursor(cur + 1, showParent)
-        }
+        moveDown()
         break
       case 'Enter':
         e.preventDefault()
@@ -332,43 +340,21 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
           // vim: j = 아래로
           e.preventDefault()
-          if (cursorOnParent) {
-            store.setCursorOnParent(side, false)
-            store.setCursor(side, 0)
-            scrollToCursor(0, showParent)
-          } else if (cur < files.length - 1) {
-            store.setCursor(side, cur + 1)
-            scrollToCursor(cur + 1, showParent)
-          }
+          moveDown()
         }
         break
       case 'k':
         if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
           // vim: k = 위로
           e.preventDefault()
-          if (cursorOnParent) {
-            // already on [..], do nothing
-          } else if (cur > 0) {
-            store.setCursor(side, cur - 1)
-            scrollToCursor(cur - 1, showParent)
-          } else if (showParent) {
-            store.setCursorOnParent(side, true)
-            scrollToParentRow()
-          }
+          moveUp()
         }
         break
       case 's':
         if (!e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
           // WASD: s = 아래로
           e.preventDefault()
-          if (cursorOnParent) {
-            store.setCursorOnParent(side, false)
-            store.setCursor(side, 0)
-            scrollToCursor(0, showParent)
-          } else if (cur < files.length - 1) {
-            store.setCursor(side, cur + 1)
-            scrollToCursor(cur + 1, showParent)
-          }
+          moveDown()
         }
         break
       case 't':
@@ -381,15 +367,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         else if (!e.shiftKey && !e.altKey && !e.metaKey && e.key === 'w') {
           // WASD: w = 위로
           e.preventDefault()
-          if (cursorOnParent) {
-            // already on [..], do nothing
-          } else if (cur > 0) {
-            store.setCursor(side, cur - 1)
-            scrollToCursor(cur - 1, showParent)
-          } else if (showParent) {
-            store.setCursorOnParent(side, true)
-            scrollToParentRow()
-          }
+          moveUp()
         }
         break
       case 'Tab':

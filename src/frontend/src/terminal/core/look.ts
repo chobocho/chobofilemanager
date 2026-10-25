@@ -23,7 +23,7 @@ export function lookOptions(s: TermSettings, wide = false): ITerminalOptions {
 export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'> & {code?: string}): boolean {
     const k = ev.key.length === 1 ? ev.key.toUpperCase() : ev.key;
     if (splitKeyDir({ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey, code: ev.code ?? ''})) return true;
-    if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S' || k === 'H' || k === 'O' || k === 'M' || k === 'L')) return true;
+    if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S' || k === 'H' || k === 'O' || k === 'M' || k === 'L' || k === 'B')) return true;
     if (ev.ctrlKey && (k === 'Tab' || k === 'PageUp' || k === 'PageDown')) return true;
     return false;
 }

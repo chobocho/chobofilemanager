@@ -111,3 +111,14 @@
 
 /* 세션 로그 기록 중인 탭 (Todo #121) */
 .paneChip[data-logging] [data-tab-label]::before { content: '●'; margin-right: 4px; color: #e74c3c; font-size: 9px; vertical-align: 1px; }
+
+/* 메모장 (Todo #121) */
+.memoArea { position: absolute; pointer-events: none; }
+.memoBox { position: absolute; right: 16px; bottom: 8px; z-index: 6; display: flex; flex-direction: column; width: min(560px, calc(100% - 32px)); height: min(60%, 520px); pointer-events: auto;
+  background: var(--bg-modal); border: 1px solid #93c5fd; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); overflow: hidden; }
+.memoTop { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; background: #1e3a5f; color: #93c5fd; font-size: 12px; }
+.memoTop span { flex: 1; }
+.memoTop button { border: 1px solid #93c5fd; border-radius: 3px; padding: 2px 6px; background: transparent; color: inherit; font-size: 11px; cursor: pointer; }
+.memoTop .iconBtn { border: none; }
+.memoInput { flex: 1; resize: none; border: none; outline: none; padding: 8px; background: transparent; color: var(--text-primary); font-family: 'D2Coding', Consolas, monospace; font-size: 13px; }
+.memoStatus { padding: 3px 8px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }

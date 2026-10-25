@@ -27,8 +27,15 @@ const newTabState = (id, temp = false) => ({
   temp,              // 분할로 만든 칸: 연결 전에 대화상자를 닫으면 칸도 닫힘
 })
 
+// 메모장 내용 (모든 탭 공용, 브라우저 저장소에 보관)
+export const MEMO_KEY = 'chobocho.term.memo'
+function loadMemo() {
+  try { return localStorage.getItem(MEMO_KEY) ?? '' } catch { return '' }
+}
+
 // saveRequest: 열려 있는 "세션으로 저장" 창의 내용, sessionManager: 세션 관리자 열림
-const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false, macros: false, macroSel: 0 })
+const initial = () => ({ tabs: [], groups: [], activeId: null, nextId: 1, saveRequest: null, sessionManager: false, prefs: false, macros: false, macroSel: 0,
+  memos: [], memoText: loadMemo() })
 
 let saveResolve = null // "세션으로 저장" 창의 결과를 기다리는 쪽
 
@@ -107,7 +114,7 @@ export const useTermStore = create((set, get) => ({
       else if (nextGroups.length) next = leaves(nextGroups[Math.min(gi, nextGroups.length - 1)].layout)[0]
       else next = null
     }
-    set({ tabs: tabs.filter(t => t.id !== id), groups: nextGroups, activeId: next })
+    set(s => ({ tabs: tabs.filter(t => t.id !== id), groups: nextGroups, activeId: next, memos: s.memos.filter(m => m !== id) }))
     await sessionById(id)?.close()
   },
 
@@ -226,6 +233,27 @@ export const useTermStore = create((set, get) => ({
       if (o.id !== id && o.saved?.id !== saved.id) continue
       const req = sessionById(o.id)?.req
       get().updateTab(o.id, { saved, sessionName: saved.name, ...(req ? { label: tabLabel(req, o.proto, saved.name) } : {}) })
+    }
+  },
+
+  // 메모장 (Ctrl+Shift+B): 칸마다 열고 닫음
+  toggleMemo: (id) => {
+    if (id == null) return
+    if (get().memos.includes(id)) get().closeMemo(id)
+    else set(s => ({ memos: [...s.memos, id] }))
+  },
+  closeMemo: (id) => {
+    set(s => ({ memos: s.memos.filter(m => m !== id) }))
+    sessionById(get().activeId)?.focus()
+  },
+  // 저장하지 못하면 그 이유를 돌려줌
+  setMemoText: (text) => {
+    set({ memoText: text })
+    try {
+      localStorage.setItem(MEMO_KEY, text)
+      return ''
+    } catch (e) {
+      return String(e?.message ?? e)
     }
   },
 

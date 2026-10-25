@@ -18,6 +18,7 @@ import SessionManager from './SessionManager.jsx'
 import SaveSessionDialog from './SaveSessionDialog.jsx'
 import PrefsDialog from './PrefsDialog.jsx'
 import MacrosDialog from './MacrosDialog.jsx'
+import MemoPad from './MemoPad.jsx'
 import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
 
@@ -34,6 +35,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const sessionManager = useTermStore(s => s.sessionManager)
   const prefsOpen = useTermStore(s => s.prefs)
   const macrosOpen = useTermStore(s => s.macros)
+  const memos = useTermStore(s => s.memos)
   const active = tabs.find(t => t.id === activeId)
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
   const [pasteRequest, setPasteRequest] = useState(null)
@@ -75,6 +77,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'H') st.openSessionManager()
     else if (k === 'O') st.openPrefs()
     else if (k === 'M') st.openMacros()
+    else if (k === 'B') st.toggleMemo(st.activeId)
     else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
@@ -145,6 +148,14 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
               <TerminalPane key={t.id} id={t.id} active={t.id === activeId} visible={!!g && g === activeGroup}
                 rect={g ? rectsOf.get(g.id)[t.id] : undefined} createTerminal={createTerminal} addons={addons}
                 onPasteRequest={setPasteRequest} />
+            )
+          })}
+          {activeGroup && memos.filter(id => leaves(activeGroup.layout).includes(id)).map(id => {
+            const r = rectsOf.get(activeGroup.id)[id]
+            return (
+              <div key={`memo${id}`} className={styles.memoArea} style={{ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) }}>
+                <MemoPad id={id} />
+              </div>
             )
           })}
           {activeGroup && gutters(activeGroup.layout).map(gt => (

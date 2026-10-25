@@ -408,3 +408,17 @@
   color: var(--accent);
   white-space: nowrap;
 }
+
+/* 폴더 트리(Ctrl+F8)와 파일 목록을 나란히 (Todo #133-10) */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.listColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}

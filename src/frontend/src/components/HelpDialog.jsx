@@ -36,6 +36,7 @@ const SECTIONS = [
       { keys: ['Backspace'],       desc: '상위 폴더로 이동' },
       { keys: ['-'],               desc: '이전에 있던 폴더로 (뒤로)' },
       { keys: ['[..]'],            desc: '상위 폴더로 이동 (항목 클릭)' },
+      { keys: ['Ctrl+F8'],         desc: '폴더 트리 켜기/끄기 — 클릭이나 ↑↓ ← → Enter로 이동' },
       { keys: ['Space'],           desc: '항목 선택/해제 (폴더는 크기도 계산)' },
       { keys: ['Alt+Shift+Enter'], desc: '보이는 모든 폴더의 크기 계산' },
       { keys: ['Insert'],          desc: '항목 선택/해제 후 커서 아래로 이동' },

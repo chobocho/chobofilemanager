@@ -15,7 +15,7 @@ export function isPermanentDeleteShortcut(e) {
 
 // Todo #57: F8 또는 단독 Delete = 휴지통으로 이동 (단, Shift 동반은 영구 삭제로 분기)
 export function isTrashShortcut(e) {
-  if (e.key === 'F8') return true
+  if (e.key === 'F8') return !e.ctrlKey // Ctrl+F8은 폴더 트리 (Todo #133-10)
   if (e.key === 'Delete' && !e.shiftKey) return true
   return false
 }

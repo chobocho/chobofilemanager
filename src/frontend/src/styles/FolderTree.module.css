@@ -1,0 +1,46 @@
+/* 폴더 트리 (Ctrl+F8, Todo #133-10) */
+.tree {
+  width: 34%;
+  min-width: 140px;
+  max-width: 320px;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: 12px;
+  padding: 2px 0;
+  outline: none;
+}
+
+.tree:focus-within .cursor { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.row:hover { background: rgba(128, 128, 128, 0.1); }
+
+.current { background: rgba(42, 92, 255, 0.18); }
+.current .name { font-weight: 600; }
+
+.toggle {
+  width: 12px;
+  display: inline-flex;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.icon { color: #f0c040; flex-shrink: 0; }
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: var(--text-primary);
+}

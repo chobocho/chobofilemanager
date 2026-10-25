@@ -5,6 +5,7 @@ import { useFTPStore } from '../stores/ftpStore'
 import { isFtpPath, ftpId, ftpRoot, ftpLabel } from '../utils/ftpPath.js'
 import { isViewableFile, isTextFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
 import styles from '../styles/FilePanel.module.css'
+import FolderTree from './FolderTree.jsx'
 import {
   Folder, File, FileText, FileImage, FileArchive,
   FileCode, ArrowUp, RefreshCw, ChevronRight,
@@ -341,9 +342,13 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
           if (cur < files.length - 1) store.setCursor(side, cur + 1)
         }
         break
+      case 'F8':
+        // Todo #133-10: Ctrl+F8 폴더 트리 (F8 자체는 Toolbar가 휴지통으로)
+        e.preventDefault()
+        if (e.ctrlKey && !e.shiftKey && !e.altKey) store.toggleTree(side)
+        break
       case 'F5':
       case 'F6':
-      case 'F8':
       case 'Delete':
         // Toolbar의 window 핸들러가 처리 (F8/Delete=휴지통, Shift+Delete=영구삭제)
         e.preventDefault()
@@ -613,6 +618,12 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
         )}
       </div>
 
+      <div className={styles.body}>
+      {panel.showTree && (
+        <FolderTree path={panel.path} showHidden={panel.showHidden}
+          onNavigate={(p) => { store.setActivePanel(side); store.navigate(side, p) }} />
+      )}
+      <div className={styles.listColumn}>
       {/* Column headers */}
       <div className={styles.columnHeaders}>
         {COLUMNS.map(col => (
@@ -676,6 +687,8 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
             onRowDoubleClick={onRowDoubleClick}
           />
         ))}
+      </div>
+      </div>
       </div>
 
       {quickSearch !== null && (

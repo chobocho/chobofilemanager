@@ -8,8 +8,9 @@ import { loadRules } from '../core/highlight'
 import { startI18n, resolveLang } from '../core/i18n'
 import { termApi } from '../core/termApi'
 import { settings } from '../core/settings'
-import { isWorkspaceKey, isPaneMoveKey } from '../core/look'
-import { leaves, paneRects, gutters, splitKeyDir, ARROWS } from '../core/layout'
+import { isPaneMoveKey } from '../core/look'
+import { workspaceAction } from '../core/workspaceKeys'
+import { leaves, paneRects, gutters, ARROWS } from '../core/layout'
 import { useTermStore } from '../store/termStore'
 import TerminalPane from './TerminalPane.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
@@ -145,35 +146,40 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       if (st.focusDir(dx, dy)) { e.preventDefault(); e.stopPropagation() }
       return
     }
-    if (!isWorkspaceKey(e)) return
+    const action = workspaceAction(e)
+    if (!action) return
     e.preventDefault()
     e.stopPropagation()
-    const dir = splitKeyDir(e)
-    const k = e.key.length === 1 ? e.key.toUpperCase() : e.key
-    if (dir) { if (st.activeId != null) st.splitPane(st.activeId, dir) }
-    else if (k === 'S') setSearchOpen(true)
-    else if (k === 'T' || k === 'N') st.newTab()
-    else if (k === 'C' && e.shiftKey) { const s = sessionById(st.activeId); if (s) copySelection(s) }
-    else if (k === 'V' && e.shiftKey) { const s = sessionById(st.activeId); if (s) pasteClipboard(s, setPasteRequest) }
-    else if (k === 'D' && e.shiftKey) { if (st.activeId != null) st.disconnect(st.activeId) }
-    else if (k === 'E' && e.shiftKey) { if (st.activeId != null) st.toggleEncoding(st.activeId) }
-    else if (k === 'F1') setHelpOpen(o => !o)
-    else if (e.key === '=' || e.key === '+') st.changeFontSize(1)
-    else if (e.key === '-' && !e.shiftKey) st.changeFontSize(-1)
-    else if (e.key === '0') st.changeFontSize('reset')
-    else if (k === 'H') st.openSessionManager()
-    else if (k === 'O') st.openPrefs()
-    else if (k === 'M') st.openMacros()
-    else if (k === 'B') st.toggleMemo(st.activeId)
-    else if (k === 'F') { if (st.activeId != null) st.openFiles(st.activeId) }
-    else if (k === 'P') { if (st.activeId != null) st.openPanel('forwards', st.activeId) }
-    else if (k === 'J') { if (st.activeId != null) st.openPanel('containers', st.activeId) }
-    else if (k === 'K') { if (st.activeId != null) useScriptStore.getState().toggleConsole(st.activeId) }
-    else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
-    else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
-    else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
-    else if (k === 'PageUp') st.cycle(-1)
-    else if (k === 'PageDown') st.cycle(1)
+    const id = st.activeId
+    const s = sessionById(id)
+    // 단축키 표(core/workspaceKeys)의 동작마다 할 일 — 활성 칸이 있어야 하는 것은 없으면 건너뜀
+    const run = {
+      splitRight: () => id != null && st.splitPane(id, 'row'),
+      splitDown: () => id != null && st.splitPane(id, 'col'),
+      newTab: () => st.newTab(),
+      closeTab: () => id != null && st.closeTab(id),
+      nextTab: () => st.cycle(1),
+      prevTab: () => st.cycle(-1),
+      search: () => setSearchOpen(true),
+      sessions: () => st.openSessionManager(),
+      prefs: () => st.openPrefs(),
+      macros: () => st.openMacros(),
+      log: () => id != null && st.toggleLog(id),
+      memo: () => st.toggleMemo(id),
+      files: () => id != null && st.openFiles(id),
+      forwards: () => id != null && st.openPanel('forwards', id),
+      containers: () => id != null && st.openPanel('containers', id),
+      console: () => id != null && useScriptStore.getState().toggleConsole(id),
+      copy: () => s && copySelection(s),
+      paste: () => s && pasteClipboard(s, setPasteRequest),
+      disconnect: () => id != null && st.disconnect(id),
+      encoding: () => id != null && st.toggleEncoding(id),
+      help: () => setHelpOpen(o => !o),
+      fontUp: () => st.changeFontSize(1),
+      fontDown: () => st.changeFontSize(-1),
+      fontReset: () => st.changeFontSize('reset'),
+    }
+    run[action]()
   }
 
   // 경계선 끌기: 마우스 위치 → 그 분할의 비율

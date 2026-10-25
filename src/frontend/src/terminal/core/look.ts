@@ -7,7 +7,7 @@ import type {ITerminalOptions} from '@xterm/xterm';
 import {fontFamily} from './cjkwidth';
 import {themeByName} from './themes';
 import {settings as saved, type TermSettings} from './settings';
-import {splitKeyDir} from './layout';
+import {workspaceAction} from './workspaceKeys';
 
 export interface Translucency {
     mode: string; // 'off' | 'window' | 'background'
@@ -68,16 +68,9 @@ export function lookOptions(s: TermSettings, wide = false): ITerminalOptions {
 }
 
 // Keys the terminal workspace handles itself; xterm must not turn them into input.
+/** A key the workspace handles itself (core/workspaceKeys.ts): xterm must not turn it into input. */
 export function isWorkspaceKey(ev: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'> & {code?: string}): boolean {
-    const k = ev.key.length === 1 ? ev.key.toUpperCase() : ev.key;
-    if (splitKeyDir({ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey, code: ev.code ?? ''})) return true;
-    if (ev.ctrlKey && ev.shiftKey && (k === 'T' || k === 'W' || k === 'S' || k === 'H' || k === 'O' || k === 'M' || k === 'L' || k === 'B' || k === 'F' || k === 'P' || k === 'J' || k === 'K')) return true;
-    if (ev.ctrlKey && (k === 'Tab' || k === 'PageUp' || k === 'PageDown')) return true;
-    // Todo #124: 복사·붙여넣기·끊기·인코딩·새 탭, 도움말(F1), 글꼴 크기 (Ctrl+= / Ctrl+- / Ctrl+0)
-    if (ev.ctrlKey && ev.shiftKey && !ev.altKey && ['C', 'V', 'D', 'E', 'N'].includes(k)) return true;
-    if (k === 'F1' && !ev.ctrlKey && !ev.altKey && !ev.shiftKey) return true;
-    if (ev.ctrlKey && !ev.altKey && !ev.shiftKey && ['=', '+', '-', '0'].includes(ev.key)) return true;
-    return false;
+    return workspaceAction(ev) !== undefined;
 }
 
 /** Alt+arrow moves between panes — only in a split tab; otherwise the program gets it. */

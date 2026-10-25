@@ -2,6 +2,15 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 7: 터미널 단축키 표 하나)
+
+### 변경
+- `core/workspaceKeys.ts` 신규: 키 → 동작 이름(`workspaceAction`) 한 표. `isWorkspaceKey`(xterm에 보내지 않을 키)와 작업 공간의 실행이 같은 표를 써서 둘이 어긋날 수 없음
+- `TerminalWorkspace`의 긴 if 사슬을 동작 → 할 일 표로, 글자 키는 Ctrl+Shift(+Alt 아님)로 규칙 통일
+
+### 테스트
+- `workspaceKeys.test.ts`(WK-01~04: 모든 동작, 셸로 가야 하는 키) — 프론트 1184개 통과
+
 ## 2026-10-25 (Todo.md #126 리팩터링 6: 터미널 공용 도우미 정리)
 
 ### 변경

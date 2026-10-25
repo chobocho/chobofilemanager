@@ -293,9 +293,20 @@ export const useFileStore = create((set, get) => ({
     }
   },
 
+  // 새로 고침: 커서는 같은 파일(없어졌으면 같은 자리), 선택은 남아 있는 것만 유지 (Todo #130-3 —
+  // 전에는 편집 저장·이동 원본 새로 고침마다 첫 줄로 가고 선택이 사라짐). 이름 바꾸기·복사·삭제는 뒤에서 커서를 다시 정함
   refresh: async (panel) => {
-    const state = get()[panel]
-    await get().navigate(panel, state.path)
+    const before = get()[panel]
+    const cursorPath = getCursorFile(before)?.path
+    if (!(await get().navigate(panel, before.path))) return
+    const now = get()[panel]
+    const visible = now.showHidden ? now.files : now.files.filter(f => !f.isHidden)
+    if (!visible.length) return
+    const selected = new Set(visible.filter(f => before.selected.has(f.path)).map(f => f.path))
+    const onParent = before.cursorOnParent && !isRootPath(now.path)
+    const found = cursorPath ? visible.findIndex(f => f.path === cursorPath) : -1
+    const cursor = onParent ? 0 : found >= 0 ? found : Math.min(before.cursor, visible.length - 1)
+    set(s => ({ [panel]: { ...s[panel], selected, cursor, cursorOnParent: onParent } }))
   },
 
   toggleSelect: (panel, filePath) => {

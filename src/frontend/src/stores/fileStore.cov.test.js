@@ -165,6 +165,38 @@ describe('fileStore 커버리지 — 패널/정렬/새로고침', () => {
     expect(st().left.history).toEqual(['/a'])
   })
 
+  // Todo #130-3: 새로 고침(편집 저장·이동 원본 등)이 커서를 첫 줄로, 선택을 비우지 않음
+  it('FC-09b: refresh — 커서는 같은 파일로(앞에 새 파일이 생겨도), 남아 있는 선택은 유지', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursor: 2, selected: new Set(['/a/x.txt', '/a/sub']) } }))
+    fs['/a'] = [f('/a', 'a0.txt'), ...fs['/a']]
+    await st().refresh('left')
+    const l = st().left
+    expect(l.files[l.cursor].name).toBe('y.txt')
+    expect([...l.selected].sort()).toEqual(['/a/sub', '/a/x.txt'])
+  })
+
+  it('FC-09c: refresh — 커서 파일·선택 파일이 사라지면 같은 자리(끝이면 마지막), 선택에서 빠짐', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursor: 2, selected: new Set(['/a/y.txt', '/a/x.txt']) } }))
+    fs['/a'] = fs['/a'].filter(e => e.name !== 'y.txt')
+    await st().refresh('left')
+    const l = st().left
+    expect(l.files[l.cursor].name).toBe('x.txt')
+    expect([...l.selected]).toEqual(['/a/x.txt'])
+  })
+
+  it('FC-09d: refresh — [..]에 있던 커서는 [..]에', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursorOnParent: true } }))
+    await st().refresh('left')
+    expect(st().left.cursorOnParent).toBe(true)
+  })
+
+  it('FC-09e: 편집기 저장(writeFile) 뒤에도 커서·선택 유지', async () => {
+    useFileStore.setState(s => ({ left: { ...s.left, cursor: 2, selected: new Set(['/a/x.txt']) } }))
+    await st().writeFile('/a/y.txt', 'new')
+    expect(st().left.files[st().left.cursor].name).toBe('y.txt')
+    expect([...st().left.selected]).toEqual(['/a/x.txt'])
+  })
+
   it('FC-10: 패널 이동도 프로세스 작업 폴더를 바꾸지 않음 (활성·비활성 모두)', async () => {
     await st().navigate('right', '/home')
     await st().navigate('left', '/home')

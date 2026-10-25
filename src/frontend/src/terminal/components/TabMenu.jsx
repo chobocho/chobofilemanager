@@ -61,7 +61,7 @@ export default function TabMenu({ id, x, y, onClose }) {
   const left = Math.min(x, window.innerWidth - 260)
   const top = Math.min(y, window.innerHeight - 40 - items.length * 26)
   return createPortal(
-    <ul ref={ref} tabIndex={-1} role="menu" className={styles.menu} style={{ left, top }}
+    <ul ref={ref} tabIndex={-1} role="menu" className={styles.menu} style={{ left, top }} data-term-i18n
       onMouseDown={e => e.stopPropagation()}
       onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); onClose() } }}>
       {items.filter(i => !i.hidden).map(i => (i.act === 'sep'

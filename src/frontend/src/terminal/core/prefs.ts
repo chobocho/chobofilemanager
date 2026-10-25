@@ -25,10 +25,11 @@ export interface PrefsForm {
     hlRed: string;
     hlYellow: string;
     hlGreen: string;
+    language: string; // '' = the system's, 'ko', 'en'
 }
 
 export type PrefsValues = Pick<TermSettings, 'fontSize' | 'fontUtf8' | 'fontEucKr' | 'theme' | 'cursorStyle' | 'cursorBlink' | 'scrollback' |
-    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight'>;
+    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight' | 'language'>;
 
 export function prefsForm(s: TermSettings): PrefsForm {
     return {
@@ -50,6 +51,7 @@ export function prefsForm(s: TermSettings): PrefsForm {
         hlRed: s.highlight?.red ?? '',
         hlYellow: s.highlight?.yellow ?? '',
         hlGreen: s.highlight?.green ?? '',
+        language: s.language || '',
     };
 }
 
@@ -86,6 +88,7 @@ export function readPrefs(f: PrefsForm): {values: PrefsValues} | {error: string;
             logTime: f.logTime,
             logDir: f.logDir.trim(),
             highlight: {on: f.hlOn, red: f.hlRed.trim(), yellow: f.hlYellow.trim(), green: f.hlGreen.trim()},
+            language: f.language,
         },
     };
 }

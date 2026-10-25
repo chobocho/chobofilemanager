@@ -8,6 +8,7 @@ import { stopEventRouter } from '../core/session'
 import { FakeTerminal } from '../test/fakeTerminal'
 import { resetSettingsForTest, settings } from '../core/settings'
 import { themeByName } from '../core/themes'
+import { stopI18n, setLang } from '../core/i18n'
 
 // ─── Todo #121: 설정 창 (Ctrl+Shift+O) ─────────────────────────────────────────
 
@@ -21,13 +22,13 @@ beforeEach(() => {
     GetLocalShells: vi.fn().mockResolvedValue([]), GetSerialPorts: vi.fn().mockResolvedValue([]),
     CloseTab: ok(), Connect: vi.fn().mockResolvedValue('ssh'), Send: ok(), Resize: ok(), Disconnect: ok(),
     TabTheme: vi.fn().mockResolvedValue(''), SetTabTheme: ok(),
-    ChooseLogDir: vi.fn().mockResolvedValue('D:\\picked'),
+    ChooseLogDir: vi.fn().mockResolvedValue('D:\\picked'), GetLanguage: vi.fn().mockResolvedValue('ko'),
   }
   setTermBackend(api, { EventsOn: () => () => {}, ClipboardSetText: vi.fn() })
   useTermStore.getState().resetForTest()
   resetSettingsForTest()
 })
-afterEach(() => { cleanup(); stopEventRouter(); setTermBackend(null); vi.useRealTimers() })
+afterEach(() => { cleanup(); stopEventRouter(); setTermBackend(null); vi.useRealTimers(); stopI18n(); setLang('ko') })
 
 const createTerminal = (o) => { const t = new FakeTerminal(o); terms.push(t); return t }
 async function openPrefs() {
@@ -114,6 +115,21 @@ describe('설정 창 (PD)', () => {
     fireEvent.click(within(dlg).getByLabelText('여러 줄을 붙여넣기 전에 확인'))
     await act(async () => { fireEvent.click(within(dlg).getByRole('button', { name: '확인' })) })
     expect(settings.pasteNoConfirm).toBe(true)
+  })
+
+  it('PD-10: 언어 — 고르면 저장, 영어로 바꾸면 터미널 화면이 바로 영어', async () => {
+    const dlg = await openPrefs()
+    expect(within(dlg).getByLabelText('언어').value).toBe('')
+    fireEvent.change(within(dlg).getByLabelText('언어'), { target: { value: 'en' } })
+    await act(async () => { fireEvent.click(within(dlg).getByRole('button', { name: '확인' })) })
+    expect(settings.language).toBe('en')
+    await waitFor(() => expect(screen.getByTitle('New tab (Ctrl+Shift+T)')).toBeTruthy())
+  })
+
+  it('PD-11: 설정에 영어가 있으면 시작할 때부터 영어', async () => {
+    api.GetSettings.mockResolvedValue({ fontSize: 16, language: 'en' })
+    render(React.createElement(TerminalWorkspace, { createTerminal, addons: false }))
+    expect(await screen.findByTitle('New tab (Ctrl+Shift+T)')).toBeTruthy()
   })
 
   it('PD-09: 탭 막대 ⚙ 버튼으로도 열림', async () => {

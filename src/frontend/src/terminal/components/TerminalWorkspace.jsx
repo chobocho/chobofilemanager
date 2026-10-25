@@ -5,6 +5,9 @@ import { Plus, X, TerminalSquare, Star, Settings, Command } from 'lucide-react'
 import { startEventRouter } from '../core/session'
 import { loadSettings } from '../core/settings'
 import { loadRules } from '../core/highlight'
+import { startI18n, resolveLang } from '../core/i18n'
+import { termApi } from '../core/termApi'
+import { settings } from '../core/settings'
 import { isWorkspaceKey, isPaneMoveKey } from '../core/look'
 import { leaves, paneRects, gutters, splitKeyDir, ARROWS } from '../core/layout'
 import { useTermStore } from '../store/termStore'
@@ -67,7 +70,12 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     startEventRouter()
     startTransferEvents()
     startScriptEvents()
-    loadSettings().then(loadRules)
+    loadSettings().then(async () => {
+      loadRules()
+      // 언어: 설정, 비면 Go가 정한 언어 (Todo #124)
+      const go = await Promise.resolve(termApi.GetLanguage()).catch(() => '')
+      startI18n(resolveLang(settings.language, go))
+    })
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
     return () => { stopTransferEvents(); stopScriptEvents() }
   }, [])

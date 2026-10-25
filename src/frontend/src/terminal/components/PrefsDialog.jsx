@@ -6,6 +6,8 @@ import { prefsForm, readPrefs, writePrefs, previewLines } from '../core/prefs'
 import { FONTS } from '../core/cjkwidth'
 import { THEMES } from '../core/themes'
 import { useTermStore } from '../store/termStore'
+import { termApi as goApi } from '../core/termApi'
+import { startI18n, resolveLang, currentLang } from '../core/i18n'
 import styles from '../styles/Terminal.module.css'
 
 // 터미널 설정 창 (Ctrl+Shift+O, 탭 막대 ⚙ — Todo #121, choboTerm prefs.ts).
@@ -36,6 +38,11 @@ export default function PrefsDialog() {
     writePrefs(r.values)
     useTermStore.getState().applySettings()
     close()
+    // 영어로 바꾸면 바로 적용 (한국어로 되돌리는 것은 다시 시작한 뒤 모두 적용)
+    Promise.resolve(goApi.GetLanguage()).catch(() => '').then(go => {
+      const l = resolveLang(r.values.language, go)
+      if (l !== currentLang()) startI18n(l)
+    })
   }
 
   async function browse() {
@@ -116,6 +123,18 @@ export default function PrefsDialog() {
                 <input {...val(k)} aria-label={`${name} 단어`} disabled={!f.hlOn} spellCheck={false} autoComplete="off" />
               </div>
             ))}
+          </fieldset>
+          <fieldset>
+            <legend>언어</legend>
+            <div className={styles.fieldGrid}>
+              <label htmlFor="pf-language">언어</label>
+              <select {...val('language')}>
+                <option value="">시스템 따라</option>
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <span className={styles.dim}>터미널 화면과 터미널이 보여 주는 메시지의 언어 (파일 관리자는 한국어). 한국어로 되돌리면 다시 시작한 뒤 모두 적용됩니다.</span>
           </fieldset>
           <fieldset>
             <legend>세션 로그</legend>

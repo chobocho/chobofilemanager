@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 — T8 5차: 영어 화면)
+
+### 변경
+- `core/i18n.ts` 신규 (choboTerm i18n.ts 이식): 사전(i18n_en.json) 정확 일치 → `{}` 자리 패턴(순서 바뀜 `{0} {1}`) → 줄마다, Lua 오류의 위치 앞머리 보존
+- 화면 번역은 터미널 영역(`[data-terminal-root]`, 탭 메뉴 `[data-term-i18n]`)만 — 파일 관리자는 한국어 유지, 터미널 출력·파일 내용은 그대로. 글자·title·placeholder·aria-label, 나중에 생긴 글자도(MutationObserver)
+- 언어: 설정 > 언어(시스템 따라/한국어/English), 비면 Go `GetLanguage`. 영어로 바꾸면 바로 적용
+
+### 테스트
+- `i18n.test.ts`(IN-01~06), PF-07, PD-10~11 — 프론트 1132개 통과
+
 ## 2026-10-25 (Todo.md #124 — T8 4차: Zmodem 진행 표시)
 
 ### 변경

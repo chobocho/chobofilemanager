@@ -51,6 +51,12 @@ describe('prefs (PF)', () => {
         expect(settings.macros).toHaveLength(1);
     });
 
+    it('PF-07: 언어 — 비어 있으면 시스템 따라, 고른 값 저장', () => {
+        expect(prefsForm(defaultSettings()).language).toBe('');
+        const r = readPrefs({...prefsForm(defaultSettings()), language: 'en'}) as any;
+        expect(r.values.language).toBe('en');
+    });
+
     it('PF-06: 테마 미리보기 — 프롬프트·ls·오류/경고/완료 줄, 16색', () => {
         const p = previewLines('dracula');
         const pal = paletteOf(themeByName('dracula').theme);

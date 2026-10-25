@@ -4,36 +4,12 @@ import { useFilesStore } from '../store/filesStore'
 import { useFileStore } from '../../stores/fileStore'
 import { formatSize, folderKey, isUp, pickedEntries, deleteMessage } from '../core/remoteFiles'
 import TransferProgress from './TransferProgress.jsx'
+import { ConfirmBox } from './TerminalModals.jsx'
 import styles from '../styles/Terminal.module.css'
 
 // 원격 파일 창 (Ctrl+Shift+F, Todo #123, choboTerm files.ts): SSH 연결은 SFTP(없으면 SCP), FTP 연결은 FTP.
 // "⬇ 패널로"·"⬆ 패널에서"로 파일 관리자의 활성 패널 폴더와 주고받습니다.
 
-// 확인/이름 입력 창
-function Ask({ ask, onDone }) {
-  const [text, setText] = useState(ask.value ?? '')
-  const ref = useRef(null)
-  useEffect(() => { ref.current?.focus(); ref.current?.select?.() }, [])
-  const ok = () => onDone(ask.input ? text.trim() || null : true)
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.dialog} role="alertdialog" aria-label={ask.title}
-        onKeyDown={e => {
-          e.stopPropagation()
-          if (e.key === 'Escape') { e.preventDefault(); onDone(null) }
-          else if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); ok() }
-        }}>
-        <div className={styles.dialogHeader}><span>{ask.title}</span></div>
-        <div className={styles.message}>{ask.message}</div>
-        {ask.input && <input ref={ref} value={text} onChange={e => setText(e.target.value)} spellCheck={false} autoComplete="off" />}
-        <div className={styles.dialogActions}>
-          <button type="button" onClick={() => onDone(null)}>취소</button>
-          <button type="button" ref={ask.input ? undefined : ref} className={styles.primary} onClick={ok}>{ask.okLabel ?? '확인'}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function RemoteFiles({ id }) {
   const v = useFilesStore(s => s.views[id])
@@ -218,7 +194,8 @@ export default function RemoteFiles({ id }) {
           {menuItem('새로 고침 (F5)', () => st.refresh(id))}
         </ul>
       )}
-      {ask && <Ask ask={ask} onDone={answer} />}
+      {ask && <ConfirmBox role="alertdialog" title={ask.title} message={ask.message} input={!!ask.input} value={ask.value ?? ''} okLabel={ask.okLabel}
+        onOk={(v) => answer(v ?? true)} onCancel={() => answer(null)} />}
     </div>
   )
 }

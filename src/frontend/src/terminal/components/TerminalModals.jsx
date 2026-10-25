@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ClipboardPaste } from 'lucide-react'
 import { saveSettings } from '../core/settings'
 import styles from '../styles/Terminal.module.css'
+import Modal from './Modal.jsx'
 
 const MAX_PREVIEW = 2000
 
@@ -31,24 +32,33 @@ export function PasteConfirm({ request, onAnswer }) {
   )
 }
 
-function ConfirmBox({ icon, title, message, okLabel, onOk, onCancel, children }) {
-  const okRef = useRef(null)
-  useEffect(() => { okRef.current?.focus() }, [])
+// 확인 창 하나 (Todo #126): 붙여넣기 확인, 원격 파일 삭제·이름 입력, 세션 삭제가 함께 씀.
+// input: 이름을 받는 창 (onOk(이름), 비면 취소). Enter = 확인 (버튼 위에서는 그 버튼)
+export function ConfirmBox({ icon, title, message, okLabel = '확인', onOk, onCancel, input = false, value = '', role = 'dialog', children }) {
+  const [text, setText] = useState(value)
+  const focusRef = useRef(null)
+  useEffect(() => {
+    focusRef.current?.focus()
+    if (input) focusRef.current?.select?.()
+  }, [])
+  function ok() {
+    if (!input) return onOk()
+    const t = text.trim()
+    if (t) onOk(t)
+    else onCancel()
+  }
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape') { e.preventDefault(); onCancel() }
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); ok() }
   }
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.dialog} role="dialog" aria-label={title} onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>{icon}<span>{title}</span></div>
-        <div className={styles.message}>{message}</div>
-        {children}
-        <div className={styles.dialogActions}>
-          <button type="button" onClick={onCancel}>취소</button>
-          <button type="button" ref={okRef} className={styles.primary} onClick={onOk}>{okLabel}</button>
-        </div>
+    <Modal label={title} title={<>{icon}{title}</>} role={role} onClose={onCancel} onKeyDown={onKeyDown}>
+      <div className={styles.message}>{message}</div>
+      {input && <input ref={focusRef} value={text} onChange={e => setText(e.target.value)} spellCheck={false} autoComplete="off" />}
+      {children}
+      <div className={styles.dialogActions}>
+        <button type="button" onClick={onCancel}>취소</button>
+        <button type="button" ref={input ? undefined : focusRef} className={styles.primary} onClick={ok}>{okLabel}</button>
       </div>
-    </div>
+    </Modal>
   )
 }

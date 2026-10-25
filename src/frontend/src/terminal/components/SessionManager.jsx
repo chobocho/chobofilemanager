@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { termApi } from '../core/termApi'
 import { filterSessions, sessionRows, sessionMeta, groupsOf, importMessage, fieldsToSaved, blankSession } from '../core/sessions'
 import { ENCODINGS } from '../core/connect'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
 import { errText } from '../core/errText'
+import Modal from './Modal.jsx'
+import { ConfirmBox } from './TerminalModals.jsx'
 
 // 세션 관리자 (Ctrl+Shift+H, Todo #121, choboTerm sessions.ts).
 // 고친 내용은 잠시 뒤(또는 다른 세션을 고르거나 닫을 때) 저장됩니다.
@@ -232,12 +233,11 @@ export default function SessionManager() {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape') {
+    // Esc: 안쪽(삭제 확인·메뉴)부터 닫고, 없으면 Modal이 창을 닫음
+    if (e.key === 'Escape' && (confirm || more)) {
       e.preventDefault()
       if (confirm) setConfirm(null)
-      else if (more) setMore(false)
-      else close()
+      else setMore(false)
     } else if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault()
       openSelected()
@@ -249,12 +249,7 @@ export default function SessionManager() {
   const text = (k, extra = {}) => ({ value: form[k], disabled: off, onChange: e => edit({ [k]: e.target.value }), spellCheck: false, autoComplete: 'off', ...extra })
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={`${styles.dialog} ${styles.sessionManager}`} role="dialog" aria-label="세션 관리" onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>
-          <span>세션 관리</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={close}><X size={13} /></button>
-        </div>
+    <Modal label="세션 관리" className={styles.sessionManager} onClose={close} onKeyDown={onKeyDown}>
         <div className={styles.smCols}>
           <div className={styles.smLeft}>
             <input value={filter} onChange={e => onFilter(e.target.value)} placeholder="찾기 (이름 · 주소 · 그룹)" spellCheck={false} autoComplete="off"
@@ -335,18 +330,9 @@ export default function SessionManager() {
           <button type="button" onClick={close}>닫기</button>
         </div>
         {confirm && (
-          <div className={styles.modalOverlay}>
-            <div className={styles.dialog} role="alertdialog" aria-label="세션 삭제">
-              <div className={styles.dialogHeader}><span>세션 삭제</span></div>
-              <div className={styles.message}>{`'${confirm.name}' 세션을 지울까요?`}</div>
-              <div className={styles.dialogActions}>
-                <button type="button" onClick={() => setConfirm(null)}>취소</button>
-                <button type="button" className={styles.primary} autoFocus onClick={() => remove(confirm)}>지우기</button>
-              </div>
-            </div>
-          </div>
+          <ConfirmBox role="alertdialog" title="세션 삭제" message={`'${confirm.name}' 세션을 지울까요?`} okLabel="지우기"
+            onOk={() => remove(confirm)} onCancel={() => setConfirm(null)} />
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

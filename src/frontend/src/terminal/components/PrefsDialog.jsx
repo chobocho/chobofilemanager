@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { termApi } from '../core/termApi'
 import { settings } from '../core/settings'
 import { prefsForm, readPrefs, writePrefs, previewLines } from '../core/prefs'
@@ -24,6 +23,7 @@ function webState(info) {
 const webPage = typeof window !== 'undefined' && !!window.__cbt // 브라우저 화면이면 웹 서버 설정 없음
 import styles from '../styles/Terminal.module.css'
 import { errText } from '../core/errText'
+import Modal from './Modal.jsx'
 
 // 터미널 설정 창 (Ctrl+Shift+O, 탭 막대 ⚙ — Todo #121, choboTerm prefs.ts).
 // 확인을 눌러야 저장되고, 열린 탭에 바로 적용됩니다.
@@ -114,20 +114,13 @@ export default function PrefsDialog() {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape') { e.preventDefault(); close() }
-    else if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); apply() }
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); apply() }
   }
 
   const pv = previewLines(f.theme)
   const hint = (t) => <span className={styles.dim}>{t}</span>
   return (
-    <div className={styles.modalOverlay}>
-      <div className={`${styles.dialog} ${styles.prefs}`} role="dialog" aria-label="설정" onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>
-          <span>설정</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={close}><X size={13} /></button>
-        </div>
+    <Modal label="설정" className={styles.prefs} onClose={close} onKeyDown={onKeyDown}>
         <div className={styles.prefsBody}>
           <fieldset>
             <legend>글꼴</legend>
@@ -263,7 +256,6 @@ export default function PrefsDialog() {
           <button type="button" onClick={close}>취소</button>
           <button type="button" className={styles.primary} onClick={apply}>확인</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

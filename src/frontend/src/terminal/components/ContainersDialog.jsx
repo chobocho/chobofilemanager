@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { termApi, browserOpenURL } from '../core/termApi'
 import { sessionById } from '../core/session'
 import { settings, saveSettings } from '../core/settings'
@@ -7,6 +6,7 @@ import { LOCAL_SOURCE, engineOf, withEngine, sourceOfTab, portPlan } from '../co
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
 import { errText } from '../core/errText'
+import Modal from './Modal.jsx'
 
 // 도커 컨테이너 창 (Ctrl+Shift+J, Todo #124, choboTerm containers.ts): 활성 SSH 탭의 서버 또는 이 PC의 컨테이너.
 // 셸·로그는 새 탭으로 엽니다 (서버면 그 탭의 접속을 함께 씀). 엔진(docker/podman)은 곳마다 기억합니다.
@@ -118,10 +118,8 @@ export default function ContainersDialog({ id }) {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
     const inField = ['SELECT', 'BUTTON', 'INPUT'].includes(e.target.tagName)
-    if (e.key === 'Escape') { e.preventDefault(); close() }
-    else if (e.key === 'F5') { e.preventDefault(); refresh() }
+    if (e.key === 'F5') { e.preventDefault(); refresh() }
     else if (e.key === 'Enter' && !inField) { e.preventDefault(); open('shell') }
     else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.tagName !== 'SELECT' && list.length) {
       e.preventDefault()
@@ -131,12 +129,7 @@ export default function ContainersDialog({ id }) {
 
   const ports = c?.published ?? []
   return (
-    <div className={styles.modalOverlay}>
-      <div className={`${styles.dialog} ${styles.containers}`} role="dialog" aria-label="도커 컨테이너" tabIndex={-1} ref={panelRef} onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>
-          <span>도커 컨테이너</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={close}><X size={13} /></button>
-        </div>
+    <Modal label="도커 컨테이너" className={styles.containers} tabIndex={-1} dialogRef={panelRef} onClose={close} onKeyDown={onKeyDown}>
         <div className={styles.filesBar}>
           <select aria-label="컨테이너가 있는 곳" value={srcIdx} onChange={chooseSource}>
             {sources.map((s, i) => <option key={i} value={i}>{s.tab ? `서버: ${s.label}` : s.label}</option>)}
@@ -190,7 +183,6 @@ export default function ContainersDialog({ id }) {
         <div className={styles.dialogActions}>
           <button type="button" onClick={close}>닫기</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

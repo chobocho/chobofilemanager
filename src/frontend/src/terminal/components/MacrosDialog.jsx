@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { settings, saveSettings } from '../core/settings'
 import { keyOptions, macroLabel } from '../core/macros'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
+import Modal from './Modal.jsx'
 
 // 매크로 창 (Ctrl+Shift+M, Todo #121, choboTerm macros.ts). 고친 내용은 바로 저장됩니다.
 const TEXT_HINT = '줄바꿈 = Enter · \\t Tab · \\e Esc · \\x03 Ctrl+C · \\\\ 역슬래시'
@@ -62,20 +62,13 @@ export default function MacrosDialog() {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape') { e.preventDefault(); close() }
-    else if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); send() }
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); send() }
   }
 
   const lua = m?.kind === 'lua'
   const off = !m
   return (
-    <div className={styles.modalOverlay}>
-      <div className={`${styles.dialog} ${styles.macros}`} role="dialog" aria-label="매크로" onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>
-          <span>매크로</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={close}><X size={13} /></button>
-        </div>
+    <Modal label="매크로" className={styles.macros} onClose={close} onKeyDown={onKeyDown}>
         <div className={styles.smCols}>
           <div className={styles.smLeft}>
             <ul ref={listRef} className={styles.smList} role="listbox" aria-label="매크로 목록" tabIndex={0} onKeyDown={onListKey}>
@@ -115,7 +108,6 @@ export default function MacrosDialog() {
           <button type="button" className={styles.primary} title="Enter (목록) / Ctrl+Enter" onClick={send} disabled={off}>{lua ? '실행' : '보내기'}</button>
           <button type="button" onClick={close}>닫기</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { HELP_TEXT } from '../core/helpText'
 import { currentLang } from '../core/i18n'
 import { browserOpenURL } from '../core/termApi'
 import styles from '../styles/Terminal.module.css'
+import Modal from './Modal.jsx'
 
 // 터미널 도움말 (F1, Todo #124, choboTerm help.ts). 한국어 ↔ English (Alt+L), 고른 언어 기억.
 // 영어판이 따로 있으니 화면 번역(i18n)은 건너뜀 (data-no-i18n)
@@ -30,20 +30,14 @@ export default function TerminalHelp({ onClose }) {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape' || e.key === 'F1') { e.preventDefault(); onClose() }
+    if (e.key === 'F1') { e.preventDefault(); onClose() }
     else if (e.altKey && e.key.toLowerCase() === 'l') { e.preventDefault(); toggle() }
   }
 
   return (
-    <div className={styles.modalOverlay} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={`${styles.dialog} ${styles.help}`} role="dialog" aria-label={`${t.title} (F1)`} tabIndex={-1} ref={ref}
-        onKeyDown={onKeyDown} data-no-i18n>
-        <div className={styles.dialogHeader}>
-          <span>{`${t.title} (F1)`}</span>
-          <button type="button" onClick={toggle} title="Alt+L">{t.other}</button>
-          <button type="button" className={styles.iconBtn} title="Esc" onClick={onClose}><X size={13} /></button>
-        </div>
+    <Modal label={`${t.title} (F1)`} className={styles.help} tabIndex={-1} dialogRef={ref} onClose={onClose} onKeyDown={onKeyDown} data-no-i18n
+      closeTitle="Esc" overlayProps={{ onMouseDown: e => { if (e.target === e.currentTarget) onClose() } }}
+      headerExtra={<button type="button" onClick={toggle} title="Alt+L">{t.other}</button>}>
         <div className={styles.helpBody}>
           {t.sections.map(s => (
             <section key={s.title}>
@@ -71,7 +65,6 @@ export default function TerminalHelp({ onClose }) {
         <div className={styles.dialogActions}>
           <button type="button" onClick={onClose}>{t.close}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

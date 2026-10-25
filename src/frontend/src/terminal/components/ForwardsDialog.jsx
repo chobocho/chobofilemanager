@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
 import { termApi, onTermEvent, clipboardSetText } from '../core/termApi'
 import { sessionById } from '../core/session'
 import { sshOption, sshCommand, forwardStatus, FORWARD_HINTS } from '../core/forwards'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
 import { errText } from '../core/errText'
+import Modal from './Modal.jsx'
 
 // SSH 포트 포워딩 창 (Ctrl+Shift+P, Todo #124, choboTerm forwards.ts).
 // 규칙은 서버별로 저장되어 다음 접속 때 다시 시작합니다.
@@ -65,21 +65,14 @@ export default function ForwardsDialog({ id }) {
   }
 
   function onKeyDown(e) {
-    e.stopPropagation()
-    if (e.key === 'Escape') { e.preventDefault(); close() }
-    else if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.getAttribute('aria-label') !== 'ssh 명령') { e.preventDefault(); add() }
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.getAttribute('aria-label') !== 'ssh 명령') { e.preventDefault(); add() }
     else if (e.key === 'Delete' && e.target.tagName !== 'INPUT') { e.preventDefault(); remove() }
   }
 
   const cmd = sshCommand(req, rules)
   const dynamic = form.type === 'D'
   return (
-    <div className={styles.modalOverlay}>
-      <div className={`${styles.dialog} ${styles.forwards}`} role="dialog" aria-label={`포트 포워딩 - ${req?.host ?? ''}`} onKeyDown={onKeyDown}>
-        <div className={styles.dialogHeader}>
-          <span>{`포트 포워딩 - ${req?.host ?? ''}`}</span>
-          <button type="button" className={styles.iconBtn} title="닫기 (Esc)" onClick={close}><X size={13} /></button>
-        </div>
+    <Modal label={`포트 포워딩 - ${req?.host ?? ''}`} className={styles.forwards} onClose={close} onKeyDown={onKeyDown}>
         <div className={styles.filesList}>
           <table role="grid" tabIndex={0} aria-label="포워딩 규칙">
             <thead><tr><th>종류</th><th>수신</th><th>대상</th><th>상태</th></tr></thead>
@@ -124,7 +117,6 @@ export default function ForwardsDialog({ id }) {
         <div className={styles.dialogActions}>
           <button type="button" onClick={close}>닫기</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -24,6 +24,7 @@ export default function Toolbar({
   view, onViewChange,
   onNewFile, onSearch, onCompress, onExtract,
   onRename, onCopy, onMove, onNewDir, onDelete, onTrash, onView, onEdit, onSwitchPanel, onBookmarks, onHelp,
+  onCompareDirs, onSyncDirs,
   shortcutsDisabled = false,
 }) {
   const theme       = useThemeStore(s => s.theme)
@@ -64,7 +65,13 @@ export default function Toolbar({
           e.preventDefault()
           if (!e.ctrlKey) onSwitchPanel?.()
           break
-        case 'F2': e.preventDefault(); onRename();         break
+        // Todo #133-6: Shift+F2 폴더 비교, Alt+F2 폴더 동기화
+        case 'F2':
+          e.preventDefault()
+          if (e.shiftKey) onCompareDirs?.()
+          else if (e.altKey) onSyncDirs?.()
+          else onRename()
+          break
         case 'F3': e.preventDefault(); onView?.();         break
         case 'F4': e.preventDefault(); onEdit?.();         break
         case 'F5': e.preventDefault(); onCopy();           break
@@ -88,7 +95,7 @@ export default function Toolbar({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [shortcutsDisabled, view, onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onTrash, onSwitchPanel, onNewFile, onBookmarks])
+  }, [shortcutsDisabled, view, onHelp, onSearch, onRename, onView, onEdit, onCopy, onMove, onNewDir, onDelete, onTrash, onSwitchPanel, onNewFile, onBookmarks, onCompareDirs, onSyncDirs])
 
   return (
     <div className={styles.toolbar}>

@@ -319,6 +319,8 @@ func copyFile(src, dst string) error {
 
 	if info, err := os.Stat(src); err == nil {
 		os.Chmod(dst, info.Mode())
+		// 수정 시각 유지 (Total Commander와 같게, 폴더 동기화가 다시 비교해도 같게 — Todo #133-6)
+		os.Chtimes(dst, info.ModTime(), info.ModTime())
 	}
 	return nil
 }

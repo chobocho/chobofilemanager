@@ -2,6 +2,13 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #133-6: 폴더 비교(Shift+F2) · 동기화(Alt+F2)
+- Shift+F2 (`utils/compareDirs.js`): 두 패널을 이름(대소문자 무시)으로 맞춰 각 쪽에서 더 새 파일 · 한쪽에만 있는 파일 선택, 날짜 같고 크기 다르면 양쪽, 2초 이내 차이는 같은 시각. 폴더는 무시(TC와 같게)
+- Alt+F2 `SyncDialog`: 열자마자 비교, 옵션(하위 폴더 · 내용 비교 · 날짜 무시), 보기 필터(→ ← = ≠ 개수), 줄마다 방향 칸 클릭(→ ← 없음), 보이는 항목 중 방향 있는 것만 "동기화 (N)", 끝나면 다시 비교 + 두 패널 새로 고침. 양쪽에 있는 파일 줄 더블클릭은 내용 비교(133-7에서 연결)
+- Go `CompareDirs`(dirsync.go): equal · left-newer · right-newer · different · left-only · right-only, 한쪽에만 있는 폴더는 한 항목, 내용 비교는 64KB씩, 20만 항목 제한. `SyncDirs`: 방향대로 복사(폴더는 하위까지), `..`·잘못된 방향 거부
+- 복사(F5)할 때 수정 시각 유지 (TC와 같게, 동기화 후 다시 비교하면 같음)
+- 테스트: dirsync_test.go 7개, SyncDialog.test.js(CL·DD·SY·CS 10개), Toolbar KB-F2 — Go 전체 · 프론트 1314개 통과
+
 ## 2026-10-25 Todo.md #133-5: 압축 파일을 폴더처럼 (ZIP · TAR · TAR.GZ/BZ2/XZ · 7Z · RAR)
 - `internal/archive` 신규: 형식마다 다른 읽기(목록 · 순서대로 읽기)를 하나로. 이름은 '/'로 정리해 압축 루트 밖으로 못 나감(`../x` → `x`), 경로에만 있는 폴더도 만들어 줌, 최근 8개 목록 캐시. `Split`이 "C:\x\a.zip\docs" 같은 경로에서 압축 파일과 안쪽 경로를 찾음. `Extract`(고른 항목, 덮어쓰기·건너뛰기·이름 바꾸기, 수정 시각 유지)
 - 7Z: github.com/bodgit/sevenzip(BSD-3), RAR: github.com/nwaples/rardecode/v2(BSD-2), TAR.XZ: ulikunitz/xz. THIRD_PARTY_NOTICES 다시 생성

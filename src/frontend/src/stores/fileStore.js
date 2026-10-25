@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import api from '../wailsjs/runtime'
 import { formatSize } from '../utils/fileTypes.js'
 import { parseMask, matchMask } from '../utils/mask.js'
+import { compareListings } from '../utils/compareDirs.js'
 
 // Windows(\) / Unix(/) 경로 구분자를 모두 처리하는 경로 조합 함수
 // api.JoinPath(variadic)은 Wails2 바인딩에서 동작하지 않으므로 JS에서 직접 처리
@@ -429,6 +430,18 @@ export const useFileStore = create((set, get) => ({
         selected.has(f.path) ? selected.delete(f.path) : selected.add(f.path)
       }
       return { [panel]: { ...p, selected } }
+    })
+  },
+
+  // Shift+F2 폴더 비교 (Todo #133-6): 양쪽에서 더 새 파일·한쪽에만 있는 파일을 선택
+  compareDirsSelect: () => {
+    set(s => {
+      const vis = (p) => p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+      const { left, right } = compareListings(vis(s.left), vis(s.right))
+      const status = left.size || right.size
+        ? `다른 파일: 왼쪽 ${left.size}개 · 오른쪽 ${right.size}개 선택`
+        : '두 폴더의 파일이 같습니다'
+      return { left: { ...s.left, selected: left }, right: { ...s.right, selected: right }, status }
     })
   },
 

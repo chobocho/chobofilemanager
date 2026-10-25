@@ -12,6 +12,7 @@ import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import SelectMaskDialog from './components/SelectMaskDialog'
 import MultiRenameDialog from './components/MultiRenameDialog'
+import SyncDialog from './components/SyncDialog'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
@@ -352,6 +353,8 @@ function FileManagerApp() {
         onTrash={handleTrash}
         onSwitchPanel={handleSwitchPanel}
         onBookmarks={() => setModal('bookmarks')}
+        onCompareDirs={() => useFileStore.getState().compareDirsSelect()}
+        onSyncDirs={() => setModal('sync')}
       />
       <div className={styles.content}>
         {view === 'files' ? (
@@ -420,6 +423,11 @@ function FileManagerApp() {
       {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
       {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
       {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
+      {modal === 'sync' && (() => {
+        const s = useFileStore.getState()
+        return <SyncDialog left={s.left.path} right={s.right.path} onClose={closeModal}
+          onDone={() => { const st = useFileStore.getState(); st.refresh('left'); st.refresh('right') }} />
+      })()}
       {modal === 'multirename' && renameTargets && (
         <MultiRenameDialog files={renameTargets.files} existingNames={renameTargets.existingNames}
           onConfirm={async (pairs) => { const s = useFileStore.getState(); await s.multiRename(s.activePanel, pairs); closeModal() }}

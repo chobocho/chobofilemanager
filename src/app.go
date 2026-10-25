@@ -236,3 +236,12 @@ func (a *App) DirSize(path string) (DirSizeResult, error) {
 func (a *App) RenameBatch(pairs []RenamePair) error {
 	return a.fileManager.RenameBatch(pairs)
 }
+
+// CompareDirs / SyncDirs: 폴더 비교 · 동기화 (Alt+F2, Todo #133-6)
+func (a *App) CompareDirs(left, right string, opts CompareOptions) ([]SyncItem, error) {
+	return a.fileManager.CompareDirs(left, right, opts)
+}
+
+func (a *App) SyncDirs(left, right string, actions []SyncAction) error {
+	return a.fileManager.SyncDirs(left, right, actions)
+}

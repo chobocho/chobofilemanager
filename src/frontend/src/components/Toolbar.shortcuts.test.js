@@ -99,3 +99,19 @@ describe('FilePanel 키 입력 차단 (Todo #77)', () => {
     expect(useFileStore.getState().left.cursor).toBe(1)
   })
 })
+
+// ─── Todo #133-6: Shift+F2 폴더 비교 / Alt+F2 동기화 / F2 이름 바꾸기 ─────────────
+describe('F2 조합 (Todo #133-6)', () => {
+  afterEach(() => cleanup())
+
+  it('KB-F2: F2 이름 바꾸기, Shift+F2 비교, Alt+F2 동기화 — 각각 하나만', () => {
+    const hs = { ...handlers(), onCompareDirs: vi.fn(), onSyncDirs: vi.fn() }
+    render(h(Toolbar, { view: 'files', onViewChange: () => {}, ...hs }))
+    fireEvent.keyDown(window, { key: 'F2', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'F2', altKey: true })
+    fireEvent.keyDown(window, { key: 'F2' })
+    expect(hs.onCompareDirs).toHaveBeenCalledTimes(1)
+    expect(hs.onSyncDirs).toHaveBeenCalledTimes(1)
+    expect(hs.onRename).toHaveBeenCalledTimes(1)
+  })
+})

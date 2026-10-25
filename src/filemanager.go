@@ -12,11 +12,9 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
-	"golang.org/x/text/encoding/korean"
 )
 
 // FileManager: 파일 작업 (상태 없음 — 작업마다 경로를 받음)
@@ -48,7 +46,6 @@ type DriveInfo struct {
 	TotalSpace int64  `json:"totalSpace"`
 	FreeSpace  int64  `json:"freeSpace"`
 }
-
 
 func NewFileManager() *FileManager {
 	return &FileManager{}
@@ -431,15 +428,9 @@ func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (st
 		}
 		enc = DetectEncoding(window)
 	}
+	// 디코더는 잘못된 바이트를 U+FFFD로 바꾸며 실패하지 않음 — 실패하면 원래 바이트 그대로 (Todo #130-1)
 	if decoded, decErr := DecodeToUTF8(data, enc); decErr == nil {
 		return decoded, nil
-	}
-	// CP949 strict 실패 → EUC-KR 관용 모드 폴백
-	if decoded, decErr := korean.EUCKR.NewDecoder().Bytes(data); decErr == nil {
-		return string(decoded), nil
-	}
-	if utf8.Valid(data) {
-		return composeHangulJamo(string(data)), nil
 	}
 	return string(data), nil
 }

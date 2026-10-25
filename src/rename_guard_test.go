@@ -133,3 +133,29 @@ func TestMoveItemsOverwriteAndRenameStillWork(t *testing.T) {
 		t.Fatalf("rename: got %q", got)
 	}
 }
+
+// ─── Todo #130-1: 텍스트 읽기·원자적 쓰기의 가장자리 ─────────────────────────
+
+// CP949로 풀 수 없는 바이트도 오류 없이 U+FFFD로 보임 (뷰어가 빈 화면이 되지 않음)
+func TestReadTextWithEncodingShowsBrokenBytesAsReplacement(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "bad.txt")
+	os.WriteFile(p, []byte{'a', 0xFF, 0xFF, 'b'}, 0o644)
+	got, err := NewFileManager().ReadTextFileWithEncoding(p, "cp949")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(got, "a") || !strings.HasSuffix(got, "b") || !strings.Contains(got, "�") {
+		t.Fatalf("got %q", got)
+	}
+}
+
+// 32MB를 넘는 파일은 읽지 않고 오류 (메모리 보호)
+func TestReadTextWithEncodingRefusesHugeFile(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "big.txt")
+	f, _ := os.Create(p)
+	f.Truncate(maxViewerFileSize + 1)
+	f.Close()
+	if _, err := NewFileManager().ReadTextFileWithEncoding(p, "utf-8"); err == nil {
+		t.Fatal("a file over the viewer limit must be refused")
+	}
+}

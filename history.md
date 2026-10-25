@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #132-2: ConfirmDialog.jsx의 대화상자 5개를 파일별로 분리
+- 500줄 한 파일에 확인·새 항목·이름 바꾸기·셸 명령·검색 대화상자가 모여 있던 것을 NewItemDialog.jsx·RenameDialog.jsx·ShellCommandDialog.jsx·SearchDialog.jsx로 나누고 공용 틀은 DialogModal.jsx로. (기존 재내보내기 껍데기 파일에 실제 코드가 들어감)
+- ConfirmDialog.jsx는 확인 창만 남기고 나머지를 다시 내보내 기존 import 경로 그대로 동작.
+- 테스트: 프론트 1233개·빌드 통과.
+
 ## 2026-10-25 Todo.md #132-1: 텍스트 인코딩 코드를 internal/textenc 패키지로 분리
 - package main에 있던 인코딩 자동 판별·조합형(Johab)·UTF-8 변환(encoding_detect.go, johab.go, 약 600줄)과 인코딩 이름 해석(parseEncodingName → textenc.ParseName)을 internal/textenc로 옮김. 파일 관리자는 뷰어/편집기 읽기·쓰기에서 이를 호출만 함 (package main → internal 이전의 첫 단계).
 - 순수 인코딩 테스트 37개도 함께 옮김(textenc 커버리지 96.5%), FileManager를 거치는 읽기/쓰기 테스트는 main에 남김.

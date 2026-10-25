@@ -151,7 +151,8 @@ body:not(.term-view-active) #catBubble { display: none; }
 }
 
 /* Chobocho Commander (Todo #124): choboTerm's .dialog / .titlebar look for the result window */
-#luaResult.dialog { background: var(--bg-modal, #1e1e2a); color: var(--text-primary, #ddd); border: 1px solid var(--border-active, #555); border-radius: 6px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); display: flex; flex-direction: column; }
+#luaResult.dialog { background: var(--bg-modal, #1e1e2a); color: var(--text-primary, #ddd); border: 1px solid var(--border-active, #555); border-radius: 6px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); }
+/* No display here: #luaResult.dialog outranks #luaResult[hidden] by order, so it would keep the window shown (display/flex are in #luaResult) */
 #luaResult .titlebar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border, #333); font-size: 12px; }
 #luaResult .titlebar .title { flex: 1; }
 #luaResult button, #catBubble button { font-size: 12px; }

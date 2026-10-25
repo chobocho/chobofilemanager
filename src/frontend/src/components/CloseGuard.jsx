@@ -41,8 +41,8 @@ export default function CloseGuard() {
         <div className={styles.header}><AlertTriangle size={14} /><span>{title}</span></div>
         <div className={styles.body}>
           {web
-            ? <p style={{ whiteSpace: 'pre-line' }}>{`브라우저 ${ask.browsers}개가 웹 서버에 연결되어 있습니다.\n\n모두 종료하면 브라우저의 탭도 끊어집니다.\n창만 닫으면 웹 서버는 계속 돌고, 다시 실행하면 창이 나타납니다. 터미널 설정 > 웹 서버에서 끌 수 있습니다.`}</p>
-            : <p>연결된 터미널이 있습니다. 모두 끊고 종료할까요?</p>}
+            ? <p className={styles.message} style={{ whiteSpace: 'pre-line' }}>{`브라우저 ${ask.browsers}개가 웹 서버에 연결되어 있습니다.\n\n모두 종료하면 브라우저의 탭도 끊어집니다.\n창만 닫으면 웹 서버는 계속 돌고, 다시 실행하면 창이 나타납니다. 터미널 설정 > 웹 서버에서 끌 수 있습니다.`}</p>
+            : <p className={styles.message}>연결된 터미널이 있습니다. 모두 끊고 종료할까요?</p>}
           {error && <p role="alert" className={styles.errorMsg}>{error}</p>}
         </div>
         <div className={styles.footer}>

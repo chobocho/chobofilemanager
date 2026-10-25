@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Lua 결과 창이 닫히지 않던 문제, 종료 확인 글자가 흐리던 문제 수정
+- Lua 결과 창: 닫기를 눌러도 사라지지 않음. 원인은 cat.css의 `#luaResult.dialog { display: flex }`가 `#luaResult[hidden] { display: none }`과 우선순위가 같고 뒤에 있어 hidden을 덮어씀. .dialog 규칙에서 display를 빼서 수정(display는 #luaResult 규칙에 이미 있음).
+- 종료 확인 대화상자(CloseGuard): 본문 `<p>`에 클래스가 없어 흐린 기본 글자색으로 보임 → 다른 확인 상자처럼 `styles.message` 적용.
+- 테스트: `catCss.test.ts`(CC-01, hidden이면 display:none) 추가, CloseGuard CG-01에 본문 클래스 확인 추가. 프론트 전체 통과.
+
 ## 2026-10-25 build.bat 실행 오류 수정 (줄바꿈 LF → CRLF)
 - 증상: build.bat 실행 시 "'om'은(는) 내부 또는 외부 명령... 이 아닙니다" 등 명령이 조각나며 실패.
 - 원인: 저장소에 LF 줄바꿈으로 저장되어 cmd.exe가 UTF-8 한글이 섞인 줄을 엉뚱한 위치에서 잘라 해석.

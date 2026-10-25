@@ -21,6 +21,8 @@ describe('창 닫기 확인 (CG)', () => {
     emit('app:close')
     const dlg = screen.getByRole('dialog', { name: '종료' })
     expect(dlg.textContent).toContain('연결된 터미널이 있습니다')
+    // 본문은 다른 확인 상자처럼 .message(진한 글자색) — 흐린 기본색으로 읽기 어렵지 않게
+    expect(within(dlg).getByText(/연결된 터미널이 있습니다/).className).toMatch(/message/)
     fireEvent.click(within(dlg).getByRole('button', { name: '취소' }))
     expect(api.Quit).not.toHaveBeenCalled()
     emit('app:close')

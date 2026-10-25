@@ -128,6 +128,9 @@ function FileManagerApp() {
     useDockStore.getState().paste(full ? file.path : file.name)
   }, [])
 
+  // 대화상자를 닫고 활성 파일 패널로 포커스 (10곳이 같은 두 줄이던 것)
+  const closeModal = useCallback(() => { setModal(null); focusActivePanel() }, [focusActivePanel])
+
   const tryOpenViewer = useCallback((file) => {
     if (exceedsViewerLimit(file.size)) { setFileSizeError(file.name); return }
     useEditorStore.getState().openViewer(file.path, { siblings: panelImages() })
@@ -246,8 +249,7 @@ function FileManagerApp() {
     const store = useFileStore.getState()
     // Todo #56: 생성 후 커서가 새 파일로 이동 + 스크롤 (store가 처리)
     await store.createFile(store.activePanel, name)
-    setModal(null)
-    focusActivePanel()
+    closeModal()
   }
 
   const handleCopy = async () => {
@@ -383,23 +385,23 @@ function FileManagerApp() {
 
       {modal === 'newdir' && (
         <NewItemDialog type="directory"
-          onConfirm={async (name) => { const s=useFileStore.getState(); await s.createDirectory(s.activePanel,name); setModal(null); focusActivePanel() }}
-          onClose={() => { setModal(null); focusActivePanel() }} />
+          onConfirm={async (name) => { const s=useFileStore.getState(); await s.createDirectory(s.activePanel,name); closeModal() }}
+          onClose={closeModal} />
       )}
       {modal === 'newfile' && (
-        <NewItemDialog type="file" onConfirm={handleNewFile} onClose={() => { setModal(null); focusActivePanel() }} />
+        <NewItemDialog type="file" onConfirm={handleNewFile} onClose={closeModal} />
       )}
       {modal === 'rename' && (
         <RenameDialog
-          onConfirm={async (oldPath, newName) => { const s=useFileStore.getState(); await s.rename(s.activePanel,oldPath,newName); setModal(null); focusActivePanel() }}
-          onClose={() => { setModal(null); focusActivePanel() }} />
+          onConfirm={async (oldPath, newName) => { const s=useFileStore.getState(); await s.rename(s.activePanel,oldPath,newName); closeModal() }}
+          onClose={closeModal} />
       )}
-      {modal === 'search'    && <SearchDialog   onClose={() => { setModal(null); focusActivePanel() }} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
-      {modal === 'bookmarks' && <BookmarkDialog onClose={() => { setModal(null); focusActivePanel() }} />}
-      {modal === 'help'      && <HelpDialog     onClose={() => { setModal(null); focusActivePanel() }} />}
+      {modal === 'search'    && <SearchDialog   onClose={closeModal} onView={(file) => { setModal(null); tryOpenViewer(file) }} onEdit={(file) => { setModal(null); tryOpenEditor(file) }} />}
+      {modal === 'bookmarks' && <BookmarkDialog onClose={closeModal} />}
+      {modal === 'help'      && <HelpDialog     onClose={closeModal} />}
       {modal === 'shell' && (() => {
         const s = useFileStore.getState()
-        return <ShellCommandDialog workDir={s[s.activePanel].path} onClose={() => { setModal(null); focusActivePanel() }} />
+        return <ShellCommandDialog workDir={s[s.activePanel].path} onClose={closeModal} />
       })()}
       {deleteTarget && (
         <ConfirmDialog title="영구 삭제"

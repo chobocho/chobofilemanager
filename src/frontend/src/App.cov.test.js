@@ -734,3 +734,34 @@ describe('App 단축키 범위 (SC)', () => {
     expect(screen.getByText('Copy').closest('button').disabled).toBe(false)
   })
 })
+
+// ─── Todo #126: 대화상자를 닫으면 연 곳으로 포커스 ────────────────────────────────
+describe('App 포커스 복귀 (AF)', () => {
+  afterEach(() => cleanup())
+
+  it('AF-01: FTP 보기에서 F1 도움말을 닫으면 원래 있던 곳으로 (숨은 파일 패널이 아니라)', async () => {
+    await renderApp()
+    fireEvent.click(screen.getByTitle('FTP Manager'))
+    const here = document.createElement('button')
+    here.textContent = 'ftp-here'
+    document.body.appendChild(here)
+    here.focus()
+    await key({ key: 'F1' })
+    expect(screen.getByText(/도움말 — Chobocho Commander/)).toBeTruthy()
+    await key({ key: 'Escape' })
+    await waitFor(() => expect(document.activeElement).toBe(here))
+    here.remove()
+  })
+
+  it('AF-02: 연 곳이 사라졌으면 활성 파일 패널로', async () => {
+    await renderApp()
+    const gone = document.createElement('button')
+    document.body.appendChild(gone)
+    gone.focus()
+    await key({ key: 'F1' })
+    gone.remove()
+    await key({ key: 'Escape' })
+    await waitFor(() => expect(document.activeElement?.closest('[data-panel], [tabindex]')).toBeTruthy())
+    expect(document.activeElement).not.toBe(document.body)
+  })
+})

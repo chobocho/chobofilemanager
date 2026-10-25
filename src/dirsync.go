@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -221,19 +222,13 @@ func (fm *FileManager) SyncDirs(left, right string, actions []SyncAction) error 
 		default:
 			return fmt.Errorf("잘못된 방향: %q", a.To)
 		}
-		info, err := os.Stat(src)
-		if err != nil {
+		if _, err := os.Lstat(src); err != nil {
 			return err
 		}
 		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 			return err
 		}
-		if info.IsDir() {
-			err = syncCopyTree(src, dst)
-		} else {
-			err = replaceFileSafely(src, dst)
-		}
-		if err != nil {
+		if err := syncItem(src, dst, src); err != nil {
 			return fmt.Errorf("%s: %w", a.Rel, err)
 		}
 	}
@@ -286,9 +281,37 @@ func syncCopyTree(src, dst string) error {
 		if d.IsDir() {
 			return os.MkdirAll(target, 0755)
 		}
-		if d.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
-			return copyLinkTarget(p, target, src)
-		}
-		return replaceFileSafely(p, target)
+		return syncItem(p, target, src)
 	})
+}
+
+// syncItem: 동기화 한 항목 — 일반 파일은 임시 파일로 안전하게 바꿔 넣고, 링크 · 특수 파일은 복사와 같은 규칙 (Todo #137-3)
+func syncItem(src, dst, root string) error {
+	fi, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
+	m := fi.Mode()
+	switch {
+	case m&os.ModeSymlink != 0 && unixCopy:
+		return copySymlink(src, dst)
+	case m&(os.ModeSymlink|os.ModeIrregular) != 0:
+		if src == root { // 고른 항목 자체가 Windows 링크 · 정션: 가리키는 것
+			if ti, err := os.Stat(src); err == nil && ti.IsDir() {
+				return syncCopyTree(src, dst)
+			}
+			return replaceFileSafely(src, dst)
+		}
+		return copyLinkTarget(src, dst, root)
+	case fi.IsDir():
+		return syncCopyTree(src, dst)
+	case m.IsRegular():
+		return replaceFileSafely(src, dst)
+	}
+	if err := copySpecialFile(src, dst, fi); errors.Is(err, errSpecialSkip) {
+		return &specialSkipped{[]string{filepath.Base(src)}}
+	} else if err != nil {
+		return err
+	}
+	return nil
 }

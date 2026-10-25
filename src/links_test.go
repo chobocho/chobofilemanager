@@ -84,7 +84,18 @@ func TestCopyItems_LinkToAncestorRejected(t *testing.T) {
 	makeDirLink(t, base, filepath.Join(src, "loop")) // 상위 폴더를 가리키는 링크 → 무한 복사 위험
 	dst := filepath.Join(t.TempDir(), "dst")
 	os.MkdirAll(dst, 0755)
-	if err := newTestFM().CopyItems([]string{src}, dst); err == nil {
+	err := newTestFM().CopyItems([]string{src}, dst)
+	if unixCopy {
+		// 리눅스 · macOS: 링크를 링크로 복사하므로 따라가지 않고 무한 복사도 없음 (Todo #137-3)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fi, err := os.Lstat(filepath.Join(dst, "src", "loop")); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+			t.Error("ancestor link must be copied as a link")
+		}
+		return
+	}
+	if err == nil {
 		t.Error("link pointing to an ancestor should be rejected")
 	}
 }

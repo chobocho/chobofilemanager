@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #137-3: 리눅스 특수 파일 · 심볼릭 링크 안전 복사
+- 문제: 복사가 파일 종류를 보지 않고 내용을 읽음 — FIFO는 영원히 멈춤, `/dev/zero` 같은 장치는 끝없이 복사, 심볼릭 링크는 대상 내용을 복사(`/`를 가리키면 디스크 전체), 끊어진 링크는 복사 실패. 다른 디스크로 이동(복사 후 삭제)과 폴더 동기화도 같은 경로
+- 추가 발견: 덮어쓸 대상이 심볼릭 링크면 `os.Create`가 링크를 따라가 링크가 가리키는 다른 파일에 씀
+- 수정(`fileops.go` copyItem · copySymlink · copySpecialFile, `dirsync.go` syncItem):
+  - 리눅스 · macOS: 심볼릭 링크는 링크로 복사(상대 · 끊어진 링크 그대로), Windows는 기존처럼 가리키는 내용(TC와 같게)
+  - FIFO는 mkfifo로 다시 만들고, 장치 파일은 root면 mknod, 아니면 건너뜀. 소켓도 건너뜀 — 나머지는 다 복사하고 끝에 "특수 파일 N개는 복사하지 않았습니다: 이름" 알림(이동이면 원본을 지우지 않음)
+  - `copyFile`은 일반 파일만 읽고, 덮어쓸 자리가 링크면 링크만 치움
+  - 폴더 권한 유지(리눅스 · macOS): 안을 다 채운 뒤 아래부터 맞춰 읽기 전용 폴더도 복사됨
+- 테스트: copyspecial_linux_test.go 8개(FIFO · 장치 · 소켓 · 링크 · 폴더 권한 · 동기화 · 링크 너머 쓰기 · 실제 XDG 휴지통) — **WSL Ubuntu에서 실제 리눅스로 실행**(Windows에서 `GOOS=linux go test -c`로 만든 바이너리), links_test 조상 링크 테스트를 OS별로 갱신 — Go 전체 Windows · 리눅스 통과
+
 ## 2026-10-26 Todo.md #137-1: 리눅스 휴지통 (F8 / Del)
 - 원인: 리눅스 빌드의 휴지통이 stub이라 F8/Del이 항상 "Windows에서만 지원" 오류
 - `xdgtrash.go`: freedesktop.org Trash 규격 — `files/`로 옮기고 `info/<이름>.trashinfo`(Path는 URL 이스케이프, DeletionDate)를 씀. Nautilus · Dolphin 휴지통에서 그대로 보이고 복원됨

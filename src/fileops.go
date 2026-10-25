@@ -3,10 +3,13 @@ package main
 // 파일 작업: 복사·이동·삭제·이름 바꾸기와 그 공용 도우미 (Todo #132-3, filemanager.go에서 분리)
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 type CopyConflict struct {
@@ -37,19 +40,12 @@ func (fm *FileManager) CopyItems(sources []string, destination string) error {
 		return err
 	}
 	for _, src := range sources {
-		info, err := os.Stat(src)
-		if err != nil {
+		if _, err := os.Lstat(src); err != nil {
 			return err
 		}
 		destPath := filepath.Join(destination, filepath.Base(src))
-		if info.IsDir() {
-			if err := copyDir(src, destPath); err != nil {
-				return err
-			}
-		} else {
-			if err := copyFile(src, destPath); err != nil {
-				return err
-			}
+		if err := copyItem(src, destPath); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -61,8 +57,7 @@ func (fm *FileManager) CopyItemsRename(sources []string, destination string) err
 		return err
 	}
 	for _, src := range sources {
-		info, err := os.Stat(src)
-		if err != nil {
+		if _, err := os.Lstat(src); err != nil {
 			return err
 		}
 		name := filepath.Base(src)
@@ -72,14 +67,8 @@ func (fm *FileManager) CopyItemsRename(sources []string, destination string) err
 				return err
 			}
 		}
-		if info.IsDir() {
-			if err := copyDir(src, destPath); err != nil {
-				return err
-			}
-		} else {
-			if err := copyFile(src, destPath); err != nil {
-				return err
-			}
+		if err := copyItem(src, destPath); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -91,22 +80,15 @@ func (fm *FileManager) CopyItemsSkipConflicts(sources []string, destination stri
 		return err
 	}
 	for _, src := range sources {
-		info, err := os.Stat(src)
-		if err != nil {
+		if _, err := os.Lstat(src); err != nil {
 			return err
 		}
 		destPath := filepath.Join(destination, filepath.Base(src))
-		if _, err := os.Stat(destPath); err == nil {
-			continue // 이미 존재하면 건너뜀
+		if _, err := os.Lstat(destPath); err == nil {
+			continue // 이미 존재하면 건너뜀 (끊어진 링크도 있는 것)
 		}
-		if info.IsDir() {
-			if err := copyDir(src, destPath); err != nil {
-				return err
-			}
-		} else {
-			if err := copyFile(src, destPath); err != nil {
-				return err
-			}
+		if err := copyItem(src, destPath); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -124,21 +106,108 @@ func (fm *FileManager) moveOne(src, destPath string) error {
 	if err == nil || !isCrossDevice(err) {
 		return err
 	}
-	// Cross-device: copy then delete
-	info, err := os.Stat(src)
+	// Cross-device: copy then delete — 복사가 하나라도 실패(건너뛴 특수 파일 포함)하면 원본은 그대로
+	info, err := os.Lstat(src)
 	if err != nil {
 		return err
 	}
-	if info.IsDir() {
-		if err := copyDir(src, destPath); err != nil {
-			return err
-		}
-		return os.RemoveAll(src)
-	}
-	if err := copyFile(src, destPath); err != nil {
+	if err := copyItem(src, destPath); err != nil {
 		return err
 	}
-	return os.Remove(src)
+	if info.IsDir() {
+		return os.RemoveAll(src)
+	}
+	return os.Remove(src) // 링크 · 정션은 링크만
+}
+
+// unixCopy: 리눅스 · macOS는 mc처럼 심볼릭 링크를 링크로 복사하고 폴더 권한을 유지 (Todo #137-3).
+// Windows는 링크 · 정션이 가리키는 내용을 복사 (TC와 같게, 링크 만들기에 권한이 필요)
+var unixCopy = runtime.GOOS != "windows"
+
+// errSpecialSkip: 다시 만들 수 없는 특수 파일(소켓, root가 아닐 때의 장치 파일)
+var errSpecialSkip = errors.New("special file skipped")
+
+// specialSkipped: 복사하지 않은 특수 파일 목록 — 나머지는 복사하고 끝에 알림
+type specialSkipped struct{ names []string }
+
+func (e *specialSkipped) Error() string {
+	return fmt.Sprintf("특수 파일(소켓 · 장치 등) %d개는 복사하지 않았습니다: %s", len(e.names), strings.Join(e.names, ", "))
+}
+
+// copyItem: 고른 항목 하나 — 폴더 · 파일 · 링크 · 특수 파일 (Todo #137-3)
+func copyItem(src, dst string) error {
+	fi, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
+	if fi.Mode()&os.ModeSymlink != 0 && unixCopy {
+		return copySymlink(src, dst)
+	}
+	if fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+		if fi, err = os.Stat(src); err != nil { // Windows 링크 · 정션: 가리키는 것
+			return err
+		}
+	}
+	switch {
+	case fi.IsDir():
+		return copyDir(src, dst)
+	case fi.Mode().IsRegular():
+		return copyFile(src, dst)
+	}
+	if err := copySpecialFile(src, dst, fi); err != nil {
+		if errors.Is(err, errSpecialSkip) {
+			return &specialSkipped{[]string{filepath.Base(src)}}
+		}
+		return err
+	}
+	return nil
+}
+
+// copySymlink: 링크를 링크로 (가리키는 값 그대로 — 상대 링크는 복사본 안에서도 그대로 통함, 끊어진 링크도)
+func copySymlink(src, dst string) error {
+	if samePath(src, dst) {
+		return errSameSource(src)
+	}
+	target, err := os.Readlink(src)
+	if err != nil {
+		return err
+	}
+	if err := clearForReplace(dst); err != nil {
+		return err
+	}
+	return os.Symlink(target, dst)
+}
+
+// clearForReplace: 덮어쓸 자리의 파일 · 링크를 치움 (폴더는 거부)
+func clearForReplace(dst string) error {
+	fi, err := os.Lstat(dst)
+	if err != nil {
+		return nil
+	}
+	if fi.IsDir() {
+		return fmt.Errorf("같은 이름의 폴더가 있습니다: %s", filepath.Base(dst))
+	}
+	return os.Remove(dst)
+}
+
+// copySpecialFile: FIFO · 장치 파일은 내용을 읽지 않고 같은 것을 만듦 — 읽으면 멈추거나(FIFO) 끝나지 않음(/dev/zero).
+// 만들 수 없는 것(소켓 등)은 대상을 건드리지 않고 errSpecialSkip
+func copySpecialFile(src, dst string, fi os.FileInfo) error {
+	if samePath(src, dst) {
+		return errSameSource(src)
+	}
+	if !canMakeSpecial(fi) {
+		return errSpecialSkip
+	}
+	if err := clearForReplace(dst); err != nil {
+		return err
+	}
+	if err := makeSpecial(dst, fi); err != nil {
+		return fmt.Errorf("%s: %w", filepath.Base(src), err)
+	}
+	os.Chmod(dst, fi.Mode().Perm()) // mkfifo · mknod는 umask를 받음
+	os.Chtimes(dst, fi.ModTime(), fi.ModTime())
+	return nil
 }
 
 // refuseArchiveMove: 압축 파일 안에서 꺼내 옮기거나 안으로 옮기는 것은 거부 (Todo #133-5)
@@ -295,6 +364,18 @@ func copyFile(src, dst string) error {
 	if samePath(src, dst) {
 		return errSameSource(src)
 	}
+	// 일반 파일만 읽음 — FIFO · 장치 파일을 열면 멈추거나 끝나지 않음 (Todo #137-3)
+	if fi, err := os.Stat(src); err != nil {
+		return err
+	} else if !fi.Mode().IsRegular() {
+		return fmt.Errorf("일반 파일이 아닙니다 (FIFO · 장치 등): %s", filepath.Base(src))
+	}
+	// 대상이 심볼릭 링크면 링크가 가리키는 다른 파일에 쓰지 않도록 링크만 치움
+	if fi, err := os.Lstat(dst); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if err := os.Remove(dst); err != nil {
+			return err
+		}
+	}
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -332,7 +413,13 @@ func copyDir(src, dst string) error {
 	if isSubPath(src, dst) {
 		return errIntoSelf(src)
 	}
-	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+	var skipped []string
+	type dirMode struct {
+		path string
+		mode os.FileMode
+	}
+	var modes []dirMode
+	err := filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -342,14 +429,43 @@ func copyDir(src, dst string) error {
 		}
 		target := filepath.Join(dst, rel)
 		if d.IsDir() {
+			if info, err := d.Info(); err == nil && unixCopy {
+				modes = append(modes, dirMode{target, info.Mode().Perm()})
+			}
 			return os.MkdirAll(target, 0755)
 		}
+		t := d.Type()
+		switch {
+		case t&os.ModeSymlink != 0 && unixCopy:
+			return copySymlink(path, target)
 		// 심볼릭 링크 / Windows 정션(ModeIrregular)은 WalkDir가 따라가지 않으므로 직접 처리 (Todo #90)
-		if d.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+		case t&(os.ModeSymlink|os.ModeIrregular) != 0:
 			return copyLinkTarget(path, target, src)
+		case t.IsRegular():
+			return copyFile(path, target)
 		}
-		return copyFile(path, target)
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if err := copySpecialFile(path, target, info); errors.Is(err, errSpecialSkip) {
+			skipped = append(skipped, filepath.ToSlash(rel))
+		} else if err != nil {
+			return err
+		}
+		return nil
 	})
+	// 폴더 권한은 안을 다 채운 뒤 아래부터 (읽기 전용 폴더에도 복사되게, Todo #137-3)
+	for i := len(modes) - 1; i >= 0; i-- {
+		os.Chmod(modes[i].path, modes[i].mode)
+	}
+	if err != nil {
+		return err
+	}
+	if len(skipped) > 0 {
+		return &specialSkipped{skipped}
+	}
+	return nil
 }
 
 // resolveLink: 링크가 가리키는 실제 경로. Go 1.23+에서 EvalSymlinks는 Windows 정션을 해석하지 않으므로

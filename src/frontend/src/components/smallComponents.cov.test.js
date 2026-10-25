@@ -122,10 +122,23 @@ describe('HelpDialog 커버리지', () => {
   it('HD-01: 버전과 섹션 렌더', () => {
     render(h(HelpDialog, { onClose: vi.fn() }))
     expect(screen.getByText(`도움말 — Chobocho Commander V${pkg.version}`)).toBeTruthy()
-    for (const t of ['파일 조작', '탐색 및 선택', '탭', '압축', '기타']) {
+    for (const t of ['파일 조작', '탐색 및 선택', '탭', '보기 · 편집 (F3 / F4)', '터미널', '압축', '기타']) {
       expect(screen.getByRole('heading', { name: t })).toBeTruthy()
     }
     expect(screen.getByText('Shift+Delete')).toBeTruthy()
+  })
+
+  // 도움말이 실제 키 처리(FilePanel·Toolbar·App·FileViewer·TextEditor)와 어긋나지 않게
+  it('HD-05: 패널·뷰어·에디터의 실제 단축키가 모두 실려 있음', () => {
+    const { container } = render(h(HelpDialog, { onClose: vi.fn() }))
+    const keys = [...container.querySelectorAll('kbd')].map(k => k.textContent)
+    for (const k of [
+      'j / k', 'w / s', 'h / a', 'l / d', 'Shift+글자', '-',          // FilePanel: vim·WASD·빠른 이동·뒤로
+      'Ctrl+O', 'Ctrl+M', 'F9', 'Shift+F9', 'Ctrl+Shift+Enter',      // App
+      'Ctrl+F', 'Ctrl+S', '← / →', 'Ctrl + + / - / 0',               // FileViewer·TextEditor
+    ]) expect(keys).toContain(k)
+    // 내부 작업 번호는 사용자 화면에 보이지 않음
+    expect(container.textContent).not.toMatch(/Todo #/)
   })
 
   it('HD-02: Esc / F1 키로 닫기', () => {

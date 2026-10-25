@@ -45,6 +45,16 @@ describe('도움말 (HL)', () => {
     expect(HELP_TEXT.ko.links.rows[0][1]).toBe(`${REPO}/releases/latest`)
   })
 
+  it('HL-01b: 라이선스 링크는 기본 브랜치(master), 파일 관리자 연동 · 웹 서버 안내', () => {
+    for (const lang of ['ko', 'en']) {
+      for (const [, url] of HELP_TEXT[lang].links.rows) expect(url).not.toMatch(/\/blob\/main\//)
+      expect(HELP_TEXT[lang].links.rows[1][1]).toBe(`${REPO}/blob/master/LICENSE`)
+    }
+    const rows = (lang) => HELP_TEXT[lang].sections.flatMap(s => s.rows.map(r => r[0]))
+    expect(rows('ko')).toEqual(expect.arrayContaining(['F9 (Files 보기)', '웹 서버', 'FTP 버튼']))
+    expect(rows('en')).toEqual(expect.arrayContaining(['F9 (Files view)', 'Web server', 'FTP button']))
+  })
+
   it('HL-02: F1로 열고 닫기, 섹션 표', async () => {
     await mount()
     fireEvent.keyDown(root(), { key: 'F1' })

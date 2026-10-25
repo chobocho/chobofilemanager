@@ -114,6 +114,16 @@ export const HELP_TEXT: Record<HelpLang, HelpText> = {
                 ],
             },
             {
+                title: '파일 관리자와 함께',
+                rows: [
+                    ['F9 (Files 보기)', '하단 터미널 도크: 활성 패널 폴더에서 cmd / PowerShell / WSL 시작. "패널 따라가기"를 켜면 패널 폴더가 바뀔 때 cd, 단추로 셸의 지금 폴더를 패널에서 열기. 도크에서 F9: 닫기'],
+                    ['Ctrl+Enter / Ctrl+Shift+Enter', '파일 패널의 커서 파일 이름 / 전체 경로를 도크 셸에 붙여넣기'],
+                    ['원격 파일 창 ↔ 파일 패널', '원격 파일을 활성 패널 폴더로 받기, 패널에서 고른 파일을 서버로 올리기'],
+                    ['웹 서버', '설정(Ctrl+Shift+O) → 웹 서버 켜기: 다른 PC의 브라우저에서 이 PC의 터미널을 씀 (접속 주소에 토큰 포함, 새 토큰으로 바꾸기). 창 없이 쓰려면 chobocho-term-headless --headless'],
+                    ['FTP 버튼', '설정(Ctrl+Shift+O) → 파일 관리자 → "왼쪽 위에 FTP 버튼 보이기"'],
+                ],
+            },
+            {
                 title: '도움말',
                 rows: [
                     ['F1', '도움말 열기 / 닫기'],
@@ -131,8 +141,8 @@ export const HELP_TEXT: Record<HelpLang, HelpText> = {
             title: '링크',
             rows: [
                 ['릴리스 페이지', `${REPO}/releases/latest`],
-                ['라이선스 (MIT)', `${REPO}/blob/main/LICENSE`],
-                ['서드파티 라이선스', `${REPO}/blob/main/THIRD_PARTY_NOTICES.txt`],
+                ['라이선스 (MIT)', `${REPO}/blob/master/LICENSE`],
+                ['서드파티 라이선스', `${REPO}/blob/master/THIRD_PARTY_NOTICES.txt`],
             ],
         },
     },
@@ -230,6 +240,16 @@ export const HELP_TEXT: Record<HelpLang, HelpText> = {
                 ],
             },
             {
+                title: 'With the file manager',
+                rows: [
+                    ['F9 (Files view)', 'Bottom terminal dock: starts cmd / PowerShell / WSL in the active panel folder. "패널 따라가기" (follow panel) runs cd when the panel folder changes; a button opens the shell\'s folder in the panel. F9 in the dock closes it'],
+                    ['Ctrl+Enter / Ctrl+Shift+Enter', 'Pastes the file panel cursor file name / full path into the dock shell'],
+                    ['File window ↔ file panel', 'Download remote files into the active panel folder, upload the files selected in the panel'],
+                    ['Web server', 'Settings (Ctrl+Shift+O) → Web server on: use this PC\'s terminal from a browser on another PC (the address carries a token; New token replaces it). Without a window: chobocho-term-headless --headless'],
+                    ['FTP button', 'Settings (Ctrl+Shift+O) → 파일 관리자 → "왼쪽 위에 FTP 버튼 보이기" (show the FTP button at the top left)'],
+                ],
+            },
+            {
                 title: 'Help',
                 rows: [
                     ['F1', 'Open / close this help'],
@@ -247,8 +267,8 @@ export const HELP_TEXT: Record<HelpLang, HelpText> = {
             title: 'Links',
             rows: [
                 ['Releases', `${REPO}/releases/latest`],
-                ['License (MIT)', `${REPO}/blob/main/LICENSE`],
-                ['Third-party licenses', `${REPO}/blob/main/THIRD_PARTY_NOTICES.txt`],
+                ['License (MIT)', `${REPO}/blob/master/LICENSE`],
+                ['Third-party licenses', `${REPO}/blob/master/THIRD_PARTY_NOTICES.txt`],
             ],
         },
     },

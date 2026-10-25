@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #132: 아무것도 검사하지 않던 텍스트 영역 대기 테스트 7곳 수정
+- 원인: 비동기 findSurfaceWithText를 await 없이 expect(...).toBeTruthy()에 넘겨 Promise 객체가 항상 참 → 내용이 화면에 나타났는지 전혀 확인하지 않았음. 끝난 뒤 Promise가 거절되며 전체 실행에서 가끔 "Unhandled Error"로 보였음.
+- 수정: await findSurfaceWithText(...)로 실제 대기, 즉시 확인은 querySurfaceWithText. 제대로 기다리자 RE-01~03의 기대 문자열이 원래 틀려 있었음(전체 내용과 비교해야 함)이 드러나 화면 내용(줄바꿈 \n)으로 고침.
+- 대상: RemoteEdit.test.jsx(RE-01~03·06), App.cov.test.js(AV-01·02). 다른 find* 비동기 오용은 없음.
+
 ## 2026-10-25 Todo.md #132-2: ConfirmDialog.jsx의 대화상자 5개를 파일별로 분리
 - 500줄 한 파일에 확인·새 항목·이름 바꾸기·셸 명령·검색 대화상자가 모여 있던 것을 NewItemDialog.jsx·RenameDialog.jsx·ShellCommandDialog.jsx·SearchDialog.jsx로 나누고 공용 틀은 DialogModal.jsx로. (기존 재내보내기 껍데기 파일에 실제 코드가 들어감)
 - ConfirmDialog.jsx는 확인 창만 남기고 나머지를 다시 내보내 기존 import 경로 그대로 동작.

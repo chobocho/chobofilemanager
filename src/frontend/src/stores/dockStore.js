@@ -26,7 +26,7 @@ const initial = () => ({
   mounted: false,    // 한 번 열면 닫아도 셸을 유지 (숨김)
   focusSeq: 0,       // 늘어나면 도크가 터미널에 포커스
   sink: null,        // 도크가 등록하는 입력 함수 (text) => void
-  pending: null,     // 셸이 뜨기 전에 붙여넣은 경로 (뜨면 입력)
+  pending: null,     // 셸이 뜨기 전에 붙여넣은 경로 · 실행 요청 { text, runIn } (뜨면 입력)
   ...loadPrefs(),
 })
 
@@ -47,7 +47,14 @@ export const useDockStore = create((set, get) => ({
     get().show()
     const sink = get().sink
     if (sink) sink(path)
-    else set({ pending: path })
+    else set({ pending: { text: path } })
+  },
+  // 실행 권한 파일 실행 (Todo #136-2): 도크를 열고 dir로 cd 후 path 실행
+  run: (dir, path) => {
+    get().show()
+    const sink = get().sink
+    if (sink) sink(path, dir)
+    else set({ pending: { text: path, runIn: dir } })
   },
   takePending: () => {
     const p = get().pending

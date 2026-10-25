@@ -24,6 +24,7 @@ type FileInfo struct {
 	Permissions string    `json:"permissions"`
 	IsSymlink   bool      `json:"isSymlink"`
 	LinkTarget  string    `json:"linkTarget"`
+	Executable  bool      `json:"executable,omitempty"` // 실행 권한이 있는 일반 파일 (링크는 대상), Windows는 항상 false (Todo #136-2)
 }
 
 type DirectoryListing struct {
@@ -78,6 +79,7 @@ func (fm *FileManager) ListDirectory(path string) (*DirectoryListing, error) {
 			Modified:    info.ModTime(),
 			Extension:   strings.ToLower(filepath.Ext(entry.Name())),
 			Permissions: info.Mode().String(),
+			Executable:  isExecutable(fullPath, info),
 		}
 
 		if entry.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
@@ -138,6 +140,7 @@ func (fm *FileManager) GetFileInfo(path string) (*FileInfo, error) {
 		Modified:    info.ModTime(),
 		Extension:   strings.ToLower(filepath.Ext(info.Name())),
 		Permissions: info.Mode().String(),
+		Executable:  isExecutable(path, info),
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		fi.IsSymlink = true
@@ -214,4 +217,24 @@ func (fm *FileManager) SearchFiles(rootPath, pattern string, recursive bool) ([]
 
 func isHiddenFile(name string) bool {
 	return strings.HasPrefix(name, ".")
+}
+
+// isExecutable: Enter로 실행할 파일인지 — 심볼릭 링크는 가리키는 대상으로 (Todo #136-2)
+func isExecutable(p string, info os.FileInfo) bool {
+	if runtime.GOOS == "windows" {
+		return false
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		ti, err := os.Stat(p)
+		if err != nil {
+			return false
+		}
+		info = ti
+	}
+	return execMode(info.Mode())
+}
+
+// execMode: 일반 파일이고 실행 비트(소유자 · 그룹 · 기타 중 하나)가 있음
+func execMode(m os.FileMode) bool {
+	return m.IsRegular() && m.Perm()&0111 != 0
 }

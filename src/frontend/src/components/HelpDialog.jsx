@@ -22,7 +22,7 @@ const SECTIONS = [
       { keys: ['Shift+Delete'],    desc: '선택 항목을 영구 삭제' },
       { keys: ['Ctrl+N'],          desc: '새 파일 만들기' },
       { keys: ['Ctrl+Shift+C'],    desc: '커서 파일 경로를 클립보드에 복사 ([..]이면 지금 폴더)' },
-      { keys: ['Enter'],           desc: '폴더 열기 / 파일 실행' },
+      { keys: ['Enter'],           desc: '폴더 열기 / 파일 실행 (리눅스·macOS: 실행 권한 파일은 터미널 도크에서 실행)' },
     ],
   },
   {

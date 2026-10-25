@@ -7,13 +7,15 @@ import { termApi } from '../core/termApi'
 import { acquireTerminalEvents } from '../store/termEvents'
 import { lookOptions } from '../core/look'
 import { settings, loadSettings } from '../core/settings'
-import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, quoteForShell, clampDockHeight, localPathFromCwd } from '../core/dock'
+import { DOCK_ID_BASE, DOCK_SHELLS, cdCommand, runCommand, quoteForShell, clampDockHeight, localPathFromCwd } from '../core/dock'
 import { useDockStore } from '../../stores/dockStore'
 import { startWindowDrag } from '../core/drag'
 import { useFileStore } from '../../stores/fileStore'
 import styles from '../styles/Terminal.module.css'
 
 const defaultCreateTerminal = (opts) => new Terminal(opts)
+// 붙여넣기는 따옴표 + 공백, 실행(runIn = 폴더)은 cd 후 실행 + Enter (Todo #136-2)
+const dockInput = (shell, text, runIn) => runIn != null ? runCommand(shell, runIn, text) : quoteForShell(shell, text) + ' '
 // 이 PC의 폴더일 때만 (FTP · 압축 파일 안은 셸이 갈 수 없음, Todo #133-8)
 const activePath = (s) => {
   const p = s[s.activePanel]
@@ -65,7 +67,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
       await s.connect({ host: shellRef.current, port: 0, login: '', pass: '', encoding: 'UTF-8', jump: '',
         dir: activePath(useFileStore.getState()) ?? '' })
       const p = useDockStore.getState().takePending()
-      if (p != null) void s.sendInput(quoteForShell(shellRef.current, p) + ' ')
+      if (p != null) void s.sendInput(dockInput(shellRef.current, p.text, p.runIn))
     } catch (e) {
       s.notice(`${e?.message ?? e} — Enter: 다시 시도`)
     } finally {
@@ -86,9 +88,9 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
       s.onClosed(() => { if (!restarting.current) s.notice('셸이 끝났습니다 — Enter: 다시 시작') }),
       s.onIdleInput(data => { if (data === '\r') start() }),
     ]
-    useDockStore.getState().setSink(text => {
-      if (s.state === 'on') void s.sendInput(quoteForShell(shellRef.current, text) + ' ')
-      else useDockStore.setState({ pending: text }) // 셸이 뜨면 입력
+    useDockStore.getState().setSink((text, runIn) => {
+      if (s.state === 'on') void s.sendInput(dockInput(shellRef.current, text, runIn))
+      else useDockStore.setState({ pending: { text, runIn } }) // 셸이 뜨면 입력
       s.focus()
     })
     start()

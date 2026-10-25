@@ -163,6 +163,11 @@ function FileManagerApp() {
     useDockStore.getState().paste(full ? file.path : file.name)
   }, [])
 
+  // Enter/더블클릭: 실행 권한 파일 → 터미널 도크에서 그 폴더로 cd 후 실행 (Todo #136-2)
+  const runFile = useCallback((file, dir) => {
+    useDockStore.getState().run(dir, file.path)
+  }, [])
+
   // 대화상자를 닫고 활성 파일 패널로 포커스 (10곳이 같은 두 줄이던 것)
   const closeModal = useCallback(() => { setModal(null); focusActivePanel() }, [focusActivePanel])
 
@@ -481,11 +486,11 @@ function FileManagerApp() {
         {view === 'files' ? (
           <div className={styles.panels}>
             {quickView === 'left' ? <QuickViewPane side="left" /> : (
-            <FilePanel side="left" ref={leftPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
+            <FilePanel side="left" ref={leftPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onRunFile={runFile} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
               onSwitchToPanel={switchToPanel} />)}
             <div className={styles.divider} />
             {quickView === 'right' ? <QuickViewPane side="right" /> : (
-            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
+            <FilePanel side="right" ref={rightPanelRef} onEdit={tryOpenEditor} onView={tryOpenViewer} keyboardDisabled={overlayOpen} onRunFile={runFile} onPastePath={pastePath} onMaskSelect={openMaskSelect} onFtpConnect={openFtpConnect}
               onSwitchToPanel={switchToPanel} />)}
           </div>
         ) : view === 'ftp' ? (

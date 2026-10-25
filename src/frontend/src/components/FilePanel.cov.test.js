@@ -146,6 +146,28 @@ describe('FilePanel 커버리지 (FPC)', () => {
     expect(actions.navigateUp).toHaveBeenCalledWith('left')
   })
 
+  // Todo #136-2: 실행 권한(+x) 파일은 Enter·더블클릭으로 실행 (mc처럼, 터미널 도크에서) — 뷰어보다 먼저
+  it('FPC-09x: 실행 파일 Enter/더블클릭 → onRunFile(파일, 폴더), 그 외·압축 안은 기존대로', async () => {
+    const files = [f('run.sh', { executable: true }), f('a.txt'), f('tool', { executable: true })]
+    const onRunFile = vi.fn()
+    const { list, onView } = setup({ files, props: { onRunFile } })
+    await act(async () => { fireEvent.keyDown(list, { key: 'Enter' }) })
+    expect(onRunFile).toHaveBeenCalledWith(files[0], '/d')
+    expect(onView).not.toHaveBeenCalled()
+    await act(async () => { fireEvent.doubleClick(rows(list)[2]) })
+    expect(onRunFile).toHaveBeenLastCalledWith(files[2], '/d')
+    expect(actions.openFile).not.toHaveBeenCalled()
+    act(() => useFileStore.getState().setCursor('left', 1))
+    await act(async () => { fireEvent.keyDown(list, { key: 'Enter' }) })
+    expect(onView).toHaveBeenCalledWith(files[1]) // 실행 권한 없으면 그대로 뷰어
+    expect(onRunFile).toHaveBeenCalledTimes(2)
+    cleanup()
+    // 압축 파일 안(읽기 전용)은 실행하지 않음
+    const r2 = setup({ files, panelExtra: { readOnly: true }, props: { onRunFile: vi.fn() } })
+    await act(async () => { fireEvent.keyDown(r2.list, { key: 'Enter' }) })
+    expect(r2.onView).toHaveBeenCalledWith(files[0])
+  })
+
   it('FPC-10: ArrowDown/ArrowUp 이동, 맨 위에서 ↑ → [..], [..]에서 ↓ → 0', () => {
     const { list } = setup()
     fireEvent.keyDown(list, { key: 'ArrowDown' })

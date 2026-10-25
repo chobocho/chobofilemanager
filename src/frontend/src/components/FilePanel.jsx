@@ -164,7 +164,7 @@ const COLUMNS = [
 
 const FTP_CONNECT = '__ftp_connect__'
 
-const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitchToPanel, onPastePath, onMaskSelect, onFtpConnect, keyboardDisabled = false }, ref) {
+const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFile, onSwitchToPanel, onPastePath, onMaskSelect, onFtpConnect, keyboardDisabled = false }, ref) {
   // Todo #98: 필요한 조각만 구독 — 상태 표시줄 등 무관한 변경으로 목록 전체가 다시 그려지지 않도록.
   // 액션은 안정적인 함수이므로 getState()로 사용
   const store = useFileStore.getState()
@@ -224,10 +224,15 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
   const onRowClick = useCallback((e, file, index) => rowHandlersRef.current.click(e, file, index), [])
   const onRowDoubleClick = useCallback((file) => rowHandlersRef.current.dbl(file), [])
 
+  // 실행 권한(+x) 파일 (리눅스 · macOS): mc처럼 Enter로 실행 — 압축 파일 안 · FTP는 제외 (Todo #136-2)
+  const runnable = (file) => !!(file.executable && onRunFile && !panel.readOnly && !file.path.startsWith('ftp://'))
+
   const handleRowDoubleClick = async (file) => {
     // 압축 파일은 폴더처럼 들어감 (Todo #133-5)
     if (file.isDir || isArchiveName(file.name)) {
       await store.navigate(side, file.path)
+    } else if (runnable(file)) {
+      onRunFile(file, panel.path)
     } else {
       // .bat은 더블클릭 시 기존처럼 실행 (Enter는 뷰어)
       if (isTextFile(file.extension) && file.extension?.toLowerCase() !== '.bat') {
@@ -244,7 +249,9 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onSwitch
       await store.navigate(side, file.path)
       return
     }
-    if (isViewableFile(file.extension) && onView) {
+    if (runnable(file)) {
+      onRunFile(file, panel.path)
+    } else if (isViewableFile(file.extension) && onView) {
       onView(file)
     } else {
       await store.openFile(file.path)

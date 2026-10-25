@@ -173,4 +173,15 @@ describe('터미널 도크 (DKV)', () => {
     expect(api.Connect).toHaveBeenCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'cmd' }))
     expect(screen.getByLabelText('셸').querySelectorAll('option').length).toBe(3)
   })
+
+  // Todo #136-2: 파일 패널에서 실행 — 셸이 떠 있으면 바로, 아직이면 뜬 뒤에 cd + 실행
+  it('DKV-14: 실행 요청 → 도크 열고 그 폴더로 cd 후 실행 (셸이 뜨기 전이면 뜬 뒤에)', async () => {
+    api.GetLocalShells = vi.fn().mockResolvedValue([{ name: 'bash', label: 'Bash' }])
+    useDockStore.getState().run('/home/me/bin', '/home/me/bin/run.sh') // 도크가 아직 없음
+    expect(useDockStore.getState().open).toBe(true)
+    await mount()
+    await waitFor(() => expect(api.Send).toHaveBeenCalledWith(DOCK_ID_BASE, `cd '/home/me/bin' && /home/me/bin/run.sh\r`))
+    await act(async () => { useDockStore.getState().run('/tmp', '/tmp/go') })
+    await waitFor(() => expect(api.Send).toHaveBeenLastCalledWith(DOCK_ID_BASE, `cd '/tmp' && /tmp/go\r`))
+  })
 })

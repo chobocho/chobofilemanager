@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {shellKind, cdCommand, quoteForShell, clampDockHeight, DOCK_ID_BASE, DOCK_SHELLS, localPathFromCwd} from './dock';
+import {shellKind, cdCommand, runCommand, quoteForShell, clampDockHeight, DOCK_ID_BASE, DOCK_SHELLS, localPathFromCwd} from './dock';
 
 // ─── Todo #122: 터미널 도크 — 셸별 cd·경로 따옴표, 높이 ─────────────────────
 
@@ -59,5 +59,13 @@ describe('dock (DK)', () => {
         expect(localPathFromCwd(win('C:', 'work', 'x'))).toBe(win('C:', 'work', 'x')); // cmd의 OSC 9;9
         expect(localPathFromCwd('/home/me')).toBeUndefined();
         expect(localPathFromCwd(undefined)).toBeUndefined();
+    });
+
+    // Todo #136-2: Enter로 실행 권한 파일 실행 — 그 폴더로 cd 후 실행, Enter까지
+    it('DK-RUN: 실행 명령 — 셸별 cd + 실행', () => {
+        expect(runCommand('bash', '/home/me/bin', '/home/me/bin/run.sh')).toBe(`cd '/home/me/bin' && /home/me/bin/run.sh\r`);
+        expect(runCommand('zsh', "/home/me/it's", "/home/me/it's/a b")).toBe(`cd '/home/me/it'\\''s' && '/home/me/it'\\''s/a b'\r`);
+        expect(runCommand('cmd', win('C:', 'w'), win('C:', 'w', 'a.exe'))).toBe(`cd /d "${win('C:', 'w')}" && ${win('C:', 'w', 'a.exe')}\r`);
+        expect(runCommand('powershell', win('C:', 'w'), win('C:', 'w', 'a b.exe'))).toBe(`Set-Location -LiteralPath '${win('C:', 'w')}'; & '${win('C:', 'w', 'a b.exe')}'\r`);
     });
 });

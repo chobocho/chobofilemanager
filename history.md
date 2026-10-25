@@ -2,6 +2,14 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #136-2: 리눅스에서 Enter로 실행 권한(+x) 파일 실행
+- 원인: 리눅스 Enter/더블클릭이 항상 xdg-open → 실행 파일이 실행되지 않음
+- Go `FileInfo.executable`: 일반 파일 + 실행 비트(소유자·그룹·기타), 심볼릭 링크는 대상 기준, 디렉터리·FIFO 제외, Windows는 항상 false
+- 프론트: 실행 파일이면 뷰어보다 먼저 터미널 도크를 열고 `cd '<폴더>' && <파일>` + Enter (mc처럼 출력이 보임). 셸이 아직 안 떴으면 뜬 뒤에. 압축 파일 안 · FTP는 실행 안 함
+- `runCommand`(dock.ts): bash/zsh는 cd + &&, cmd는 cd /d, PowerShell은 Set-Location; & '경로'
+- F1 도움말 Enter 설명 갱신, Todo #137에 mc 대비 부족 기능 10가지 정리
+- 테스트: executable_test.go(TestExecMode, TestListDirectory_Executable), DK-RUN, DKV-14, FPC-09x — Go 전체(리눅스 대상 vet 포함) · 프론트 1382개 통과
+
 ## 2026-10-26 Todo.md #136-1: 리눅스에서 터미널 도크가 셸을 못 띄움
 - 원인: 도크 셸 목록이 cmd/PowerShell/WSL로 고정, 기본값 cmd — 리눅스 백엔드의 로컬 셸은 bash/zsh/fish/sh뿐이라 "cmd"를 서버 주소로 접속하려 함
 - `TerminalDock`: 시작 전에 이 PC의 셸 목록(`GetLocalShells`)을 받아 선택 목록을 채우고, 저장된 셸이 목록에 없으면 첫 셸로(한 번만 시작). 목록을 못 받으면 기존 목록. 셸 바꾸면 다시 시작은 "마지막으로 시작한 셸과 다를 때만"

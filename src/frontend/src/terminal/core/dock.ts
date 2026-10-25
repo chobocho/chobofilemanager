@@ -41,6 +41,13 @@ export function cdCommand(host: string, path: string): string {
     }
 }
 
+/** Runs the program at path from its folder dir (Enter included) — Enter on an executable file (Todo #136-2). */
+export function runCommand(host: string, dir: string, path: string): string {
+    const cd = cdCommand(host, dir).replace(/\r$/, '');
+    if (shellKind(host) === 'ps') return `${cd}; & ${quoteForShell(host, path)}\r`;
+    return `${cd} && ${quoteForShell(host, path)}\r`;
+}
+
 /** A file name or path as the shell should read it: quoted only when needed. */
 export function quoteForShell(host: string, path: string): string {
     switch (shellKind(host)) {

@@ -373,7 +373,8 @@
     // ---- window.go and window.runtime ----
 
     const App = new Proxy({}, {get: (_, method) => (...args) => call(String(method), args)});
-    window.go = {app: {App}};
+    // Chobocho Commander binds the terminal as window.go.termapp.App (the standalone choboterm used app).
+    window.go = {app: {App}, termapp: {App}};
 
     const noop = () => {};
     const log = (...a) => console.log(...a);

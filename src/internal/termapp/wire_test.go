@@ -248,8 +248,6 @@ var (
 // ported from choboTerm's TypeScript page into Chobocho Commander (React), with the
 // Todo item that ports them. The list may only shrink.
 var pendingPageEvents = map[string]string{
-	"app:closeWeb":  "Todo #124",
-	"web:status":    "Todo #124",
 }
 
 func TestEventsMatchThePage(t *testing.T) {
@@ -279,9 +277,13 @@ func TestEventsMatchThePage(t *testing.T) {
 	}
 	page := map[string]bool{}
 	// Merged into Chobocho Commander: the terminal page lives under frontend/src/terminal
-	// (TypeScript core and React components).
+	// (TypeScript core and React components); the close confirmation (app:close,
+	// app:closeWeb) is in the always-mounted frontend/src/components/CloseGuard.jsx.
 	var files []string
-	_ = filepath.WalkDir(filepath.Join(root, "frontend", "src", "terminal"), func(p string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(filepath.Join(root, "frontend", "src"), func(p string, d os.DirEntry, err error) error {
+		if err == nil && d.IsDir() && d.Name() == "wailsjs" {
+			return filepath.SkipDir // generated bindings
+		}
 		if err == nil && !d.IsDir() && !strings.Contains(p, ".test.") {
 			switch filepath.Ext(p) {
 			case ".ts", ".tsx", ".js", ".jsx":

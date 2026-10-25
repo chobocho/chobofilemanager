@@ -46,3 +46,6 @@
 /* Todo #122: 하단 터미널 도크 */
 .dockView { flex: 0 0 auto; display: flex; flex-direction: column; }
 .dockView[hidden] { display: none; }
+
+/* Todo #124: 브라우저 화면(웹 서버)은 터미널만 */
+.webTerminal { width: 100vw; height: 100vh; display: flex; flex-direction: column; }

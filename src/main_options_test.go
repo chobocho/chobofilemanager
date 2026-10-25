@@ -70,3 +70,15 @@ func TestTerminalVersionMatchesApp(t *testing.T) {
 		t.Errorf("internal/version.Version = %q, app Version = %q (keep one version)", version.Version, Version)
 	}
 }
+
+// Todo #124: 터미널의 창 투명도(설정 > 창 투명도)가 보이려면 웹뷰·창이 투명해야 함.
+// 페이지 body는 불투명 배경이라 투명도를 켜지 않으면 보기에는 그대로.
+func TestAppOptions_WindowCanBeSeeThrough(t *testing.T) {
+	opts := newAppOptions(newTestApp(t), newTestTermHost(t))
+	if opts.Windows == nil || !opts.Windows.WebviewIsTransparent || !opts.Windows.WindowIsTranslucent {
+		t.Fatalf("Windows options = %+v, want a transparent webview and a translucent window", opts.Windows)
+	}
+	if opts.BackgroundColour == nil || opts.BackgroundColour.A != 0 {
+		t.Errorf("BackgroundColour = %+v, want alpha 0", opts.BackgroundColour)
+	}
+}

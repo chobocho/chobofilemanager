@@ -224,3 +224,8 @@ select option {
 .tok-emphasis { font-style: italic; }
 .tok-link { text-decoration: underline; }
 .tok-invalid { color: var(--syn-invalid); }
+
+/* Todo #124: 터미널 창 투명도 — 터미널 보기일 때만 페이지 배경을 비움 (창은 투명, main.go) */
+body.term-seethrough.term-view-active,
+body.term-seethrough.term-view-active #root,
+body.term-seethrough.term-view-active [data-app-root] { background: transparent; }

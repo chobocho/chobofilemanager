@@ -14,7 +14,10 @@ import { useTermStore } from '../store/termStore'
 import TerminalPane from './TerminalPane.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
 import AuthPrompt from './AuthPrompt.jsx'
-import { CloseConfirm, PasteConfirm } from './TerminalModals.jsx'
+import { PasteConfirm } from './TerminalModals.jsx'
+import { checkUpdate } from '../core/update'
+import { applyTranslucency } from '../core/look'
+import { onTermEvent } from '../core/termApi'
 import SearchBar from './SearchBar.jsx'
 import TabMenu from './TabMenu.jsx'
 import SessionManager from './SessionManager.jsx'
@@ -64,6 +67,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
   const [pasteRequest, setPasteRequest] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menu, setMenu] = useState(null) // { id, x, y }
+  const [webServer, setWebServer] = useState(null) // 웹 서버가 켜져 있으면 { clients }
   const areaRef = useRef(null)
 
   useEffect(() => {
@@ -75,9 +79,12 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       // 언어: 설정, 비면 Go가 정한 언어 (Todo #124)
       const go = await Promise.resolve(termApi.GetLanguage()).catch(() => '')
       startI18n(resolveLang(settings.language, go))
+      applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu)
+      if (settings.updateCheck) checkUpdate(false)
     })
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()
-    return () => { stopTransferEvents(); stopScriptEvents() }
+    const offWeb = onTermEvent('web:status', (running, clients) => setWebServer(running ? { clients } : null))
+    return () => { stopTransferEvents(); stopScriptEvents(); offWeb() }
   }, [])
 
   function onKeyDown(e) {
@@ -178,6 +185,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
         <button type="button" className={styles.newTab} title="세션 관리 (Ctrl+Shift+H)" onClick={() => useTermStore.getState().openSessionManager()}><Star size={13} /></button>
         <button type="button" className={styles.newTab} title="설정 (Ctrl+Shift+O)" onClick={() => useTermStore.getState().openPrefs()}><Settings size={13} /></button>
         <button type="button" className={styles.newTab} title="매크로 (Ctrl+Shift+M)" onClick={() => useTermStore.getState().openMacros()}><Command size={13} /></button>
+        {webServer && <span className={styles.webBadge} title="웹 서버가 켜져 있습니다 (설정 > 웹 서버)">{`🌐 웹 서버 · 브라우저 ${webServer.clients}개`}</span>}
       </div>
       <div className={styles.panes}>
         <div className={styles.groupArea} ref={areaRef} data-group-area>
@@ -226,7 +234,6 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
         {searchOpen && active && <SearchBar tabId={active.id} onClose={() => setSearchOpen(false)} />}
       </div>
       <AuthPrompt describeTab={id => useTermStore.getState().tabs.find(t => t.id === id)?.tooltip ?? ''} />
-      <CloseConfirm />
       {menu && <TabMenu {...menu} onClose={() => setMenu(null)} />}
       {sessionManager && <SessionManager />}
       {saveRequest && <SaveSessionDialog request={saveRequest} />}

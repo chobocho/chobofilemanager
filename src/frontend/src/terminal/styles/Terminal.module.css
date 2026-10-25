@@ -185,3 +185,11 @@
 /* Zmodem 진행 상자 · 전송 중인 탭 (Todo #124) */
 .xferFloat { position: absolute; right: 16px; top: 8px; z-index: 7; margin: 0; width: min(520px, calc(100% - 32px)); padding: 6px 10px; background: var(--bg-modal); border: 1px solid var(--border-active); border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); }
 .paneChip[data-busy] [data-tab-label]::after { content: ' ⇅'; color: var(--text-accent); }
+
+/* 웹 서버 표시 (Todo #124) */
+.webBadge { margin-left: auto; align-self: center; padding: 1px 8px; border-radius: 10px; background: rgba(52, 152, 219, 0.18); color: #5dade2; font-size: 11px; white-space: nowrap; }
+
+/* 창 투명도 (Todo #124): 창 전체 = 터미널 보기 흐리게, 배경만 = 터미널 배경 투명 */
+:global(body.term-fade) .workspace { opacity: var(--term-fade); }
+:global(body.term-glass) .workspace, :global(body.term-glass) .panes { background: transparent; }
+:global(body.term-glass) .pane :global(.xterm-viewport) { background-color: transparent !important; }

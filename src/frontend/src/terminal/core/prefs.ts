@@ -26,10 +26,14 @@ export interface PrefsForm {
     hlYellow: string;
     hlGreen: string;
     language: string; // '' = the system's, 'ko', 'en'
+    translucency: string;
+    opacity: string;
+    glassGpu: boolean;
+    updateCheck: boolean;
 }
 
 export type PrefsValues = Pick<TermSettings, 'fontSize' | 'fontUtf8' | 'fontEucKr' | 'theme' | 'cursorStyle' | 'cursorBlink' | 'scrollback' |
-    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight' | 'language'>;
+    'keepAlive' | 'autoReconnect' | 'pasteNoConfirm' | 'logAuto' | 'logRaw' | 'logTime' | 'logDir' | 'highlight' | 'language' | 'translucency' | 'opacity' | 'glassGpu' | 'updateCheck'>;
 
 export function prefsForm(s: TermSettings): PrefsForm {
     return {
@@ -52,6 +56,10 @@ export function prefsForm(s: TermSettings): PrefsForm {
         hlYellow: s.highlight?.yellow ?? '',
         hlGreen: s.highlight?.green ?? '',
         language: s.language || '',
+        translucency: s.translucency || 'off',
+        opacity: String(s.opacity || 85),
+        glassGpu: !!s.glassGpu,
+        updateCheck: !!s.updateCheck,
     };
 }
 
@@ -89,6 +97,10 @@ export function readPrefs(f: PrefsForm): {values: PrefsValues} | {error: string;
             logDir: f.logDir.trim(),
             highlight: {on: f.hlOn, red: f.hlRed.trim(), yellow: f.hlYellow.trim(), green: f.hlGreen.trim()},
             language: f.language,
+            translucency: f.translucency,
+            opacity: Number(f.opacity) || 85,
+            glassGpu: f.glassGpu,
+            updateCheck: f.updateCheck,
         },
     };
 }

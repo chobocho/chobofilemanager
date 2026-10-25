@@ -1,23 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, ClipboardPaste } from 'lucide-react'
-import { onTermEvent, termApi } from '../core/termApi'
+import { ClipboardPaste } from 'lucide-react'
 import { saveSettings } from '../core/settings'
 import styles from '../styles/Terminal.module.css'
-
-// 창을 닫을 때 연결된 터미널이 있으면 Go가 app:close로 묻습니다 (Todo #120).
-export function CloseConfirm() {
-  const [open, setOpen] = useState(false)
-  useEffect(() => onTermEvent('app:close', () => setOpen(true)), [])
-  if (!open) return null
-  return createPortal(
-    <ConfirmBox icon={<AlertTriangle size={14} />} title="종료" okLabel="모두 끊고 종료"
-      message="연결된 터미널이 있습니다. 모두 끊고 종료할까요?"
-      onCancel={() => setOpen(false)}
-      onOk={() => { setOpen(false); termApi.Quit().catch(() => undefined) }} />,
-    document.body,
-  )
-}
 
 const MAX_PREVIEW = 2000
 

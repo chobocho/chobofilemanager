@@ -55,7 +55,8 @@ describe('지연 로딩 (Todo #115)', () => {
   })
 
   it('LZ-04: 터미널 코드(src/terminal/)는 초기 그래프에 없음 — 처음 열 때 불러옴 (Todo #119)', () => {
-    expect(graph.files.filter(f => f.startsWith('terminal/'))).toEqual([])
+    // 예외: Go 바인딩 창구(termApi, xterm 없음). 창 닫기 확인(CloseGuard)이 터미널을 열지 않아도 답해야 함 (Todo #124)
+    expect(graph.files.filter(f => f.startsWith('terminal/') && f !== 'terminal/core/termApi.ts')).toEqual([])
   })
 
   it('LZ-03: 그래프 검사가 실제로 동작 (App과 FilePanel은 포함)', () => {

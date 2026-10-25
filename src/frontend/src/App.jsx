@@ -16,6 +16,7 @@ import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/f
 import { isTerminalTarget } from './utils/keyboard.js'
 import { useDockStore } from './stores/dockStore'
 import { useEditorStore } from './stores/editorStore'
+import CloseGuard from './components/CloseGuard'
 
 // Todo #115: 뷰어/에디터(CodeMirror·marked·DOMPurify 포함)는 처음 열 때 불러와 초기 번들을 줄임
 const loadTextEditor = () => import('./components/TextEditor')
@@ -51,7 +52,24 @@ function panelImages() {
   return visible.filter(f => !f.isDir && isImageFile(f.extension || '')).map(f => f.path)
 }
 
+// Todo #124: 다른 PC의 브라우저 화면(웹 서버, internal/web)은 터미널만 — 파일 관리자 Go 바인딩이 없음
+export const isWebPage = () => typeof window !== 'undefined' && !!window.__cbt
+
+export function WebTerminal() {
+  return (
+    <div className={styles.webTerminal}>
+      <Suspense fallback={null}>
+        <TerminalWorkspace />
+      </Suspense>
+    </div>
+  )
+}
+
 export default function App() {
+  return isWebPage() ? <WebTerminal /> : <FileManagerApp />
+}
+
+function FileManagerApp() {
   const init        = useFileStore(s => s.init)
   const loadBkmarks = useFTPStore(s => s.loadBookmarks)
   const theme       = useThemeStore(s => s.theme)
@@ -59,7 +77,11 @@ export default function App() {
   const [view, setView]             = useState('files')
   // 한 번 연 터미널은 다른 보기로 가도 세션이 유지되도록 마운트 유지
   const [terminalMounted, setTerminalMounted] = useState(false)
-  useEffect(() => { if (view === 'terminal') setTerminalMounted(true) }, [view])
+  useEffect(() => {
+    if (view === 'terminal') setTerminalMounted(true)
+    // 창 투명도는 터미널 보기일 때만 페이지 배경을 비움 (global.css)
+    document.body.classList.toggle('term-view-active', view === 'terminal')
+  }, [view])
   const dockOpen    = useDockStore(s => s.open)
   const dockMounted = useDockStore(s => s.mounted)
   const [modal, setModal]           = useState(null)
@@ -268,7 +290,8 @@ export default function App() {
   }, [])
 
   return (
-    <div className={styles.app} data-theme={theme}>
+    <div className={styles.app} data-theme={theme} data-app-root>
+      <CloseGuard />
       <Toolbar
         view={view} onViewChange={setView}
         shortcutsDisabled={overlayOpen}

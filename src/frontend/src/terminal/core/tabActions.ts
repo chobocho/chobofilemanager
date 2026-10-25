@@ -4,7 +4,7 @@
 
 import {termApi} from './termApi';
 import {settings} from './settings';
-import {lookOptions} from './look';
+import {lookOptions, glassOn, seeThrough, applyTranslucency} from './look';
 import {themeByName} from './themes';
 import {NARROW, WIDE} from './cjkwidth';
 import {loadRules} from './highlight';
@@ -16,12 +16,16 @@ const notice = (s: TermSession, msg: string) => s.term.write(`\r\n\x1b[36m[${msg
 /** Fonts, colors (the tab's own theme or Settings'), cursor and scrollback. */
 export function applyLook(s: TermSession) {
     const o = lookOptions(settings, s.encoding === 'EUC-KR');
-    o.theme = themeByName(s.theme || settings.theme).theme;
+    const theme = themeByName(s.theme || settings.theme).theme;
+    // 배경만 투명: xterm이 알파를 그리도록 하고 배경색에 불투명도를 넣음 (글자는 그대로)
+    o.allowTransparency = glassOn();
+    o.theme = glassOn() ? {...theme, background: seeThrough(theme.background ?? '#000000')} : theme;
     Object.assign(s.term.options, o);
 }
 
 /** After the Settings window's OK: every tab takes the new look and keyword rules. */
 export function applySettingsAll(list: TermSession[]) {
+    applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu);
     loadRules();
     for (const s of list) {
         applyLook(s);

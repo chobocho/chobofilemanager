@@ -64,7 +64,8 @@ func newAppOptions(app *App, term *termapp.Host) *options.App {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 18, G: 18, B: 24, A: 1},
+		// 터미널 창 투명도(Todo #124)를 위해 투명 — 페이지 body가 불투명 배경을 그림
+		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
 			term.Startup(ctx)
@@ -83,9 +84,11 @@ func newAppOptions(app *App, term *termapp.Host) *options.App {
 			term.Bindings(),
 		},
 		Windows: &windows.Options{
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
-			DisableWindowIcon:    false,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
+			// 흐림 없음: Acrylic은 창이 비활성일 때 회색으로 칠해짐 (choboTerm과 같게)
+			BackdropType:      windows.None,
+			DisableWindowIcon: false,
 			// 창 찾기(다른 인스턴스에서 창 띄우기 등)에 쓰는 클래스 이름
 			WindowClassName: osutil.WindowClass,
 		},

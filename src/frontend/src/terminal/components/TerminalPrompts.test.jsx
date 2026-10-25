@@ -91,21 +91,7 @@ describe('로그인 질문 (AP)', () => {
   })
 })
 
-describe('창 닫기 확인 (CC)', () => {
-  beforeEach(setup)
-  afterEach(() => { cleanup(); stopEventRouter(); setTermBackend(null) })
-
-  it('CC-01: app:close → 확인 창, 종료 → Quit / 취소 → 그대로', async () => {
-    await renderWs()
-    emit('app:close')
-    expect(screen.getByText(/연결된 터미널/)).toBeTruthy()
-    fireEvent.click(within(screen.getByRole('dialog', { name: '종료' })).getByText('취소'))
-    expect(api.Quit).not.toHaveBeenCalled()
-    emit('app:close')
-    await act(async () => { fireEvent.click(screen.getByText('모두 끊고 종료')) })
-    expect(api.Quit).toHaveBeenCalled()
-  })
-})
+// 창 닫기 확인(CC)은 components/CloseGuard.test.jsx(CG-01~04)로 옮김 — 앱에 항상 붙어 있음 (Todo #124)
 
 describe('붙여넣기 확인 (PC)', () => {
   beforeEach(setup)

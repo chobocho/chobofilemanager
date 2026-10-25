@@ -670,3 +670,27 @@ describe('App 원격 보기 (AV)', () => {
     expect(useEditorStore.getState().viewer.source).toBeUndefined()
   })
 })
+
+// ─── Todo #124: 브라우저 화면(웹 서버) — 터미널만 ───────────────────────────────
+describe('App 웹 화면 (WM)', () => {
+  afterEach(() => { cleanup(); delete window.__cbt; setTermBackend(null); stopEventRouter() })
+
+  it('WM-01: window.__cbt가 있으면 파일 관리자 없이 터미널만', async () => {
+    window.__cbt = { platform: 'windows', arch: 'amd64' }
+    setTermBackend({ GetSettings: vi.fn().mockResolvedValue({}), GetHistory: vi.fn().mockResolvedValue([]), GetSessions: vi.fn().mockResolvedValue([]),
+      GetSSHConfigHosts: vi.fn().mockResolvedValue([]), GetLocalShells: vi.fn().mockResolvedValue([]), GetSerialPorts: vi.fn().mockResolvedValue([]),
+      GetLanguage: vi.fn().mockResolvedValue('ko'), CloseTab: vi.fn().mockResolvedValue() }, { EventsOn: () => () => {} })
+    render(h(App))
+    expect(await screen.findByLabelText('Host')).toBeTruthy()
+    expect(api.LoadPanelPaths).not.toHaveBeenCalled()
+    expect(screen.queryByTitle('File Manager')).toBeNull()
+  })
+
+  it('WM-02: 창 닫기 확인은 파일 관리자 화면에 항상 붙어 있음 (터미널 보기를 안 열어도)', async () => {
+    const handlers = {}
+    setTermBackend({ Quit: vi.fn().mockResolvedValue() }, { EventsOn: (n, fn) => { handlers[n] = fn; return () => {} } })
+    await renderApp()
+    act(() => handlers['app:close']())
+    expect(screen.getByRole('dialog', { name: '종료' })).toBeTruthy()
+  })
+})

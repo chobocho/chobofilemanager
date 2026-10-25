@@ -28,7 +28,7 @@ type UpdateInfo struct {
 }
 
 // LatestReleaseURL is the GitHub API for the newest release; tests may replace it.
-var LatestReleaseURL = "https://api.github.com/repos/chobocho/choboterm/releases/latest"
+var LatestReleaseURL = "https://api.github.com/repos/chobocho/chobofilemanager/releases/latest"
 
 // Every is how often the check at start asks GitHub.
 const Every = 24 * time.Hour

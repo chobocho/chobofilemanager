@@ -28,7 +28,7 @@ export default function TabMenu({ id, x, y, onClose }) {
 
   if (!tab) return null
   const s = sessionById(id)
-  const items = tabMenuItems({ state: tab.state, proto: tab.proto, hasReq: !!s?.req, encoding: s?.encoding ?? 'UTF-8' }, paneCount)
+  const items = tabMenuItems({ state: tab.state, proto: tab.proto, hasReq: !!s?.req, encoding: s?.encoding ?? 'UTF-8', log: !!tab.log }, paneCount)
 
   function run(act) {
     const st = useTermStore.getState()
@@ -40,6 +40,8 @@ export default function TabMenu({ id, x, y, onClose }) {
       case 'splitDown': return st.splitPane(id, 'col')
       case 'encoding': return st.toggleEncoding(id)
       case 'break': return st.sendBreak(id)
+      case 'log': return st.toggleLog(id)
+      case 'logs': return st.showLogs(id)
       case 'saveSession': return st.saveTabSession(id)
       case 'disconnect': return st.disconnect(id)
       case 'close': return st.closeTab(id)

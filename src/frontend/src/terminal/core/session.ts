@@ -59,6 +59,7 @@ export function startEventRouter() {
         onTermEvent('term:open', (id: number, encoding: string) => sessions.get(id)?.handleOpen(encoding)),
         onTermEvent('term:data', (id: number, data: string | Uint8Array) => sessions.get(id)?.receive(data)),
         onTermEvent('term:closed', (id: number, msg: string, lost: boolean) => sessions.get(id)?.handleClosed(msg, lost)),
+        onTermEvent('log:changed', (id: number, path: string) => sessions.get(id)?.handleLogChanged(path)),
     ];
 }
 
@@ -83,6 +84,8 @@ export class TermSession {
     reconnector: Reconnector | undefined;
     /** Keyword highlighting (real xterm only). */
     highlighter: Highlighter | undefined;
+    /** The session log file being written, if any. */
+    log: string | undefined;
 
     private outbox = '';
     private sending = false;
@@ -95,6 +98,7 @@ export class TermSession {
     private closedListeners = new Set<Listener<[string, boolean]>>();
     private outputListeners = new Set<Listener<[]>>();
     private idleInputListeners = new Set<Listener<[string]>>();
+    private logListeners = new Set<Listener<[string | undefined]>>();
 
     constructor(id: number, private deps: SessionDeps) {
         this.id = id;
@@ -214,6 +218,11 @@ export class TermSession {
         this.outputListeners.add(l);
         return () => this.outputListeners.delete(l);
     }
+    /** The session log started or stopped (path, or undefined). */
+    onLog(l: Listener<[string | undefined]>) {
+        this.logListeners.add(l);
+        return () => this.logListeners.delete(l);
+    }
     /** Keys typed while no session is connected. */
     onIdleInput(l: Listener<[string]>) {
         this.idleInputListeners.add(l);
@@ -247,6 +256,8 @@ export class TermSession {
         if (protocol === 'local') req.encoding = 'UTF-8'; // the pseudo console speaks UTF-8 only
         this.handleOpen(req.encoding || 'UTF-8');
         this.encoding = req.encoding || 'UTF-8';
+        // A log started while connecting (Settings: log every session) is announced once the screen is reset.
+        if (this.log && !keepScreen) this.notice(`로그 기록 중: ${this.log}`);
         this.setState(protocol === 'ftp' ? 'ftp' : 'on');
         return protocol;
     }
@@ -263,6 +274,18 @@ export class TermSession {
     receive(data: string | Uint8Array) {
         this.term.write(decodeTermData(data), () => this.highlighter?.schedule());
         this.outputListeners.forEach(l => l());
+    }
+
+    /** log:changed: Go started (path) or stopped ('') the session log. */
+    handleLogChanged(path: string) {
+        this.log = path || undefined;
+        this.logListeners.forEach(l => l(this.log));
+        if (this.state === 'on' || !path) this.notice(path ? `로그 기록 시작: ${path}` : '로그 기록을 멈췄습니다');
+    }
+
+    /** A cyan [message] line on the screen. */
+    notice(msg: string) {
+        this.term.write(`\r\n\x1b[36m[${msg}]\x1b[0m\r\n`);
     }
 
     /** Disconnected on purpose: idle without the term:closed handling (no reconnect). */

@@ -7,6 +7,7 @@ export interface MenuTab {
     proto: string;
     hasReq: boolean;
     encoding: string;
+    log?: boolean;
 }
 
 export interface MenuItem {
@@ -27,6 +28,8 @@ export function tabMenuItems(t: MenuTab, paneCount: number): MenuItem[] {
         {act: 'theme', label: '색 테마 (이 서버)', submenu: true},
         {act: 'encoding', label: `인코딩: ${t.encoding === 'EUC-KR' ? 'UTF-8' : 'EUC-KR'}로 전환`, disabled: t.proto === 'local' && on},
         {act: 'break', label: 'Break 신호 보내기', hidden: !(t.proto === 'serial' && on)},
+        {act: 'log', label: t.log ? '로그 기록 중지' : '로그 기록 시작', disabled: !t.log && !on},
+        {act: 'logs', label: '로그 폴더 열기'},
         {act: 'saveSession', label: '세션으로 저장', disabled: !t.hasReq},
         {act: 'disconnect', label: '연결 끊기', disabled: !on},
         {act: 'sep', label: ''},

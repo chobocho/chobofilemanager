@@ -75,6 +75,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'H') st.openSessionManager()
     else if (k === 'O') st.openPrefs()
     else if (k === 'M') st.openMacros()
+    else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
     else if (k === 'PageUp') st.cycle(-1)
@@ -117,7 +118,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                 const t = tabs.find(x => x.id === id)
                 if (!t) return null
                 return (
-                  <span key={id} title={t.tooltip || t.label}
+                  <span key={id} title={(t.tooltip || t.label) + (t.log ? `\n로그 기록 중: ${t.log}` : '')} data-logging={t.log ? '' : undefined}
                     className={`${styles.paneChip} ${id === activeId ? styles.paneChipActive : ''} ${t.activity ? styles.tabActivity : ''}`}
                     onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}>

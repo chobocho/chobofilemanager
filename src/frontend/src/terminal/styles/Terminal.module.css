@@ -108,3 +108,6 @@
 .macros { width: 700px; max-width: calc(100vw - 32px); }
 .macroKey { min-width: 56px; color: var(--text-accent); font-size: 11px; }
 .macroText { min-height: 160px; resize: vertical; font-family: 'D2Coding', Consolas, monospace; font-size: 12px; }
+
+/* 세션 로그 기록 중인 탭 (Todo #121) */
+.paneChip[data-logging] [data-tab-label]::before { content: '●'; margin-right: 4px; color: #e74c3c; font-size: 9px; vertical-align: 1px; }

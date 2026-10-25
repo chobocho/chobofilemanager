@@ -2,6 +2,17 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #121 — T5 6차: 세션 로그)
+
+### 변경
+- `log:changed` 이벤트 처리: 세션에 로그 경로 기록, 화면 안내(시작/중지), 연결 중 자동 시작(설정 "접속할 때마다 기록")은 화면을 지운 뒤 한 번만 안내
+- `toggleLog`(연결 안 됨이면 안내, 실패 시 오류 표시)·`showLogs` — Ctrl+Shift+L, 탭 메뉴 "로그 기록 시작/중지"·"로그 폴더 열기"
+- 기록 중인 탭: 칩에 빨간 점, 툴팁에 "로그 기록 중: 경로"
+- Go `pendingPageEvents`에서 `log:changed` 제거 (화면이 이제 처리)
+
+### 테스트
+- `sessionlog.test.ts`(SL-01~06), `SessionLog.test.jsx`(SLV-01~02), TA-20 메뉴 항목 — 프론트 987개, Go termapp 통과
+
 ## 2026-10-25 (Todo.md #121 — T5 5차: 매크로)
 
 ### 변경

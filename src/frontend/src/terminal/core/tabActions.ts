@@ -60,6 +60,21 @@ export async function loadTabTheme(s: TermSession) {
     applyLook(s);
 }
 
+/** Starts or stops writing the tab's output to a file; log:changed reports the result. */
+export async function toggleLog(s: TermSession) {
+    if (s.log) return termApi.StopLog(s.id).catch(() => undefined);
+    if (s.state !== 'on') return notice(s, '연결된 터미널에서만 로그를 기록할 수 있습니다');
+    try {
+        await termApi.StartLog(s.id);
+    } catch (e) {
+        notice(s, String((e as Error)?.message ?? e));
+    }
+}
+
+export async function showLogs(s: TermSession) {
+    await termApi.ShowLogs(s.id).catch((e: unknown) => notice(s, String((e as Error)?.message ?? e)));
+}
+
 export async function sendBreak(s: TermSession) {
     try {
         await termApi.SendBreak(s.id);

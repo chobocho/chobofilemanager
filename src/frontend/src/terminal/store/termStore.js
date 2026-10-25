@@ -3,7 +3,7 @@ import { sessionById, allSessions } from '../core/session'
 import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
 import { sendMacro } from '../core/macros'
-import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll } from '../core/tabActions'
+import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
 const fieldsOf = (req) => ({ host: req.host, port: String(req.port), login: req.login || '', pass: req.pass || '',
@@ -137,6 +137,7 @@ export const useTermStore = create((set, get) => ({
     const offs = [
       session.onState(state => get().updateTab(id, { state })),
       session.onTitle(title => get().updateTab(id, { title })),
+      session.onLog(log => get().updateTab(id, { log: log ?? '' })),
     ]
     return () => offs.forEach(off => off())
   },
@@ -195,6 +196,8 @@ export const useTermStore = create((set, get) => ({
   toggleEncoding: async (id) => { const s = sessionById(id); if (s) await toggleEncoding(s) },
   chooseTheme: async (id, name) => { const s = sessionById(id); if (s) await chooseTheme(s, name) },
   sendBreak: async (id) => { const s = sessionById(id); if (s) await sendBreak(s) },
+  toggleLog: async (id) => { const s = sessionById(id); if (s) await toggleLog(s) },
+  showLogs: async (id) => { const s = sessionById(id); if (s) await showLogs(s) },
 
   // ── 저장된 세션 (Todo #121) ──
   // "세션으로 저장" 창을 열고 저장된 세션(취소면 null)을 돌려줌

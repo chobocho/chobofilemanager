@@ -2,6 +2,13 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 CI 실패 수정 (2): Wails 바인딩 생성, 타입 검사 오류
+- npm ci가 통과하자 가려져 있던 오류가 드러남 (CI는 처음부터 한 번도 통과한 적 없음).
+  - 프론트가 import하는 `frontend/wailsjs`(생성물, gitignore)가 CI에 없음 → "Wails bindings" 단계 추가: wails v2.11.0 설치, 빈 `frontend/dist/.keep` 생성(go:embed 요구), `wails generate module`.
+  - `catCss.test.ts`가 node:fs를 써 tsc 타입 검사 실패 → `catCss.test.js`로 변경(lazyLoad.test.js와 같은 방식).
+  - Frontend 단계를 bash로 실행해 Windows에서도 첫 실패에서 멈추게 함.
+- 확인: 로컬 typecheck·프론트 1239개 통과, 바인딩 생성은 깨끗한 worktree에서 재현 확인.
+
 ## 2026-10-25 CI 실패 수정: package-lock.json과 npm 버전 불일치
 - 증상: GitHub Actions의 Frontend 단계에서 `npm ci`가 "Missing: @emnapi/runtime@1.11.3, esbuild@0.28.2 from lock file"로 실패 (여러 커밋 전부터 계속).
 - 원인: 로컬(Node 24, npm 11)이 만든 lock에 선택적 peer 의존성이 빠져 있는데, CI(Node 22, npm 10)는 이를 요구함.

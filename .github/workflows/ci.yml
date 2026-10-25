@@ -36,8 +36,17 @@ jobs:
       - name: Linux libraries
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+      # 프론트가 import하는 Wails 바인딩(frontend/wailsjs)은 생성물이라 저장소에 없음 → 만들어 둠.
+      # main.go의 go:embed가 frontend/dist를 요구하므로 빈 파일을 먼저 둠 (빌드 단계에서 채움)
+      - name: Wails bindings
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+          mkdir -p frontend/dist && touch frontend/dist/.keep
+          wails generate module
       - name: Frontend
         working-directory: src/frontend
+        shell: bash # Windows(pwsh)도 첫 실패에서 멈추도록
         run: |
           npm ci
           npm run typecheck

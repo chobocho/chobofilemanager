@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 
 // vitest는 CSS를 비워 import하므로 파일을 직접 읽음 (cwd = src/frontend)
 const css = readFileSync(resolve('src/terminal/styles/cat.css'), 'utf8');
-let style: HTMLStyleElement | undefined, el: HTMLElement | undefined;
+let style, el
 afterEach(() => { style?.remove(); el?.remove(); });
 
 describe('Lua 결과 창 CSS (CC)', () => {

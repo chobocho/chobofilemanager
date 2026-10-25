@@ -245,3 +245,8 @@ func (a *App) CompareDirs(left, right string, opts CompareOptions) ([]SyncItem, 
 func (a *App) SyncDirs(left, right string, actions []SyncAction) error {
 	return a.fileManager.SyncDirs(left, right, actions)
 }
+
+// CompareFileBytes: 파일 내용 비교 (Ctrl+Shift+D, Todo #133-7)
+func (a *App) CompareFileBytes(pathA, pathB string) (FileCompareResult, error) {
+	return a.fileManager.CompareFileBytes(pathA, pathB)
+}

@@ -2,6 +2,13 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #133-7: 파일 내용 비교 (Ctrl+Shift+D, @codemirror/merge)
+- 의존성: `@codemirror/merge` 6.12.2(MIT, 에디터와 같은 CodeMirror 6) — 6일 전에 나온 6.12.3 대신 검증 기간이 지난 버전으로 고정, lock은 npm 10으로 갱신(npm 10/11 `npm ci` 확인), THIRD_PARTY_NOTICES 갱신
+- `DiffView`(처음 열 때 불러옴): 좌우 diff, 바뀐 줄·글자 강조, 구문 강조, Alt+↑/↓ 이전·다음 차이, "같은 부분 접기", 양쪽 편집 → Ctrl+S가 고친 쪽만 저장, 고친 채 Esc는 한 번 더 눌러야 닫힘. 떠 있는 동안 키는 패널로 새지 않음
+- 대상(`utils/diffTargets.js`, TC와 같게): 한 패널에서 고른 파일 두 개, 아니면 커서 파일 + 반대 패널의 같은 이름 파일(없으면 반대 패널 커서 파일). 동기화 창(Alt+F2)에서 양쪽에 있는 파일 줄 더블클릭으로도 열림
+- Go `CompareFileBytes`: 앞 8KB에 NUL이 있으면 바이너리 — 첫 차이 위치(10진·16진)와 크기만 표시. 압축 파일 안의 파일도 비교 가능
+- 테스트: filecompare_test.go 2개, DiffView.test.js(PT 4 · DV 6), App AP-DF1~2 — Go 전체 · 프론트 1326개 통과, vite build 확인
+
 ## 2026-10-25 Todo.md #133-6: 폴더 비교(Shift+F2) · 동기화(Alt+F2)
 - Shift+F2 (`utils/compareDirs.js`): 두 패널을 이름(대소문자 무시)으로 맞춰 각 쪽에서 더 새 파일 · 한쪽에만 있는 파일 선택, 날짜 같고 크기 다르면 양쪽, 2초 이내 차이는 같은 시각. 폴더는 무시(TC와 같게)
 - Alt+F2 `SyncDialog`: 열자마자 비교, 옵션(하위 폴더 · 내용 비교 · 날짜 무시), 보기 필터(→ ← = ≠ 개수), 줄마다 방향 칸 클릭(→ ← 없음), 보이는 항목 중 방향 있는 것만 "동기화 (N)", 끝나면 다시 비교 + 두 패널 새로 고침. 양쪽에 있는 파일 줄 더블클릭은 내용 비교(133-7에서 연결)

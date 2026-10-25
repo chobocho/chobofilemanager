@@ -13,6 +13,7 @@ import HelpDialog from './components/HelpDialog'
 import SelectMaskDialog from './components/SelectMaskDialog'
 import MultiRenameDialog from './components/MultiRenameDialog'
 import SyncDialog from './components/SyncDialog'
+import { pickDiffTargets } from './utils/diffTargets.js'
 import CopyConflictDialog from './components/CopyConflictDialog'
 import MoveConflictDialog from './components/MoveConflictDialog'
 import { MAX_VIEWER_FILE_SIZE, exceedsViewerLimit, isImageFile } from './utils/fileTypes.js'
@@ -31,6 +32,8 @@ const TerminalWorkspace = lazy(() => import('./terminal/components/TerminalWorks
 // Todo #122: 하단 터미널 도크 — F9로 처음 열 때 불러옴
 const TerminalDock = lazy(() => import('./terminal/components/TerminalDock.jsx'))
 const FileViewer = lazy(loadFileViewer)
+// Todo #133-7: 파일 내용 비교 (@codemirror/merge) — 처음 열 때 불러옴
+const DiffView = lazy(() => import('./components/DiffView'))
 
 // 시작 후 여유 시간에 미리 받아 두어 첫 F3/F4도 바로 열리게 함
 export function prefetchViewerChunks() {
@@ -44,6 +47,11 @@ import styles from './styles/App.module.css'
 export function isStarlarkScratchShortcut(e) {
   if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey) return false
   return (e.key || '').toLowerCase() === 'm'
+}
+
+// Ctrl+Shift+D: 파일 내용 비교 (Todo #133-7)
+export function isDiffShortcut(e) {
+  return !!(e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key || '').toLowerCase() === 'd'
 }
 
 export function isMultiRenameShortcut(e) {
@@ -102,12 +110,13 @@ function FileManagerApp() {
   const [copyConflict, setCopyConflict] = useState(null) // { conflicts, sources, dest }
   const [moveConflict, setMoveConflict] = useState(null) // { conflicts, sources, dest }
   const [fileSizeError, setFileSizeError] = useState(null) // 크기 초과 파일명
+  const [diff, setDiff] = useState(null) // { left, right } 파일 내용 비교 (Todo #133-7)
   const leftPanelRef  = useRef(null)
   const rightPanelRef = useRef(null)
 
   // Todo #77: 화면 위에 무언가 떠 있으면 파일 패널 단축키를 막음 (키 입력이 뒤 패널로 새지 않게)
   const overlayOpen = !!(modal || editor || viewer || deleteTarget || trashTarget
-    || copyConflict || moveConflict || fileSizeError)
+    || copyConflict || moveConflict || fileSizeError || diff)
 
   // 모달/다이얼로그 닫힌 후 활성 패널로 포커스 복원
   const focusActivePanel = useCallback(() => {
@@ -215,6 +224,12 @@ function FileManagerApp() {
       if (isMultiRenameShortcut(e)) {
         e.preventDefault()
         openMultiRename()
+      }
+      if (isDiffShortcut(e)) {
+        e.preventDefault()
+        const t = pickDiffTargets(useFileStore.getState())
+        if (t) setDiff({ left: t[0], right: t[1] })
+        else useFileStore.getState().setStatus('비교할 파일: 한 패널에서 두 개를 고르거나, 양쪽 패널의 커서를 파일에 두세요')
       }
     }
     window.addEventListener('keydown', handler)
@@ -426,6 +441,7 @@ function FileManagerApp() {
       {modal === 'sync' && (() => {
         const s = useFileStore.getState()
         return <SyncDialog left={s.left.path} right={s.right.path} onClose={closeModal}
+          onDiff={(l, r) => setDiff({ left: l, right: r })}
           onDone={() => { const st = useFileStore.getState(); st.refresh('left'); st.refresh('right') }} />
       })()}
       {modal === 'multirename' && renameTargets && (
@@ -489,6 +505,8 @@ function FileManagerApp() {
         onSwitchToEditor={() => useEditorStore.getState().viewerToEditor()}
         siblingImages={viewer.siblings ?? null}
         onChangePath={(p) => useEditorStore.getState().changeViewerPath(p)} />}
+      {diff && <DiffView leftPath={diff.left} rightPath={diff.right}
+        onClose={() => { setDiff(null); if (!modal) focusActivePanel() }} />}
       {editor && <TextEditor path={editor.path} source={editor.source} onClose={closeEditor}
         onSwitchToViewer={() => useEditorStore.getState().editorToViewer()} />}
       </Suspense>

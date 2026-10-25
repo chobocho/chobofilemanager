@@ -374,6 +374,31 @@ describe('App 커버리지 — 뷰어/에디터', () => {
   })
 })
 
+describe('파일 내용 비교 (Todo #133-7)', () => {
+  afterEach(() => cleanup())
+
+  it('AP-DF1: Ctrl+Shift+D → 커서 파일과 반대 패널의 같은 이름 파일을 비교, Esc로 닫기', async () => {
+    api.CompareFileBytes = vi.fn().mockResolvedValue({ equal: true, binary: true, firstDiff: -1, sizeA: 1, sizeB: 1 })
+    await renderApp()
+    cursorTo('x.txt')
+    await key({ key: 'D', ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(api.CompareFileBytes).toHaveBeenCalledWith('/a/x.txt', '/b/x.txt'))
+    expect(await screen.findByRole('dialog', { name: '파일 내용 비교' })).toBeTruthy()
+    // 비교 화면이 떠 있는 동안 F5는 패널 복사로 새지 않음
+    await key({ key: 'F5' })
+    expect(api.CheckCopyConflicts).not.toHaveBeenCalled()
+    await key({ key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '파일 내용 비교' })).toBeNull()
+  })
+
+  it('AP-DF2: 대상이 없으면 상태 표시줄 안내', async () => {
+    await renderApp()
+    cursorTo('sub')
+    await key({ key: 'D', ctrlKey: true, shiftKey: true })
+    expect(useFileStore.getState().status).toMatch(/비교할 파일/)
+  })
+})
+
 describe('여러 이름 바꾸기 (Todo #133-4)', () => {
   afterEach(() => cleanup())
 

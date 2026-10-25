@@ -1,0 +1,51 @@
+/* 파일 내용 비교 (Ctrl+Shift+D, Todo #133-7) — 틀은 TextEditor.module.css */
+.diff { display: flex; flex-direction: column; }
+
+.paths {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 4px 8px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.paths span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dirty { color: var(--warning, #e0a030); font-style: normal; }
+
+.merge {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-editor);
+}
+
+/* 두 편집기를 나란히, 전체가 함께 스크롤 */
+.merge :global(.cm-mergeView) { min-height: 100%; }
+.merge :global(.cm-changedLine) { background: rgba(255, 196, 0, 0.10); }
+.merge :global(.cm-changedText) { background: rgba(255, 140, 0, 0.35); }
+.merge :global(.cm-deletedChunk) { background: rgba(255, 70, 70, 0.12); }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.binary {
+  flex: 1;
+  padding: 24px;
+  font-size: 13px;
+}
+
+.dim { color: var(--text-dim); }
+.error { color: var(--danger, #e05050); }

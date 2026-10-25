@@ -181,3 +181,7 @@
 .sl_err { color: #e74c3c; }
 .sl_hint { color: var(--text-muted); }
 .scriptInput { border: none; border-top: 1px solid var(--border); outline: none; resize: none; padding: 4px 8px; background: transparent; color: var(--text-primary); font-family: 'D2Coding', Consolas, monospace; font-size: 12px; }
+
+/* Zmodem 진행 상자 · 전송 중인 탭 (Todo #124) */
+.xferFloat { position: absolute; right: 16px; top: 8px; z-index: 7; margin: 0; width: min(520px, calc(100% - 32px)); padding: 6px 10px; background: var(--bg-modal); border: 1px solid var(--border-active); border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); }
+.paneChip[data-busy] [data-tab-label]::after { content: ' ⇅'; color: var(--text-accent); }

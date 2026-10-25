@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 — T8 4차: Zmodem 진행 표시)
+
+### 변경
+- 리팩터링: 전송 진행 표시를 `TransferProgress.jsx`로 분리 (원격 파일 창과 함께 씀)
+- Zmodem(sz/rz)처럼 파일 창 없이 오는 `xfer:progress`는 활성 탭 칸 구석에 떠 있는 진행 상자(이름·막대·속도·취소), 전송 중인 탭 칩에 ⇅ 표시
+- 시리얼 탭에서 파일 전송(Ctrl+Shift+F) → "sz / rz(Zmodem)를 쓰세요" 안내
+
+### 테스트
+- `Zmodem.test.jsx`(ZM-01~04) — 프론트 1123개 통과
+
 ## 2026-10-25 (Todo.md #124 — T8 3차: Lua 콘솔 · 스크립트 · Lua 매크로)
 
 ### 변경

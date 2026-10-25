@@ -20,6 +20,7 @@ import PrefsDialog from './PrefsDialog.jsx'
 import MacrosDialog from './MacrosDialog.jsx'
 import MemoPad from './MemoPad.jsx'
 import RemoteFiles from './RemoteFiles.jsx'
+import TransferProgress from './TransferProgress.jsx'
 import ForwardsDialog from './ForwardsDialog.jsx'
 import ContainersDialog from './ContainersDialog.jsx'
 import ScriptBox from './ScriptBox.jsx'
@@ -54,6 +55,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     return () => clearInterval(t)
   }, [anyRunning])
   const filesView = useFilesStore(s => (activeId != null ? s.views[activeId] : undefined))
+  const xfer = useFilesStore(s => s.xfer)
   const active = tabs.find(t => t.id === activeId)
   const activeGroup = groups.find(g => leaves(g.layout).includes(activeId))
   const [pasteRequest, setPasteRequest] = useState(null)
@@ -146,7 +148,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
                 const t = tabs.find(x => x.id === id)
                 if (!t) return null
                 return (
-                  <span key={id} title={(t.tooltip || t.label) + (t.log ? `\n로그 기록 중: ${t.log}` : '')} data-logging={t.log ? '' : undefined}
+                  <span key={id} title={(t.tooltip || t.label) + (t.log ? `\n로그 기록 중: ${t.log}` : '')} data-logging={t.log ? '' : undefined} data-busy={xfer?.tabId === id ? '' : undefined}
                     className={`${styles.paneChip} ${id === activeId ? styles.paneChipActive : ''} ${t.activity ? styles.tabActivity : ''}`}
                     onClick={(e) => { e.stopPropagation(); useTermStore.getState().setActive(id) }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); useTermStore.getState().setActive(id); setMenu({ id, x: e.clientX, y: e.clientY }) }}>
@@ -211,6 +213,8 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
         )}
         {active?.dialog && <ConnectDialog key={active.id} tab={active} />}
         {filesView && <RemoteFiles key={activeId} id={activeId} />}
+        {/* sz / rz: 파일 창이 없으면 칸 구석에 떠 있는 진행 상자 (Todo #124) */}
+        {!filesView && xfer && xfer.tabId === activeId && <TransferProgress xfer={xfer} floating />}
         {searchOpen && active && <SearchBar tabId={active.id} onClose={() => setSearchOpen(false)} />}
       </div>
       <AuthPrompt describeTab={id => useTermStore.getState().tabs.find(t => t.id === id)?.tooltip ?? ''} />

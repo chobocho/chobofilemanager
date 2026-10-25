@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { X, ArrowUp, RefreshCw, Upload, Download, FolderPlus, FilePlus, Pencil, Trash2, ChevronDown } from 'lucide-react'
 import { useFilesStore } from '../store/filesStore'
 import { useFileStore } from '../../stores/fileStore'
-import { formatSize, folderKey, isUp, pickedEntries, deleteMessage, transferText, transferPercent } from '../core/remoteFiles'
+import { formatSize, folderKey, isUp, pickedEntries, deleteMessage } from '../core/remoteFiles'
+import TransferProgress from './TransferProgress.jsx'
 import styles from '../styles/Terminal.module.css'
 
 // 원격 파일 창 (Ctrl+Shift+F, Todo #123, choboTerm files.ts): SSH 연결은 SFTP(없으면 SCP), FTP 연결은 FTP.
@@ -186,16 +187,7 @@ export default function RemoteFiles({ id }) {
             </tbody>
           </table>
         </div>
-        {showXfer && (
-          <div className={styles.xfer}>
-            <span>{`${xfer.upload ? '⬆' : '⬇'} ${xfer.name}`}</span>
-            <div className={styles.xferTrack} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={transferPercent(xfer)}>
-              <div className={styles.xferBar} style={{ width: `${transferPercent(xfer)}%` }} />
-            </div>
-            <span className={styles.dim}>{transferText(xfer, xfer.secs)}</span>
-            <button type="button" onClick={() => st.cancelTransfer()}>전송 취소</button>
-          </div>
-        )}
+        {showXfer && <TransferProgress xfer={xfer} />}
         {v.status && <div className={v.statusOk ? styles.okMsg : styles.error} role={v.statusOk ? 'status' : 'alert'}>{v.status}</div>}
         <div className={styles.dialogActions}>
           <button type="button" title="파일 올리기" disabled={v.busy} onClick={() => st.upload(id)}><Upload size={12} /> 업로드</button>

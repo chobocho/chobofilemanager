@@ -294,6 +294,7 @@ export const useTermStore = create((set, get) => ({
     const t = get().tabs.find(x => x.id === id)
     const s = sessionById(id)
     if (!t || !s) return
+    if (s.proto === 'serial') return s.notice('시리얼 포트에서는 파일 전송 창 대신 sz / rz(Zmodem)를 쓰세요')
     try {
       await useFilesStore.getState().open(id, t.label)
     } catch (e) {

@@ -4,15 +4,15 @@
 
 import {termApi} from './termApi';
 import {settings} from './settings';
-import {lookOptions, glassOn, seeThrough, applyTranslucency} from './look';
+import {lookOptions, glassOn, seeThrough, applySavedTranslucency} from './look';
 import {themeByName} from './themes';
 import {NARROW, WIDE} from './cjkwidth';
 import {loadRules} from './highlight';
 import {applyMountedCat} from './cat';
 import type {TermSession} from './session';
 import type {Reconnector} from './reconnect';
+import {errText} from './errText';
 
-const notice = (s: TermSession, msg: string) => s.term.write(`\r\n\x1b[36m[${msg}]\x1b[0m\r\n`);
 
 /** Fonts, colors (the tab's own theme or Settings'), cursor and scrollback. */
 export function applyLook(s: TermSession) {
@@ -26,7 +26,7 @@ export function applyLook(s: TermSession) {
 
 /** After the Settings window's OK: every tab takes the new look and keyword rules. */
 export function applySettingsAll(list: TermSession[]) {
-    applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu);
+    applySavedTranslucency();
     applyMountedCat();
     loadRules();
     for (const s of list) {
@@ -45,11 +45,11 @@ export function applyEncoding(s: TermSession, name: string) {
 }
 
 export async function toggleEncoding(s: TermSession) {
-    if (s.proto === 'local' && s.state !== 'idle') return notice(s, '로컬 셸은 UTF-8만 씁니다');
+    if (s.proto === 'local' && s.state !== 'idle') return s.notice('로컬 셸은 UTF-8만 씁니다');
     const name = await termApi.SetEncoding(s.id, s.encoding === 'EUC-KR' ? 'UTF-8' : 'EUC-KR');
     applyEncoding(s, name);
     if (s.req) s.req.encoding = name;
-    notice(s, `인코딩: ${name}`);
+    s.notice(`인코딩: ${name}`);
 }
 
 /** Picks a color theme for the tab ("" = Settings) and remembers it for its server. */
@@ -69,24 +69,24 @@ export async function loadTabTheme(s: TermSession) {
 /** Starts or stops writing the tab's output to a file; log:changed reports the result. */
 export async function toggleLog(s: TermSession) {
     if (s.log) return termApi.StopLog(s.id).catch(() => undefined);
-    if (s.state !== 'on') return notice(s, '연결된 터미널에서만 로그를 기록할 수 있습니다');
+    if (s.state !== 'on') return s.notice('연결된 터미널에서만 로그를 기록할 수 있습니다');
     try {
         await termApi.StartLog(s.id);
     } catch (e) {
-        notice(s, String((e as Error)?.message ?? e));
+        s.notice(errText(e));
     }
 }
 
 export async function showLogs(s: TermSession) {
-    await termApi.ShowLogs(s.id).catch((e: unknown) => notice(s, String((e as Error)?.message ?? e)));
+    await termApi.ShowLogs(s.id).catch((e: unknown) => s.notice(errText(e)));
 }
 
 export async function sendBreak(s: TermSession) {
     try {
         await termApi.SendBreak(s.id);
-        notice(s, 'Break 신호를 보냈습니다');
+        s.notice('Break 신호를 보냈습니다');
     } catch (e) {
-        notice(s, String((e as Error)?.message ?? e));
+        s.notice(errText(e));
     }
 }
 

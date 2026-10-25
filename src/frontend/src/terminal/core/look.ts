@@ -6,7 +6,7 @@
 import type {ITerminalOptions} from '@xterm/xterm';
 import {fontFamily} from './cjkwidth';
 import {themeByName} from './themes';
-import type {TermSettings} from './settings';
+import {settings as saved, type TermSettings} from './settings';
 import {splitKeyDir} from './layout';
 
 export interface Translucency {
@@ -37,6 +37,11 @@ export function applyTranslucency(mode: string, opacity: number, gpu: boolean) {
     body.toggle('term-glass', glassOn());
     body.toggle('term-fade', seeThroughOn() && mode === 'window');
     document.documentElement.style.setProperty('--term-fade', String(opacity / 100));
+}
+
+/** Shows the translucency the settings keep (off, 85% when not set). */
+export function applySavedTranslucency(s: TermSettings = saved) {
+    applyTranslucency(s.translucency || 'off', s.opacity || 85, s.glassGpu);
 }
 
 export function resetTranslucencyForTest() {

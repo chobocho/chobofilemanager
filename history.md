@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #126 리팩터링 6: 터미널 공용 도우미 정리)
+
+### 변경
+- `core/errText.ts` 신규: 실패 문구 — 24곳에 흩어져 있던 `String(e?.message ?? e)`와 store 두 곳의 지역 `errText`를 하나로
+- 화면 안내 줄은 `TermSession.notice` 하나로 (tabActions·macros의 복사본 `notice` 제거)
+- 저장된 창 투명도 적용 `applySavedTranslucency()` (작업 공간 시작·설정 취소·설정 확인 세 곳의 같은 줄을 하나로)
+
+### 테스트
+- `errText.test.ts`(UT-01~02) — 프론트 1180개 통과
+
 ## 2026-10-25 (Todo.md #126 리팩터링 5: 사용자에게 보이는 "choboterm" → 제품 이름)
 
 ### 변경

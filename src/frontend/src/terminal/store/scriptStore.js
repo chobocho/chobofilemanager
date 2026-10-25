@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { termApi, onTermEvent, browserOpenURL } from '../core/termApi'
 import { sessionById } from '../core/session'
 import { addLines, CONSOLE_HINT } from '../core/luaScript'
+import { errText } from '../core/errText'
 
 // 탭에서 실행 중인 Lua 스크립트와 Lua 콘솔 (Todo #124, choboTerm luaconsole.ts).
 // tabs[id] = { script: {name, started, console} | null, box: { state, name, started, ms, busy, lines, log, history, hpos } | null }
@@ -9,7 +10,7 @@ import { addLines, CONSOLE_HINT } from '../core/luaScript'
 
 const AUTO_CLOSE_MS = 5000
 const HISTORY_MAX = 100
-const errText = (e) => String(e?.message ?? e)
+const errText = (e) => errText(e)
 const timers = new Map() // 끝난 상자를 닫는 타이머
 let evalSeq = 0
 

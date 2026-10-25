@@ -16,7 +16,7 @@ import ConnectDialog from './ConnectDialog.jsx'
 import AuthPrompt from './AuthPrompt.jsx'
 import { PasteConfirm } from './TerminalModals.jsx'
 import { checkUpdate } from '../core/update'
-import { applyTranslucency } from '../core/look'
+import { applySavedTranslucency } from '../core/look'
 import { onTermEvent } from '../core/termApi'
 import { copySelection, pasteClipboard } from '../core/clipboard'
 import TerminalHelp from './TerminalHelp.jsx'
@@ -120,7 +120,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       // 언어: 설정, 비면 Go가 정한 언어 (Todo #124)
       const go = await Promise.resolve(termApi.GetLanguage()).catch(() => '')
       startI18n(resolveLang(settings.language, go))
-      applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu)
+      applySavedTranslucency()
       if (settings.updateCheck) checkUpdate(false)
     })
     if (useTermStore.getState().tabs.length === 0) useTermStore.getState().newTab()

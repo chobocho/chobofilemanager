@@ -10,6 +10,7 @@ import { useEditorStore } from '../../stores/editorStore'
 import { createRemoteSource } from '../core/remoteSource'
 import { viewable } from '../core/remoteFiles'
 import { isImageFile } from '../../utils/fileTypes.js'
+import { errText } from '../core/errText'
 
 const extOf = (name) => (name.includes('.') ? '.' + name.split('.').pop() : '')
 // 보기를 닫은 뒤 포커스를 돌려줄 곳: 원격 파일 목록 (aria-label은 영어 화면에서 바뀌므로 전용 속성으로 찾음)
@@ -19,7 +20,7 @@ const focusRemoteList = () => requestAnimationFrame(() => document.querySelector
 // 다른 탭의 창은 폴더·선택·진행 중인 전송을 그대로 둡니다.
 // views[tabId] = { ...RemoteView, heading, busy, status, statusOk, marks }
 
-const errText = (e) => String(e?.message ?? e)
+const errText = (e) => errText(e)
 
 // 활성 파일 패널의 폴더 / 선택 항목(없으면 커서 항목)
 function panelFolder() {

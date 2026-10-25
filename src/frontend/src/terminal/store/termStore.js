@@ -10,6 +10,7 @@ import { settings, saveSettings } from '../core/settings'
 import { nextFontSize } from '../core/clipboard'
 import { toast } from '../core/toast'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
+import { errText } from '../core/errText'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
 const fieldsOf = (req) => ({ host: req.host, port: String(req.port), login: req.login || '', pass: req.pass || '',
@@ -178,7 +179,7 @@ export const useTermStore = create((set, get) => ({
       // FTP는 터미널이 없으니 파일 창을 바로 엶
       if (proto === 'ftp') get().openFiles(id)
     } catch (e) {
-      get().updateTab(id, { connecting: false, dialog: true, state: 'idle', error: String(e?.message ?? e) })
+      get().updateTab(id, { connecting: false, dialog: true, state: 'idle', error: errText(e) })
     }
   },
 
@@ -287,7 +288,7 @@ export const useTermStore = create((set, get) => ({
       get().updateTab(id, { proto: 'docker', state: s.state })
       applyEncoding(s, 'UTF-8')
     } catch (e) {
-      s.notice(String(e?.message ?? e))
+      s.notice(errText(e))
     }
   },
 
@@ -300,7 +301,7 @@ export const useTermStore = create((set, get) => ({
     try {
       await useFilesStore.getState().open(id, t.label)
     } catch (e) {
-      s.notice(String(e?.message ?? e))
+      s.notice(errText(e))
     }
   },
 
@@ -321,7 +322,7 @@ export const useTermStore = create((set, get) => ({
       localStorage.setItem(MEMO_KEY, text)
       return ''
     } catch (e) {
-      return String(e?.message ?? e)
+      return errText(e)
     }
   },
 

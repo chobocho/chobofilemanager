@@ -2,6 +2,7 @@
 // connection.ts (scheduleRetry / retryNow / cancelRetry / reconnectHint).
 
 import type {TermSession} from './session';
+import {errText} from './errText';
 
 export const RETRY_DELAYS = [3, 5, 10, 20, 30]; // seconds; the last one repeats
 export const MAX_RETRIES = 10;
@@ -69,7 +70,7 @@ export class Reconnector {
             await s.connect({...s.req}, true);
             this.write('\x1b[32m[다시 연결했습니다]\x1b[0m\r\n');
         } catch (e) {
-            if (!this.disposed && s.state === 'idle') this.schedule(attempt + 1, String((e as Error)?.message ?? e));
+            if (!this.disposed && s.state === 'idle') this.schedule(attempt + 1, errText(e));
         } finally {
             this.reconnecting = false;
         }

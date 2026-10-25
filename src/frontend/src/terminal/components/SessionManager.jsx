@@ -5,6 +5,7 @@ import { filterSessions, sessionRows, sessionMeta, groupsOf, importMessage, fiel
 import { ENCODINGS } from '../core/connect'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
+import { errText } from '../core/errText'
 
 // 세션 관리자 (Ctrl+Shift+H, Todo #121, choboTerm sessions.ts).
 // 고친 내용은 잠시 뒤(또는 다른 세션을 고르거나 닫을 때) 저장됩니다.
@@ -92,7 +93,7 @@ export default function SessionManager() {
       if (selRef.current === x.id) setSel(saved.id)
       return saved
     } catch (e) {
-      say(String(e?.message ?? e))
+      say(errText(e))
       return false
     }
   }
@@ -142,7 +143,7 @@ export default function SessionManager() {
       choose(list.find(o => o.id === copy.id) ?? copy)
       setTimeout(() => { nameRef.current?.focus(); nameRef.current?.select() })
     } catch (e) {
-      say(String(e?.message ?? e))
+      say(errText(e))
     }
   }
 
@@ -161,7 +162,7 @@ export default function SessionManager() {
     try {
       if (x.id) await termApi.DeleteSession(x.id)
     } catch (e) {
-      say(String(e?.message ?? e))
+      say(errText(e))
       return
     }
     if (x.id === '') setDraft(null)
@@ -209,7 +210,7 @@ export default function SessionManager() {
         say(text, true)
       }
     } catch (e) {
-      say(String(e?.message ?? e))
+      say(errText(e))
     }
     listRef.current?.focus()
   }

@@ -5,6 +5,7 @@ import { sessionById } from '../core/session'
 import { sshOption, sshCommand, forwardStatus, FORWARD_HINTS } from '../core/forwards'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
+import { errText } from '../core/errText'
 
 // SSH 포트 포워딩 창 (Ctrl+Shift+P, Todo #124, choboTerm forwards.ts).
 // 규칙은 서버별로 저장되어 다음 접속 때 다시 시작합니다.
@@ -25,7 +26,7 @@ export default function ForwardsDialog({ id }) {
       return list
     } catch (e) {
       setRules([])
-      setError(String(e?.message ?? e))
+      setError(errText(e))
       return []
     }
   }, [id])
@@ -51,7 +52,7 @@ export default function ForwardsDialog({ id }) {
       setSel(list.findIndex(r => r.id === st.id))
       portRef.current?.focus()
     } catch (e) {
-      setError(String(e?.message ?? e))
+      setError(errText(e))
     }
   }
 
@@ -59,7 +60,7 @@ export default function ForwardsDialog({ id }) {
     const r = rules[sel]
     if (!r) return
     setError('')
-    await termApi.ForwardRemove(id, r.id).catch(e => setError(String(e?.message ?? e)))
+    await termApi.ForwardRemove(id, r.id).catch(e => setError(errText(e)))
     await refresh()
   }
 

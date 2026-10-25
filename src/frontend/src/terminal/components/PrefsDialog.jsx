@@ -8,7 +8,7 @@ import { THEMES } from '../core/themes'
 import { useTermStore } from '../store/termStore'
 import { termApi as goApi } from '../core/termApi'
 import { startI18n, resolveLang, currentLang } from '../core/i18n'
-import { applyTranslucency } from '../core/look'
+import { applyTranslucency, applySavedTranslucency } from '../core/look'
 import { checkUpdate } from '../core/update'
 import { clipboardSetText } from '../core/termApi'
 
@@ -23,6 +23,7 @@ function webState(info) {
 
 const webPage = typeof window !== 'undefined' && !!window.__cbt // 브라우저 화면이면 웹 서버 설정 없음
 import styles from '../styles/Terminal.module.css'
+import { errText } from '../core/errText'
 
 // 터미널 설정 창 (Ctrl+Shift+O, 탭 막대 ⚙ — Todo #121, choboTerm prefs.ts).
 // 확인을 눌러야 저장되고, 열린 탭에 바로 적용됩니다.
@@ -58,7 +59,7 @@ export default function PrefsDialog() {
       paintWeb(info ?? await termApi.WebStatus())
     } catch (e) {
       const info = await Promise.resolve(termApi.WebStatus()).catch(() => null)
-      paintWeb({ ...(info ?? {}), running: info?.running ?? false, error: String(e?.message ?? e) })
+      paintWeb({ ...(info ?? {}), running: info?.running ?? false, error: errText(e) })
     } finally {
       setWebBusy(false)
     }
@@ -69,13 +70,13 @@ export default function PrefsDialog() {
     try {
       setUpdateMsg(await checkUpdate(true))
     } catch (e) {
-      setUpdateMsg(String(e?.message ?? e))
+      setUpdateMsg(errText(e))
     }
   }
 
   // 취소하면 저장된 투명도로
   const close = () => {
-    applyTranslucency(settings.translucency || 'off', settings.opacity || 85, settings.glassGpu)
+    applySavedTranslucency()
     useTermStore.getState().closePrefs()
   }
   const val = (k) => ({ id: `pf-${k}`, ref: reg(k), value: f[k], onChange: e => setF(o => ({ ...o, [k]: e.target.value })) })
@@ -107,7 +108,7 @@ export default function PrefsDialog() {
       const dir = await termApi.ChooseLogDir(f.logDir.trim())
       if (dir) setF(o => ({ ...o, logDir: dir }))
     } catch (e) {
-      setError(String(e?.message ?? e))
+      setError(errText(e))
     }
     refs.current.logDir?.focus()
   }

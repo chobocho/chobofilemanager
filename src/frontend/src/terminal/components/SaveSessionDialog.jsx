@@ -4,6 +4,7 @@ import { termApi } from '../core/termApi'
 import { sessionWhere, groupsOf } from '../core/sessions'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
+import { errText } from '../core/errText'
 
 // "세션으로 저장" 창 (Todo #121, choboTerm sessions.ts openSaveSession).
 // 접속 창의 ☆ 저장(Alt+S)과 탭 메뉴에서 엽니다. 고른 세션에서 왔으면 그 세션을 고칩니다.
@@ -32,7 +33,7 @@ export default function SaveSessionDialog({ request }) {
       }, keepPass)
       finish(saved)
     } catch (e) {
-      setError(String(e?.message ?? e))
+      setError(errText(e))
     }
   }
 

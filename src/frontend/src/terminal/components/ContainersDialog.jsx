@@ -6,6 +6,7 @@ import { settings, saveSettings } from '../core/settings'
 import { LOCAL_SOURCE, engineOf, withEngine, sourceOfTab, portPlan } from '../core/docker'
 import { useTermStore } from '../store/termStore'
 import styles from '../styles/Terminal.module.css'
+import { errText } from '../core/errText'
 
 // 도커 컨테이너 창 (Ctrl+Shift+J, Todo #124, choboTerm containers.ts): 활성 SSH 탭의 서버 또는 이 PC의 컨테이너.
 // 셸·로그는 새 탭으로 엽니다 (서버면 그 탭의 접속을 함께 씀). 엔진(docker/podman)은 곳마다 기억합니다.
@@ -42,7 +43,7 @@ export default function ContainersDialog({ id }) {
     try {
       got = (await termApi.DockerList(src.tab, all, engine)) ?? []
     } catch (e) {
-      if (n === seq.current) setError(String(e?.message ?? e))
+      if (n === seq.current) setError(errText(e))
     }
     if (n !== seq.current) return
     setLoading(false)
@@ -90,7 +91,7 @@ export default function ContainersDialog({ id }) {
     try {
       await termApi.DockerAction(src.tab, c.id, action, engine)
     } catch (e) {
-      setError(String(e?.message ?? e))
+      setError(errText(e))
       return
     }
     await refresh(c.id)
@@ -111,7 +112,7 @@ export default function ContainersDialog({ id }) {
         }
       }
     } catch (e) {
-      return setError(String(e?.message ?? e))
+      return setError(errText(e))
     }
     browserOpenURL(`http://localhost:${p.port}/`)
   }

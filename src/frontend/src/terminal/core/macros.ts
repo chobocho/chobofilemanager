@@ -5,6 +5,7 @@
 import {settings} from './settings';
 import type {TermSession} from './session';
 import {termApi} from './termApi';
+import {errText} from './errText';
 
 export interface Macro {
     name: string;
@@ -74,12 +75,11 @@ export function keyOptions(all: Macro[], m: Macro | undefined) {
     ];
 }
 
-const notice = (s: TermSession, msg: string) => s.term.write(`\r\n\x1b[36m[${msg}]\x1b[0m\r\n`);
 
 export function sendMacro(s: TermSession, m: Macro) {
-    if (s.state !== 'on') return notice(s, '연결되어 있지 않습니다');
+    if (s.state !== 'on') return s.notice('연결되어 있지 않습니다');
     if (m.kind === 'lua') {
-        termApi.RunScript(s.id, m.name || '매크로', m.text).catch((e: unknown) => notice(s, String((e as Error)?.message ?? e)));
+        termApi.RunScript(s.id, m.name || '매크로', m.text).catch((e: unknown) => s.notice(errText(e)));
         return;
     }
     const text = expandMacro(m.text);

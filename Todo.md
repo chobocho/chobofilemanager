@@ -397,7 +397,7 @@
   - [x] h. 백그라운드 새로 고침이 진행 중 이동을 버림
 - [x] 130-4 프론트 터미널 (core·store·components) — 키워드 강조·원격 파일 창 테스트, 새로 고침 선택 유지 버그
 
-## 131. 중복 코드 제거 (테스트 통과 유지)
+## 131. 중복 코드 제거 (테스트 통과 유지) ✓
 (8줄 단위 중복 검출 스크립트로 찾음)
 - [x] 131-1 package main의 writeFileAtomic·backupCorrupt → internal/atomicfile
 - [x] 131-2 fileStore copy/move 흐름 중복 (충돌 검사→실행→새로 고침→포커스)
@@ -408,3 +408,7 @@
 - [x] 131-6 termapp app.go/host.go 닫기 확인(BeforeClose) 중복
 
 ## 132. 전체 구조 재점검 후 개선
+- [x] 132-1 텍스트 인코딩(판별·조합형·변환)을 package main에서 internal/textenc로 (main → internal 이전의 첫 단계)
+- [ ] 132-2 ConfirmDialog.jsx에 모여 있는 대화상자 5개를 파일별로 분리
+- [ ] 132-3 filemanager.go(957줄)를 관심사별 파일로 분리 (목록·작업·압축·텍스트)
+- 보류: 파일 관리자 FTP를 터미널 전송 코드로 통합 (FTP는 유지하기로 함, 두 화면의 동작 차이가 커서 별도 작업), 패널·도크 세션 공용 훅

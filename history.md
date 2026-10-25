@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #132-1: 텍스트 인코딩 코드를 internal/textenc 패키지로 분리
+- package main에 있던 인코딩 자동 판별·조합형(Johab)·UTF-8 변환(encoding_detect.go, johab.go, 약 600줄)과 인코딩 이름 해석(parseEncodingName → textenc.ParseName)을 internal/textenc로 옮김. 파일 관리자는 뷰어/편집기 읽기·쓰기에서 이를 호출만 함 (package main → internal 이전의 첫 단계).
+- 순수 인코딩 테스트 37개도 함께 옮김(textenc 커버리지 96.5%), FileManager를 거치는 읽기/쓰기 테스트는 main에 남김.
+- 테스트: Go 전체 통과.
+
 ## 2026-10-25 Todo.md #131-6: 터미널 닫기 확인(BeforeClose) 중복 정리
 - 단독 터미널 창(app.go beforeClose)과 Commander에 들어간 터미널(host.go BeforeClose)이 같은 "연결된 탭·웹 사용자가 있으면 창을 열어 두고 묻기" 코드를 반복하던 것을 keepOpenToAsk 하나로. 단독 창은 그 앞에서 창 위치만 저장.
 - 테스트: Go 전체 통과.

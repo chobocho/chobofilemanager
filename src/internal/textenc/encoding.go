@@ -1,4 +1,4 @@
-package main
+package textenc
 
 // 인코딩 자동 판별 + UTF-8 변환.
 // hviewer/encoding.h 의 detect_encoding 휴리스틱을 Go로 포팅.
@@ -357,4 +357,27 @@ func EncodeFromUTF8(s string, enc Encoding) ([]byte, error) {
 	default:
 		return []byte(s), nil
 	}
+}
+
+// ParseName: UI에서 받은 인코딩 이름을 Encoding으로 변환.
+// 두 번째 반환값이 true면 "auto" — 호출 측에서 자동 판별 수행.
+func ParseName(name string) (Encoding, bool) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "", "auto":
+		return EncUnknown, true
+	case "utf-8", "utf8":
+		return EncUTF8, false
+	case "utf-8-bom", "utf8-bom":
+		return EncUTF8BOM, false
+	case "utf-16le", "utf-16-le", "utf16le":
+		return EncUTF16LE, false
+	case "utf-16be", "utf-16-be", "utf16be":
+		return EncUTF16BE, false
+	case "cp949", "euc-kr", "euckr":
+		return EncCP949, false
+	case "johab", "조합형":
+		return EncJohab, false
+	}
+	// 미지원 인코딩 이름은 auto 폴백
+	return EncUnknown, true
 }

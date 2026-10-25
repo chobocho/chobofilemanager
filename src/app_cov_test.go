@@ -57,7 +57,7 @@ func TestApp_FileWrappers_EndToEnd(t *testing.T) {
 	if err := a.WriteTextFileWithEncoding(bTxt, "한글", "cp949"); err != nil {
 		t.Fatal(err)
 	}
-	if raw, _ := os.ReadFile(bTxt); string(raw) != string(mustEUCKR(t, "한글")) {
+	if raw, _ := os.ReadFile(bTxt); string(raw) != string(eucKR(t, "한글")) {
 		t.Errorf("CP949 로 저장되어야 함: % x", raw)
 	}
 	if got, err := a.ReadTextFileWithEncoding(bTxt, "cp949"); err != nil || got != "한글" {

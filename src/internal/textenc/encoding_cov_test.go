@@ -1,4 +1,4 @@
-package main
+package textenc
 
 import (
 	"strings"
@@ -201,9 +201,9 @@ func TestParseEncodingName_Aliases(t *testing.T) {
 		{"latin1", EncUnknown, true},
 	}
 	for _, c := range cases {
-		enc, auto := parseEncodingName(c.in)
+		enc, auto := ParseName(c.in)
 		if enc != c.want || auto != c.isAuto {
-			t.Errorf("parseEncodingName(%q) = (%v,%v), want (%v,%v)", c.in, enc, auto, c.want, c.isAuto)
+			t.Errorf("ParseName(%q) = (%v,%v), want (%v,%v)", c.in, enc, auto, c.want, c.isAuto)
 		}
 	}
 }

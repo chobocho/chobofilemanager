@@ -310,7 +310,7 @@ func TestReadTextFileWithEncoding_ExplicitEncodings(t *testing.T) {
 		{"utf-16le", []byte{0xFF, 0xFE, 'o', 0, 'k', 0}, "ok"},
 		{"utf-16be", []byte{0, 'o', 0, 'k'}, "ok"},
 		{"utf-8-bom", []byte{0xEF, 0xBB, 0xBF, 'o', 'k'}, "ok"},
-		{"euc-kr", mustEUCKR(t, "한글"), "한글"},
+		{"euc-kr", eucKR(t, "한글"), "한글"},
 	}
 	for i, c := range cases {
 		p := filepath.Join(dir, "f"+string(rune('a'+i))+".txt")

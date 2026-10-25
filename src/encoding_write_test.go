@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"golang.org/x/text/encoding/korean"
+
+	"totalcmd/internal/textenc"
 )
 
 // ─── Todo #74: 원래 인코딩으로 저장 ───────────────────────────────────────────
@@ -96,7 +98,7 @@ func TestWriteEnc_AutoEmptyFileIsUTF8(t *testing.T) {
 
 func TestWriteEnc_JohabRoundTrip(t *testing.T) {
 	got := writeAndRead(t, nil, "한글 abc 힣가", "johab")
-	if s := johabToString(got); s != "한글 abc 힣가" {
+	if s, _ := textenc.DecodeToUTF8(got, textenc.EncJohab); s != "한글 abc 힣가" {
 		t.Errorf("johab round trip = %q", s)
 	}
 }

@@ -15,6 +15,8 @@ import (
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
+
+	"totalcmd/internal/textenc"
 )
 
 // FileManager: 파일 작업 (상태 없음 — 작업마다 경로를 받음)
@@ -420,42 +422,19 @@ func (fm *FileManager) ReadTextFileWithEncoding(path string, encName string) (st
 	if err != nil {
 		return "", err
 	}
-	enc, isAuto := parseEncodingName(encName)
+	enc, isAuto := textenc.ParseName(encName)
 	if isAuto {
 		window := data
 		if len(window) > detectionWindow {
 			window = window[:detectionWindow]
 		}
-		enc = DetectEncoding(window)
+		enc = textenc.DetectEncoding(window)
 	}
 	// 디코더는 잘못된 바이트를 U+FFFD로 바꾸며 실패하지 않음 — 실패하면 원래 바이트 그대로 (Todo #130-1)
-	if decoded, decErr := DecodeToUTF8(data, enc); decErr == nil {
+	if decoded, decErr := textenc.DecodeToUTF8(data, enc); decErr == nil {
 		return decoded, nil
 	}
 	return string(data), nil
-}
-
-// parseEncodingName: UI에서 받은 문자열을 Encoding으로 변환.
-// 두 번째 반환값이 true면 "auto" — 호출 측에서 자동 판별 수행.
-func parseEncodingName(name string) (Encoding, bool) {
-	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "", "auto":
-		return EncUnknown, true
-	case "utf-8", "utf8":
-		return EncUTF8, false
-	case "utf-8-bom", "utf8-bom":
-		return EncUTF8BOM, false
-	case "utf-16le", "utf-16-le", "utf16le":
-		return EncUTF16LE, false
-	case "utf-16be", "utf-16-be", "utf16be":
-		return EncUTF16BE, false
-	case "cp949", "euc-kr", "euckr":
-		return EncCP949, false
-	case "johab", "조합형":
-		return EncJohab, false
-	}
-	// 미지원 인코딩 이름은 auto 폴백
-	return EncUnknown, true
 }
 
 func (fm *FileManager) WriteTextFile(path string, content string) error {
@@ -466,19 +445,19 @@ func (fm *FileManager) WriteTextFile(path string, content string) error {
 // encName이 auto/빈 값이면 기존 파일의 인코딩을 판별해 유지하고, 새/빈 파일은 UTF-8로 저장합니다.
 // 인코딩할 수 없는 문자가 있으면 파일을 건드리지 않고 에러를 반환합니다.
 func (fm *FileManager) WriteTextFileWithEncoding(path string, content string, encName string) error {
-	enc, isAuto := parseEncodingName(encName)
+	enc, isAuto := textenc.ParseName(encName)
 	if isAuto {
-		enc = EncUTF8
+		enc = textenc.EncUTF8
 		if f, err := os.Open(path); err == nil {
 			buf := make([]byte, detectionWindow)
 			n, _ := io.ReadFull(f, buf)
 			f.Close()
 			if n > 0 {
-				enc = DetectEncoding(buf[:n])
+				enc = textenc.DetectEncoding(buf[:n])
 			}
 		}
 	}
-	data, err := EncodeFromUTF8(content, enc)
+	data, err := textenc.EncodeFromUTF8(content, enc)
 	if err != nil {
 		return err
 	}

@@ -143,5 +143,34 @@ describe('터미널 도크 (DKV)', () => {
     expect(navigate).toHaveBeenLastCalledWith('left', W('D:', 'other'))
     navigate.mockRestore()
   })
-})
 
+  // Todo #136-1: 리눅스에는 cmd가 없음 — 이 PC의 셸 목록(GetLocalShells)으로 고르고, 저장된 셸이 없으면 첫 셸로
+  it('DKV-12: 이 PC의 셸 목록 — 저장된 셸(cmd)이 없으면 첫 셸(bash)로 한 번만 시작', async () => {
+    api.GetLocalShells = vi.fn().mockResolvedValue([{ name: 'bash', label: 'Bash' }, { name: 'zsh', label: 'Zsh' }])
+    await mount()
+    expect(api.Connect).toHaveBeenCalledTimes(1)
+    expect(api.Connect).toHaveBeenCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'bash' }))
+    const options = [...screen.getByLabelText('셸').querySelectorAll('option')].map(o => o.value)
+    expect(options).toEqual(['bash', 'zsh'])
+    expect(screen.getByLabelText('셸').value).toBe('bash')
+    // 고른 셸로 다시 시작
+    await act(async () => { fireEvent.change(screen.getByLabelText('셸'), { target: { value: 'zsh' } }) })
+    await waitFor(() => expect(api.Connect).toHaveBeenLastCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'zsh' })))
+  })
+
+  it('DKV-13: 저장된 셸이 목록에 있으면 그대로, 목록을 못 받으면 기본 목록', async () => {
+    localStorage.setItem(DOCK_PREFS_KEY, JSON.stringify({ shell: 'zsh' }))
+    useDockStore.getState().resetForTest()
+    api.GetLocalShells = vi.fn().mockResolvedValue([{ name: 'bash', label: 'Bash' }, { name: 'zsh', label: 'Zsh' }])
+    await mount()
+    expect(api.Connect).toHaveBeenCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'zsh' }))
+    cleanup()
+    localStorage.removeItem(DOCK_PREFS_KEY)
+    useDockStore.getState().resetForTest()
+    api.GetLocalShells = vi.fn().mockRejectedValue(new Error('no backend'))
+    api.Connect.mockClear()
+    await mount()
+    expect(api.Connect).toHaveBeenCalledWith(DOCK_ID_BASE, expect.objectContaining({ host: 'cmd' }))
+    expect(screen.getByLabelText('셸').querySelectorAll('option').length).toBe(3)
+  })
+})

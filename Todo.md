@@ -439,3 +439,7 @@
 - [x] 135-2 테스트: 부분 풀기(ZIP) · 압축 안 F5 복사 부분 실패(TAR) MOTW, 같은 FTP 폴더로 이동 시 원본 삭제 안 함
 - 리뷰 결과 문제 아님: renamebatch 대소문자 키, dirsync 임시 파일 교체(권한·시각 유지), DiffView CRLF 복원, 썸네일 픽셀 제한, ShellExecute 포인터
 - 참고(작음): 폴더 트리 켜진 채 폴더 이동 시 ListDirectory가 두 번 호출됨 (기능 영향 없음)
+
+## 136. 리눅스: Enter로 실행 권한(+x) 파일 실행 (2026-10-26)
+- [x] 136-1 (선행 버그) 터미널 도크 셸 목록이 cmd/PowerShell/WSL로 고정, 기본 cmd → 리눅스에서 도크가 셸을 못 띄움. 이 PC의 셸 목록(GetLocalShells)으로 고르고, 저장된 셸이 없으면 첫 셸(bash)로
+- [ ] 136-2 Enter/더블클릭: 실행 권한이 있는 일반 파일(Windows 제외)은 터미널 도크에서 그 폴더로 cd 후 실행 (mc처럼 출력이 보임)

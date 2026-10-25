@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { RotateCw, X, FolderOpen } from 'lucide-react'
 import { TermSession } from '../core/session'
+import { termApi } from '../core/termApi'
 import { acquireTerminalEvents } from '../store/termEvents'
 import { lookOptions } from '../core/look'
 import { settings, loadSettings } from '../core/settings'
@@ -33,12 +34,34 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
   shellRef.current = shell
   const restarting = useRef(false) // 셸을 바꿔 다시 시작할 때 이전 셸의 종료 안내는 생략
   const [shellDir, setShellDir] = useState(undefined) // 셸이 알려 준 폴더 (OSC 7), 이 PC의 경로일 때만
+  const [shells, setShells] = useState(DOCK_SHELLS)
+  const shellsLoaded = useRef(null)
+  const startedShell = useRef(null) // 마지막으로 시작한 셸 — 같은 셸로 바뀐 것은 다시 시작하지 않음
+
+  // 이 PC의 셸 목록 (리눅스는 bash · zsh..., cmd 없음). 저장된 셸이 없으면 첫 셸로 (Todo #136-1)
+  function loadShells() {
+    shellsLoaded.current ??= Promise.resolve()
+      .then(() => termApi.GetLocalShells())
+      .then(list => {
+        const found = (list || []).map(x => ({ host: x.name, label: x.label }))
+        if (!found.length) return
+        setShells(found)
+        if (!found.some(x => x.host === shellRef.current)) {
+          shellRef.current = found[0].host
+          useDockStore.getState().setShell(found[0].host)
+        }
+      })
+      .catch(() => { /* 목록을 못 받으면 기본 목록 */ })
+    return shellsLoaded.current
+  }
 
   // 지금 셸로 패널 폴더에서 시작 (실패하면 화면에 이유, Enter로 다시 시도)
   async function start() {
+    await loadShells()
     const s = sessionRef.current
     if (!s) return
     try {
+      startedShell.current = shellRef.current
       await s.connect({ host: shellRef.current, port: 0, login: '', pass: '', encoding: 'UTF-8', jump: '',
         dir: activePath(useFileStore.getState()) ?? '' })
       const p = useDockStore.getState().takePending()
@@ -82,9 +105,8 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
   }, [createTerminal, addons])
 
   // 셸을 바꾸면 그 셸로 다시 시작
-  const firstShell = useRef(true)
   useEffect(() => {
-    if (firstShell.current) { firstShell.current = false; return }
+    if (startedShell.current === null || shell === startedShell.current) return
     restart()
   }, [shell])
 
@@ -134,7 +156,7 @@ export default function TerminalDock({ createTerminal = defaultCreateTerminal, a
       <div className={styles.dockBar}>
         <span className={styles.dockTitle}>터미널</span>
         <select aria-label="셸" value={shell} onChange={e => st.setShell(e.target.value)}>
-          {DOCK_SHELLS.map(x => <option key={x.host} value={x.host}>{x.label}</option>)}
+          {shells.map(x => <option key={x.host} value={x.host}>{x.label}</option>)}
         </select>
         <label className={styles.check}>
           <input type="checkbox" checked={follow} onChange={e => st.setFollow(e.target.checked)} /> 패널 따라가기

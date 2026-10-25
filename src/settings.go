@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"totalcmd/internal/appdir"
+	"totalcmd/internal/atomicfile"
 )
 
 type PanelTabsState struct {
@@ -77,7 +78,7 @@ func (a *App) SaveSessionState(leftTabs []string, leftActiveIdx int, rightTabs [
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(path, data, 0644)
+	return atomicfile.Write(path, data, 0644)
 }
 
 // LoadPanelPaths는 저장된 세션 정보를 불러옵니다.

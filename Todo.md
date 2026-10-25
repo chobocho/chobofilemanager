@@ -398,5 +398,12 @@
 - [x] 130-4 프론트 터미널 (core·store·components) — 키워드 강조·원격 파일 창 테스트, 새로 고침 선택 유지 버그
 
 ## 131. 중복 코드 제거 (테스트 통과 유지)
+(8줄 단위 중복 검출 스크립트로 찾음)
+- [x] 131-1 package main의 writeFileAtomic·backupCorrupt → internal/atomicfile
+- [ ] 131-2 fileStore copy/move 흐름 중복 (충돌 검사→실행→새로 고침→포커스)
+- [ ] 131-3 FilePanel 화살표/WASD 커서 이동 중복
+- [ ] 131-4 App.jsx 단축키 보기/편집 분기 중복
+- [ ] 131-5 CopyConflictDialog/MoveConflictDialog → 하나의 충돌 창
+- [ ] 131-6 termapp app.go/host.go 닫기 확인(BeforeClose) 중복
 
 ## 132. 전체 구조 재점검 후 개선

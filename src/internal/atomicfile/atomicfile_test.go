@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-func TestWriteCreatesFolderAndReplaces(t *testing.T) {
+func TestWriteCreatingDirCreatesFolderAndReplaces(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "a", "b", "x.json")
-	if err := Write(p, []byte("one"), 0o600); err != nil {
+	if err := WriteCreatingDir(p, []byte("one"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := Write(p, []byte("two"), 0o600); err != nil {
@@ -49,5 +49,16 @@ func TestBackupCorruptKeepsTheContent(t *testing.T) {
 	}
 	if _, err := os.Stat(p); err == nil {
 		t.Fatal("the corrupt file must move away")
+	}
+}
+
+// Write (user files) never creates a folder that is gone meanwhile.
+func TestWriteFailsInAMissingFolder(t *testing.T) {
+	dir := t.TempDir()
+	if err := Write(filepath.Join(dir, "gone", "x.txt"), []byte("x"), 0o644); err == nil {
+		t.Fatal("writing into a missing folder must fail")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "gone")); err == nil {
+		t.Fatal("the folder must not be created")
 	}
 }

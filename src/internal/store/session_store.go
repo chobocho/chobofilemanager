@@ -109,7 +109,7 @@ func writeSessions(doc sessionsDoc) error {
 	if err != nil {
 		return err
 	}
-	return atomicfile.Write(p, data, 0o600)
+	return atomicfile.WriteCreatingDir(p, data, 0o600)
 }
 
 // updateSessions reads the file, lets change edit it and writes it back,

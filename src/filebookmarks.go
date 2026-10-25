@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"totalcmd/internal/atomicfile"
 )
 
 type FileBookmark struct {
@@ -42,7 +44,7 @@ func (a *App) loadFileBookmarks() ([]FileBookmark, error) {
 	var bms []FileBookmark
 	if err := json.Unmarshal(data, &bms); err != nil {
 		// 손상된 파일은 백업하고 빈 목록으로 시작 — 이후 추가가 영구 실패하지 않도록 (Todo #87)
-		backupCorrupt(p)
+		atomicfile.BackupCorrupt(p)
 		return []FileBookmark{}, nil
 	}
 	return bms, nil
@@ -57,7 +59,7 @@ func (a *App) saveFileBookmarks(bms []FileBookmark) error {
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(p, data, 0644)
+	return atomicfile.Write(p, data, 0644)
 }
 
 func (a *App) GetFileBookmarks() []FileBookmark {

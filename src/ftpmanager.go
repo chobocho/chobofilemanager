@@ -16,6 +16,7 @@ import (
 	"github.com/jlaffaye/ftp"
 
 	"totalcmd/internal/appdir"
+	"totalcmd/internal/atomicfile"
 )
 
 type FTPConfig struct {
@@ -494,7 +495,7 @@ func (fm *FTPManager) loadHistory() {
 	}
 	if err := json.Unmarshal(data, &fm.history); err != nil {
 		fm.history = nil
-		backupCorrupt(fm.historyFile)
+		atomicfile.BackupCorrupt(fm.historyFile)
 	}
 }
 
@@ -503,7 +504,7 @@ func (fm *FTPManager) saveHistory() error {
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(fm.historyFile, data, 0600)
+	return atomicfile.Write(fm.historyFile, data, 0600)
 }
 
 func (fm *FTPManager) loadBookmarks() {
@@ -513,7 +514,7 @@ func (fm *FTPManager) loadBookmarks() {
 	}
 	if err := json.Unmarshal(data, &fm.bookmarks); err != nil {
 		fm.bookmarks = nil
-		backupCorrupt(fm.bookmarkFile)
+		atomicfile.BackupCorrupt(fm.bookmarkFile)
 		return
 	}
 	// 이전 버전이 저장한 비밀번호는 지우고 파일도 다시 씀
@@ -534,5 +535,5 @@ func (fm *FTPManager) saveBookmarks() error {
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(fm.bookmarkFile, data, 0600)
+	return atomicfile.Write(fm.bookmarkFile, data, 0600)
 }

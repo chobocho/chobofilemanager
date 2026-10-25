@@ -2,6 +2,11 @@
 
 > 이전 이력: [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 Todo.md #131-1: package main의 원자적 쓰기·손상 백업을 internal/atomicfile 하나로
+- 중복: package main(fileutil.go)의 writeFileAtomic·backupCorrupt와 터미널용 internal/atomicfile이 같은 일을 함.
+- atomicfile을 Write(폴더 없으면 실패 — 사용자 파일)와 WriteCreatingDir(폴더 생성 — 설정 파일)로 나누고, 파일 관리자 설정·북마크·FTP 기록·편집기 저장이 모두 이를 사용. main의 두 함수 삭제.
+- 테스트: main의 writeFileAtomic 테스트 3개를 atomicfile로 옮김(없는 폴더 실패 테스트 추가). Go 전체 통과.
+
 ## 2026-10-25 Todo.md #130-3h: 끝난 작업의 새로 고침이 진행 중인 폴더 이동을 버리던 문제
 - 문제: 느린 폴더(네트워크 드라이브 등)로 Enter해 목록을 기다리는 사이 그 패널(아직 옛 경로)로 복사가 끝나면, 새로 고침이 옛 경로로 다시 이동을 시작해 사용자가 연 폴더 결과가 버려짐.
 - 수정: 패널별로 진행 중인 이동의 목적지를 기억해, 다른 폴더로 가는 중이면 그 패널의 새로 고침을 건너뜀 (같은 폴더를 읽는 중이면 그대로 새로 고침).

@@ -223,24 +223,6 @@ func assertNoBackup(t *testing.T, dir string) {
 
 // ─── writeFileAtomic / writeUserFile ─────────────────────────────────────────
 
-func TestWriteFileAtomic_RenameOntoDirFailsAndCleansTemp(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "target")
-	writeFile(t, filepath.Join(target, "keep.txt"), "k") // 비어 있지 않은 폴더
-	if err := writeFileAtomic(target, []byte("x"), 0644); err == nil {
-		t.Error("폴더를 파일로 교체하면 에러")
-	}
-	entries, _ := os.ReadDir(dir)
-	for _, e := range entries {
-		if strings.HasSuffix(e.Name(), ".tmp") {
-			t.Errorf("임시 파일이 남음: %s", e.Name())
-		}
-	}
-	if readFile(t, filepath.Join(target, "keep.txt")) != "k" {
-		t.Error("기존 폴더 내용은 유지")
-	}
-}
-
 func TestWriteUserFile_NewFileAndKeepPerm(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "u.txt")
 	if err := writeUserFile(p, []byte("one")); err != nil {

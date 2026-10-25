@@ -22,26 +22,6 @@ func assertNoTmpLeft(t *testing.T, dir string) {
 	}
 }
 
-func TestWriteFileAtomic_ReplacesContent(t *testing.T) {
-	dir := t.TempDir()
-	p := filepath.Join(dir, "f.json")
-	os.WriteFile(p, []byte("old"), 0644)
-	if err := writeFileAtomic(p, []byte("new"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if data, _ := os.ReadFile(p); string(data) != "new" {
-		t.Errorf("got %q", data)
-	}
-	assertNoTmpLeft(t, dir)
-}
-
-func TestWriteFileAtomic_MissingDirFailsWithoutSideEffects(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "nope", "f.json")
-	if err := writeFileAtomic(p, []byte("x"), 0644); err == nil {
-		t.Error("expected error for missing directory")
-	}
-}
-
 func TestWriteTextFileWithEncoding_NoTempLeftAndKeepsMode(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "script.sh")

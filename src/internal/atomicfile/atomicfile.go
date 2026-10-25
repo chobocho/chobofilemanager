@@ -9,12 +9,18 @@ import (
 	"time"
 )
 
-// Write replaces p with data in one step: it writes a temp file in the same
-// folder (created if missing) and renames it over p.
-func Write(p string, data []byte, perm os.FileMode) error {
+// WriteCreatingDir is Write that first creates p's folder (settings files).
+func WriteCreatingDir(p string, data []byte, perm os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return err
 	}
+	return Write(p, data, perm)
+}
+
+// Write replaces p with data in one step: it writes a temp file in the same
+// folder and renames it over p. A missing folder is an error (a user's file is
+// never saved into a folder that was deleted meanwhile).
+func Write(p string, data []byte, perm os.FileMode) error {
 	tmp, err := os.CreateTemp(filepath.Dir(p), filepath.Base(p)+".*.tmp")
 	if err != nil {
 		return err

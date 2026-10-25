@@ -21,6 +21,7 @@ import MacrosDialog from './MacrosDialog.jsx'
 import MemoPad from './MemoPad.jsx'
 import RemoteFiles from './RemoteFiles.jsx'
 import ForwardsDialog from './ForwardsDialog.jsx'
+import ContainersDialog from './ContainersDialog.jsx'
 import { useFilesStore, startTransferEvents, stopTransferEvents } from '../store/filesStore'
 import { macroForKey } from '../core/macros'
 import styles from '../styles/Terminal.module.css'
@@ -87,6 +88,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
     else if (k === 'B') st.toggleMemo(st.activeId)
     else if (k === 'F') { if (st.activeId != null) st.openFiles(st.activeId) }
     else if (k === 'P') { if (st.activeId != null) st.openPanel('forwards', st.activeId) }
+    else if (k === 'J') { if (st.activeId != null) st.openPanel('containers', st.activeId) }
     else if (k === 'L') { if (st.activeId != null) st.toggleLog(st.activeId) }
     else if (k === 'W') { if (st.activeId != null) st.closeTab(st.activeId) }
     else if (k === 'Tab') st.cycle(e.shiftKey ? -1 : 1)
@@ -193,6 +195,7 @@ export default function TerminalWorkspace({ createTerminal = defaultCreateTermin
       {prefsOpen && <PrefsDialog />}
       {macrosOpen && <MacrosDialog />}
       {panel?.kind === 'forwards' && <ForwardsDialog key={panel.id} id={panel.id} />}
+      {panel?.kind === 'containers' && <ContainersDialog key={panel.id} id={panel.id} />}
       <PasteConfirm request={pasteRequest} onAnswer={ok => { if (ok) pasteRequest?.paste(); setPasteRequest(null) }} />
     </div>
   )

@@ -264,6 +264,32 @@ export class TermSession {
         return protocol;
     }
 
+    /**
+     * Opens a container's shell ("shell") or log ("logs") in this tab (Todo #124):
+     * on the server of SSH tab srcTab, or on this PC when srcTab is 0.
+     */
+    async openDocker(srcTab: number, containerId: string, mode: string, label: string, engine: string): Promise<string> {
+        this.fresh = true;
+        this.setState('connecting');
+        try {
+            await termApi.DockerOpen(this.id, srcTab, containerId, mode, label, this.term.cols, this.term.rows, engine);
+        } catch (e) {
+            this.fresh = false;
+            this.setState('idle');
+            throw e;
+        }
+        if (this.disposed) {
+            termApi.CloseTab(this.id).catch(() => undefined);
+            throw new Error('탭이 닫혔습니다');
+        }
+        this.req = undefined;
+        this.proto = 'docker';
+        this.handleOpen('UTF-8');
+        this.encoding = 'UTF-8';
+        this.setState('on');
+        return 'docker';
+    }
+
     /** term:open: a session starts in this tab; clear the screen once. */
     handleOpen(encoding: string) {
         if (encoding) this.encoding = encoding;

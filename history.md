@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-25 (Todo.md #124 — T8 2차: 도커 컨테이너)
+
+### 변경
+- `core/docker.ts` 신규: 곳(서버 host:port / 이 PC)별 엔진 기억, 도커 탭 이름(🐳 셸 / 📜 로그)·툴팁, 연결된 SSH 탭 → 컨테이너 위치, 포트 열기 계획(이 PC는 바로, 서버는 같은 포트 -L — 있으면 재사용, 다른 규칙이 쓰면 안내)
+- `ContainersDialog.jsx` 신규 (Ctrl+Shift+J, 탭 메뉴): 위치·엔진(docker/podman/자동)·중지된 것도 표시, 셸 열기/로그 보기/시작/중지(확인)/재시작, 게시 포트 열기, F5·Esc·Enter·화살표
+- `TermSession.openDocker` + termStore 도커 탭: 새 탭에서 DockerOpen, 다시 연결·복제·끝난 뒤 Enter는 같은 컨테이너로, 열었던 서버 탭이 없어지면 같은 서버의 다른 탭 사용
+
+### 테스트
+- `docker.test.ts`(DC-01~05), `ContainersDialog.test.jsx`(DCV-01~11), TA-20 — 프론트 통과
+
 ## 2026-10-25 (Todo.md #124 — T8 1차: SSH 포트 포워딩)
 
 ### 변경

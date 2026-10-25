@@ -132,7 +132,7 @@ describe('tabMenuItems (TA)', () => {
 
     it('TA-20: 연결된 SSH 탭 메뉴', () => {
         const items = tabMenuItems({state: 'on', proto: 'ssh', hasReq: true, encoding: 'UTF-8'}, 1);
-        expect(acts(items)).toEqual(['reconnect', 'duplicate', 'splitRight', 'splitDown', 'theme', 'files', 'forwards', 'encoding', 'memo', 'log', 'logs', 'saveSession', 'disconnect', 'sep', 'close']);
+        expect(acts(items)).toEqual(['reconnect', 'duplicate', 'splitRight', 'splitDown', 'theme', 'files', 'forwards', 'encoding', 'containers', 'memo', 'log', 'logs', 'saveSession', 'disconnect', 'sep', 'close']);
         expect(items.find(i => i.act === 'encoding')!.label).toBe('인코딩: EUC-KR로 전환');
         expect(items.find(i => i.act === 'close')!.label).toBe('탭 닫기');
     });

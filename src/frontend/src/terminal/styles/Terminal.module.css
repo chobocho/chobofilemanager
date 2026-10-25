@@ -163,3 +163,7 @@
 .fw_ok { color: #2ecc71; }
 .fw_wait { color: #f1c40f; }
 .fw_bad { color: #e74c3c; }
+
+/* 도커 컨테이너 창 (Todo #124) */
+.containers { width: 860px; max-width: calc(100vw - 32px); }
+.containers .filesList { height: 260px; flex: 0 0 auto; }

@@ -4,6 +4,8 @@ import { buildRequest, tabLabel, tabTooltip } from '../core/connect'
 import { leaf, splitAt, removeLeaf, leaves, setRatio as layoutSetRatio, nearestPane } from '../core/layout'
 import { sendMacro } from '../core/macros'
 import { useFilesStore } from './filesStore'
+import { dockerLabel, dockerTooltip, engineOf } from '../core/docker'
+import { settings } from '../core/settings'
 import { applyEncoding, loadTabTheme, toggleEncoding, chooseTheme, sendBreak, disconnectSession, applySettingsAll, toggleLog, showLogs } from '../core/tabActions'
 
 // 연결 요청 → 대화상자 입력값 (다시 연결/복제에 사용)
@@ -178,6 +180,7 @@ export const useTermStore = create((set, get) => ({
 
   // 탭 메뉴 동작 (Todo #121)
   reconnect: async (id) => {
+    if (get().tabs.find(t => t.id === id)?.docker) return get().startDocker(id)
     const s = sessionById(id)
     if (!s?.req) return get().openDialog(id)
     if (s.state !== 'idle') await disconnectSession(s, s.reconnector)
@@ -186,6 +189,8 @@ export const useTermStore = create((set, get) => ({
   },
 
   duplicate: (id) => {
+    const d = get().tabs.find(t => t.id === id)?.docker
+    if (d) return get().newTab({ docker: d })
     const s = sessionById(id)
     if (!s?.req) return null
     const t = get().tabs.find(x => x.id === id)
@@ -196,8 +201,9 @@ export const useTermStore = create((set, get) => ({
   startPendingConnect: (id) => {
     const t = get().tabs.find(x => x.id === id)
     if (!t?.pendingConnect) return
-    const { fields, sessionName, saved } = t.pendingConnect
+    const { fields, sessionName, saved, docker } = t.pendingConnect
     get().updateTab(id, { pendingConnect: null })
+    if (docker) return get().startDocker(id, docker)
     return get().connect(id, fields, sessionName, saved)
   },
 
@@ -254,6 +260,31 @@ export const useTermStore = create((set, get) => ({
   closePanel: () => {
     set({ panel: null })
     sessionById(get().activeId)?.focus()
+  },
+
+  // ── 도커 (Todo #124): 컨테이너의 셸·로그를 새 탭으로 ──
+  openDocker: (src, c, mode) => get().newTab({ docker: { src, id: c.id, name: c.name, mode } }),
+
+  // 탭 id의 도커 세션을 (다시) 엶. 열었던 서버 탭이 없어졌으면 같은 서버의 다른 탭을 씀
+  startDocker: async (id, docker) => {
+    const s = sessionById(id)
+    const t = get().tabs.find(x => x.id === id)
+    let d = docker ?? t?.docker
+    if (!s || !d) return
+    const sshOn = (tid) => { const o = sessionById(tid); return o && o.state === 'on' && o.proto === 'ssh' && o.req }
+    if (d.src.tab && !sshOn(d.src.tab)) {
+      const other = get().tabs.find(o => { const x = sshOn(o.id); return x && x.host === d.src.host && Number(x.port) === d.src.port })
+      if (other) d = { ...d, src: { ...d.src, tab: other.id } }
+    }
+    s.reconnector?.cancel()
+    get().updateTab(id, { docker: d, label: dockerLabel(d), tooltip: dockerTooltip(d), dialog: false, temp: false })
+    try {
+      await s.openDocker(d.src.tab, d.id, d.mode, `${d.name}@${d.src.label}`, engineOf(settings.dockerEngines, d.src))
+      get().updateTab(id, { proto: 'docker', state: s.state })
+      applyEncoding(s, 'UTF-8')
+    } catch (e) {
+      s.notice(String(e?.message ?? e))
+    }
   },
 
   // 원격 파일 창 (Ctrl+Shift+F, Todo #123). 파일 접근이 안 되는 연결이면 터미널에 안내

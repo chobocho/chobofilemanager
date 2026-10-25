@@ -41,7 +41,10 @@ export default function TerminalPane({ id, active, visible = active, rect, creat
       // 재접속 대기 중 Enter/Esc는 재접속이 처리, 그 밖의 Enter는 연결 대화상자
       s.onIdleInput(data => {
         if (rc.onIdleKey(data)) return
-        if (data === '\r') useTermStore.getState().openDialog(id)
+        if (data !== '\r') return
+        const st = useTermStore.getState()
+        if (st.tabs.find(t => t.id === id)?.docker) st.startDocker(id) // 도커 탭은 그 컨테이너로 다시
+        else st.openDialog(id)
       }),
     ]
     const host = hostRef.current

@@ -2,6 +2,16 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 Todo.md #137-2: 권한 · 소유자 열과 chmod · chown 창 (Alt+A)
+- 목록(`FileInfo`)에 `mode`(chmod 숫자, setuid · setgid · sticky 포함) · `owner` · `group` 추가 — 리눅스 · macOS만 이름(못 찾으면 숫자, id마다 한 번만 찾음), Windows는 비움
+- 패널: '/' 경로(리눅스 · macOS)면 Mode(`-rwsr-xr-x`) · Owner(소유자:그룹) 열, 머리글로 정렬. Windows · FTP는 그대로, 압축 파일 안은 빈 칸
+- Alt+A 창(`PermissionsDialog`): 9개 체크박스 + setuid/setgid/sticky + 숫자 칸(서로 맞춰짐, 잘못된 숫자는 단추 꺼짐), 소유자 · 그룹(/etc/passwd · group 후보)
+  - 여러 개면 처음 값에서 **바꾼 비트만** 적용(파일마다 다른 비트는 그대로), 소유자가 서로 다르면 빈 칸 = 그대로
+  - 하위 폴더까지: 권한은 바꾼 비트만(폴더의 실행 비트가 파일로 퍼지지 않게), 안의 링크는 따라가지 않음(chown은 링크 자체만). 실행 권한을 빼도 안까지 다 돌도록 폴더는 잠시 주인 rwx 후 아래부터 최종 권한
+- Go `ChangeMode(paths, set, clear, recursive)` · `ChangeOwner(paths, owner, group, recursive)` · `GetOwnerChoices()` — 되는 것은 다 바꾸고 실패는 모아서 알림, 압축 파일 안 · FTP 거부, Windows는 "리눅스 · macOS에서만"
+- 사용자 단추 `@perms`, 도움말 · README 갱신
+- 테스트: perms_test.go(4) · perms_linux_test.go(9: 바꾼 비트만, 특수 비트, 하위까지 접근 권한 빼기 · 링크 너머 안 바뀜, 오류 뒤 계속, 이름 · 숫자 chown, 없는 이름, root가 아니면 남에게 못 줌, /etc 후보) — **WSL Ubuntu에서 실제 리눅스로 실행**, Permissions.test.js(18) — Go 전체 Windows · 리눅스, 프론트 1400개 통과
+
 ## 2026-10-26 Todo.md #137-3: 리눅스 특수 파일 · 심볼릭 링크 안전 복사
 - 문제: 복사가 파일 종류를 보지 않고 내용을 읽음 — FIFO는 영원히 멈춤, `/dev/zero` 같은 장치는 끝없이 복사, 심볼릭 링크는 대상 내용을 복사(`/`를 가리키면 디스크 전체), 끊어진 링크는 복사 실패. 다른 디스크로 이동(복사 후 삭제)과 폴더 동기화도 같은 경로
 - 추가 발견: 덮어쓸 대상이 심볼릭 링크면 `os.Create`가 링크를 따라가 링크가 가리키는 다른 파일에 씀

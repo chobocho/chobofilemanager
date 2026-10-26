@@ -13,6 +13,7 @@ import BookmarkDialog from './components/BookmarkDialog'
 import HelpDialog from './components/HelpDialog'
 import SelectMaskDialog from './components/SelectMaskDialog'
 import MultiRenameDialog from './components/MultiRenameDialog'
+import PermissionsDialog from './components/PermissionsDialog'
 import SyncDialog from './components/SyncDialog'
 import { pickDiffTargets } from './utils/diffTargets.js'
 import ButtonBar from './components/ButtonBar'
@@ -68,6 +69,11 @@ export function isStarlarkScratchShortcut(e) {
 // Ctrl+Shift+D: 파일 내용 비교 (Todo #133-7)
 export function isDiffShortcut(e) {
   return !!(e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key || '').toLowerCase() === 'd'
+}
+
+// Alt+A: 권한 · 소유자 (Todo #137-2, TC "속성 바꾸기" 자리)
+export function isPermsShortcut(e) {
+  return !!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key || '').toLowerCase() === 'a'
 }
 
 export function isMultiRenameShortcut(e) {
@@ -223,6 +229,21 @@ function FileManagerApp() {
     setModal('multirename')
   }, [])
 
+  // Alt+A 권한 · 소유자 (Todo #137-2): 리눅스 · macOS 로컬 폴더만
+  const [permTargets, setPermTargets] = useState(null)
+  const openPerms = useCallback(() => {
+    const s = useFileStore.getState()
+    const p = s[s.activePanel]
+    if (p.readOnly) { s.setStatus(READ_ONLY_MSG); return }
+    if (!p.path?.startsWith('/')) { s.setStatus('권한 · 소유자 바꾸기는 리눅스 · macOS 폴더에서만 됩니다'); return }
+    const paths = new Set(operationPaths(p))
+    const visible = p.showHidden ? p.files : p.files.filter(f => !f.isHidden)
+    const files = visible.filter(f => paths.has(f.path))
+    if (!files.length) return
+    setPermTargets(files)
+    setModal('perms')
+  }, [])
+
   const toggleQuickView = useCallback(() => {
     const active = useFileStore.getState().activePanel
     setQuickView(q => q ? null : (active === 'left' ? 'right' : 'left'))
@@ -261,6 +282,10 @@ function FileManagerApp() {
         e.preventDefault()
         openMultiRename()
       }
+      if (isPermsShortcut(e)) {
+        e.preventDefault()
+        openPerms()
+      }
       // Ctrl+Q 빠른 보기: 반대 패널 자리에 커서 파일 미리 보기 (Todo #133-9)
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'q' || e.key === 'Q')) {
         e.preventDefault()
@@ -278,7 +303,7 @@ function FileManagerApp() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, view, toggleQuickView, openDiff])
+  }, [overlayOpen, handleStarlarkScratch, openCmdWindow, openMultiRename, openPerms, view, toggleQuickView, openDiff])
 
   const handleDelete = async () => {
     const result = await useFileStore.getState().delete()
@@ -415,7 +440,7 @@ function FileManagerApp() {
     const actions = {
       '@copy': handleCopy, '@move': handleMove, '@mkdir': () => setModal('newdir'), '@delete': handleTrash,
       '@search': () => setModal('search'), '@compare': () => s.compareDirsSelect(), '@sync': () => setModal('sync'),
-      '@diff': openDiff, '@multirename': openMultiRename, '@quickview': toggleQuickView,
+      '@diff': openDiff, '@multirename': openMultiRename, '@perms': openPerms, '@quickview': toggleQuickView,
       '@tree': () => s.toggleTree(s.activePanel), '@terminal': () => useDockStore.getState().toggle(),
       '@ftp': () => setModal('ftpconnect'), '@refresh': () => s.refresh(s.activePanel), '@hidden': () => s.toggleHidden(s.activePanel),
     }
@@ -571,6 +596,10 @@ function FileManagerApp() {
         <SelectMaskDialog mode={modal} initialMask={useFileStore.getState().lastMask}
           onConfirm={(mask, opts) => { const s = useFileStore.getState(); s.selectByMask(s.activePanel, mask, { ...opts, select: modal === 'select' }); closeModal() }}
           onClose={closeModal} />
+      )}
+      {modal === 'perms' && permTargets && (
+        <PermissionsDialog files={permTargets} onClose={closeModal}
+          onConfirm={(opts) => { const s = useFileStore.getState(); closeModal(); s.changePerms(s.activePanel, permTargets.map(f => f.path), opts) }} />
       )}
       {modal === 'shell' && (() => {
         const s = useFileStore.getState()

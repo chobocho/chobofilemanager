@@ -25,6 +25,9 @@ type FileInfo struct {
 	IsSymlink   bool      `json:"isSymlink"`
 	LinkTarget  string    `json:"linkTarget"`
 	Executable  bool      `json:"executable,omitempty"` // 실행 권한이 있는 일반 파일 (링크는 대상), Windows는 항상 false (Todo #136-2)
+	Mode        uint32    `json:"mode"`            // chmod 숫자 (setuid · setgid · sticky 포함, Todo #137-2)
+	Owner       string    `json:"owner,omitempty"` // 리눅스 · macOS만
+	Group       string    `json:"group,omitempty"`
 }
 
 type DirectoryListing struct {
@@ -80,7 +83,9 @@ func (fm *FileManager) ListDirectory(path string) (*DirectoryListing, error) {
 			Extension:   strings.ToLower(filepath.Ext(entry.Name())),
 			Permissions: info.Mode().String(),
 			Executable:  isExecutable(fullPath, info),
+			Mode:        unixPerm(info.Mode()),
 		}
+		fi.Owner, fi.Group = fileOwner(info)
 
 		if entry.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
 			fi.IsSymlink = true
@@ -141,7 +146,9 @@ func (fm *FileManager) GetFileInfo(path string) (*FileInfo, error) {
 		Extension:   strings.ToLower(filepath.Ext(info.Name())),
 		Permissions: info.Mode().String(),
 		Executable:  isExecutable(path, info),
+		Mode:        unixPerm(info.Mode()),
 	}
+	fi.Owner, fi.Group = fileOwner(info)
 	if info.Mode()&os.ModeSymlink != 0 {
 		fi.IsSymlink = true
 		target, err := os.Readlink(path)

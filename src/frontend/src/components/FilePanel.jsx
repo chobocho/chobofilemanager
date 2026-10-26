@@ -3,7 +3,7 @@ import { useFileStore, isRootPath } from '../stores/fileStore'
 import { useThemeStore } from '../stores/themeStore'
 import { useFTPStore } from '../stores/ftpStore'
 import { isFtpPath, ftpId, ftpRoot, ftpLabel } from '../utils/ftpPath.js'
-import { isViewableFile, isTextFile, isImageFile, isArchiveName, formatSize, formatDate } from '../utils/fileTypes.js'
+import { isViewableFile, isTextFile, isImageFile, isArchiveName, formatSize, formatDate, formatMode } from '../utils/fileTypes.js'
 import api from '../wailsjs/runtime'
 import styles from '../styles/FilePanel.module.css'
 import FolderTree from './FolderTree.jsx'
@@ -162,6 +162,19 @@ const COLUMNS = [
   { key: 'extension',label: 'Ext',      width: '12%' },
 ]
 
+// 리눅스 · macOS: 권한 · 소유자 열 (Todo #137-2, mc처럼)
+const UNIX_COLUMNS = [
+  { key: 'name',     label: 'Name',     width: '33%' },
+  { key: 'size',     label: 'Size',     width: '11%', align: 'right' },
+  { key: 'modified', label: 'Modified', width: '20%' },
+  { key: 'extension',label: 'Ext',      width: '6%' },
+  { key: 'mode',     label: 'Mode',     width: '15%' },
+  { key: 'owner',    label: 'Owner',    width: '15%' },
+]
+
+// '/'로 시작하는 로컬 경로(FTP 제외)면 권한 열을 보임
+export const columnsFor = (path) => (path?.startsWith('/') ? UNIX_COLUMNS : COLUMNS)
+
 const FTP_CONNECT = '__ftp_connect__'
 
 const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFile, onSwitchToPanel, onPastePath, onMaskSelect, onFtpConnect, keyboardDisabled = false }, ref) {
@@ -173,6 +186,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFil
   const drives = useFileStore(s => s.drives)
   const ftpConns = useFTPStore(s => s.connections)
   const theme = useThemeStore(s => s.theme)
+  const columns = columnsFor(panel.path)
   const listRef = useRef(null)
 
   useImperativeHandle(ref, () => ({
@@ -696,7 +710,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFil
       <div className={styles.listColumn}>
       {/* Column headers (자세히 보기만) */}
       {(panel.viewMode || 'full') === 'full' && <div className={styles.columnHeaders}>
-        {COLUMNS.map(col => (
+        {columns.map(col => (
           <div
             key={col.key}
             className={styles.colHeader}
@@ -733,15 +747,15 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFil
             onDoubleClick={(e) => { e.stopPropagation(); store.navigateUp(side) }}
             title="Parent directory"
           >
-            <div className={styles.colName} style={{ width: COLUMNS[0].width }}>
+            <div className={styles.colName} style={{ width: columns[0].width }}>
               <Folder size={14} style={{ color: theme === 'light' ? '#b07800' : '#f0c040', flexShrink: 0 }} />
               <span className={styles.fileName}>[..]</span>
             </div>
-            <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
+            <div className={styles.colCell} style={{ width: columns[1].width, textAlign: 'right' }}>
               {'<DIR>'}
             </div>
-            <div className={styles.colCell} style={{ width: COLUMNS[2].width }} />
-            <div className={styles.colCell} style={{ width: COLUMNS[3].width }} />
+            <div className={styles.colCell} style={{ width: columns[2].width }} />
+            <div className={styles.colCell} style={{ width: columns[3].width }} />
           </div>
         )}
         {!panel.loading && !panel.error && (panel.viewMode || 'full') === 'full' && visibleFiles.map((file, index) => (
@@ -755,6 +769,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFil
             theme={theme}
             onRowClick={onRowClick}
             onRowDoubleClick={onRowDoubleClick}
+            columns={columns}
           />
         ))}
         {!panel.loading && !panel.error && panel.viewMode && panel.viewMode !== 'full' && (
@@ -811,7 +826,7 @@ const FilePanel = forwardRef(function FilePanel({ side, onEdit, onView, onRunFil
 export default FilePanel
 
 // 파일 한 줄. 커서/선택이 바뀐 행만 다시 그려지도록 memo (Todo #98 — 큰 폴더에서 키 입력마다 전체 재렌더 방지)
-const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirSize, theme, onRowClick, onRowDoubleClick }) {
+const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirSize, theme, onRowClick, onRowDoubleClick, columns = COLUMNS }) {
   const { icon: Icon, color } = getFileIcon(file, theme)
   return (
     <div
@@ -827,20 +842,28 @@ const FileRow = memo(function FileRow({ file, index, highlighted, selected, dirS
       onDoubleClick={() => onRowDoubleClick(file)}
       title={file.path}
     >
-      <div className={styles.colName} style={{ width: COLUMNS[0].width }}>
+      <div className={styles.colName} style={{ width: columns[0].width }}>
         <Icon size={14} style={{ color, flexShrink: 0 }} />
         <span className={styles.fileName}>{file.name}</span>
         {file.isSymlink && <ChevronRight size={10} className={styles.symlinkIcon} />}
       </div>
-      <div className={styles.colCell} style={{ width: COLUMNS[1].width, textAlign: 'right' }}>
+      <div className={styles.colCell} style={{ width: columns[1].width, textAlign: 'right' }}>
         {dirSize !== undefined ? formatSize(dirSize, false) : formatSize(file.size, file.isDir)}
       </div>
-      <div className={styles.colCell} style={{ width: COLUMNS[2].width }}>
+      <div className={styles.colCell} style={{ width: columns[2].width }}>
         {formatDate(file.modified)}
       </div>
-      <div className={styles.colCell} style={{ width: COLUMNS[3].width }}>
+      <div className={styles.colCell} style={{ width: columns[3].width }}>
         {!file.isDir ? file.extension?.replace('.', '') : ''}
       </div>
+      {columns.length > 4 && <>
+        <div className={styles.colCell} data-col="mode" style={{ width: columns[4].width, fontFamily: 'monospace' }}>
+          {file.owner ? formatMode(file.mode, file) : ''}
+        </div>
+        <div className={styles.colCell} data-col="owner" style={{ width: columns[5].width }} title={file.owner ? `${file.owner}:${file.group}` : undefined}>
+          {file.owner ? `${file.owner}:${file.group}` : ''}
+        </div>
+      </>}
     </div>
   )
 })

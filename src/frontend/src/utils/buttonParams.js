@@ -27,6 +27,7 @@ export const INTERNAL_COMMANDS = [
   { id: '@sync', label: '폴더 동기화 (Alt+F2)' },
   { id: '@diff', label: '파일 내용 비교 (Ctrl+Shift+D)' },
   { id: '@multirename', label: '여러 이름 바꾸기 (Ctrl+M)' },
+  { id: '@perms', label: '권한 · 소유자 (Alt+A)' },
   { id: '@quickview', label: '빠른 보기 (Ctrl+Q)' },
   { id: '@tree', label: '폴더 트리 (Ctrl+F8)' },
   { id: '@terminal', label: '터미널 도크 (F9)' },

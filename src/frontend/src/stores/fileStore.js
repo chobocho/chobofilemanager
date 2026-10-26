@@ -695,6 +695,18 @@ export const useFileStore = create((set, get) => ({
     }
   },
 
+  // 권한 · 소유자 (Alt+A, Todo #137-2): 바꾼 것만 호출, 실패해도 새로 고침(일부는 바뀌었을 수 있음)
+  changePerms: async (panel, paths, { set: on = 0, clear = 0, owner = '', group = '', recursive = false }) => {
+    try {
+      if (on || clear) await api.ChangeMode(paths, on, clear, recursive)
+      if (owner || group) await api.ChangeOwner(paths, owner, group, recursive)
+      set({ status: `권한 · 소유자 바꿈: ${paths.length}개` })
+    } catch (e) {
+      set({ status: `권한 · 소유자 바꾸기 실패: ${e?.message ?? e}` })
+    }
+    await get().refresh(panel)
+  },
+
   // 여러 이름 바꾸기 (Ctrl+M, Todo #133-4): 실패는 예외로 — 창이 오류를 보여 줌
   multiRename: async (panel, pairs) => {
     await api.RenameBatch(pairs)

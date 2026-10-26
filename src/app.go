@@ -373,3 +373,22 @@ func (a *App) ReadThumbnail(p string, size int) (string, error) {
 	}
 	return a.fileManager.ReadThumbnail(p, size)
 }
+
+// ChangeMode / ChangeOwner / GetOwnerChoices: 권한 · 소유자 (Alt+A, Todo #137-2)
+func (a *App) ChangeMode(paths []string, set, clear uint32, recursive bool) error {
+	if anyFTP(paths...) {
+		return errFTPNotHere
+	}
+	return a.fileManager.ChangeMode(paths, set, clear, recursive)
+}
+
+func (a *App) ChangeOwner(paths []string, owner, group string, recursive bool) error {
+	if anyFTP(paths...) {
+		return errFTPNotHere
+	}
+	return a.fileManager.ChangeOwner(paths, owner, group, recursive)
+}
+
+func (a *App) GetOwnerChoices() OwnerChoices {
+	return a.fileManager.GetOwnerChoices()
+}

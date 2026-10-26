@@ -44,6 +44,7 @@ Total Commander에서 손에 익은 기능 — 폴더 크기(Space), 마스크 �
 - **여러 이름 바꾸기 (Ctrl+M)**: [N] [E] [C] [YMD] 마스크, 찾아 바꾸기(정규식), 대소문자, 미리 보기·충돌 표시, 묶음 안 맞바꾸기 가능·실패하면 되돌림
 - **압축 파일을 폴더처럼**: ZIP · JAR · TAR · TAR.GZ/BZ2/XZ · 7Z · RAR에 Enter로 들어가 보기, F5로 꺼내기, F3 보기 (읽기 전용)
 - **폴더 비교 (Shift+F2)** · **동기화 (Alt+F2)**: 하위 폴더 · 내용 비교, 줄마다 방향(→ ←) 골라 복사
+- **권한 · 소유자 (Alt+A, 리눅스 · macOS)**: Mode(`drwxr-xr-x`) · Owner(소유자:그룹) 열과 정렬, chmod(체크박스 · 숫자 · setuid/setgid/sticky) · chown 창, 여러 개면 바꾼 것만, 하위 폴더까지(안의 링크는 따라가지 않음)
 - **파일 내용 비교 (Ctrl+Shift+D)**: 좌우 diff, 차이 이동, 양쪽 편집·저장, 바이너리는 첫 차이 위치
 - **FTP를 패널에서**: 드라이브 목록 → "FTP 연결..." — F5/F6 받기·올리기(폴더 포함), F7 F8 F2, F3/F4
 - **빠른 보기 (Ctrl+Q)**, **폴더 트리 (Ctrl+F8)**, **보기 방식** 자세히(Ctrl+F2) · 간단히(Ctrl+F1) · 썸네일(Ctrl+Shift+F1)
@@ -177,6 +178,7 @@ CI(`.github/workflows/ci.yml`): PR과 master 푸시마다 Windows · Linux에서
 | `F1` | 도움말 |
 | `F2` / `Ctrl+M` | 이름 변경 / 여러 이름 바꾸기 |
 | `Shift+F2` / `Alt+F2` | 폴더 비교 / 폴더 동기화 |
+| `Alt+A` | 권한 · 소유자 (리눅스 · macOS) |
 | `Ctrl+Shift+D` | 파일 내용 비교 |
 | `F3` / `F4` | 보기 / 편집 |
 | `F5` / `F6` | 반대 패널로 복사 / 이동 |

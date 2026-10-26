@@ -50,6 +50,20 @@ export function formatSize(bytes, isDir) {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`
 }
 
+// formatMode: ls -l 모양의 권한 (Todo #137-2) — "drwxr-sr-x", setuid · setgid · sticky는 s/S · t/T
+export function formatMode(mode, { isDir = false, isSymlink = false } = {}) {
+  const m = mode || 0
+  const triad = (shift, special, ch) => {
+    const r = m & (4 << shift) ? 'r' : '-'
+    const w = m & (2 << shift) ? 'w' : '-'
+    const x = m & (1 << shift)
+    const xs = m & special ? (x ? ch : ch.toUpperCase()) : (x ? 'x' : '-')
+    return r + w + xs
+  }
+  const type = isSymlink ? 'l' : isDir ? 'd' : '-'
+  return type + triad(6, 0o4000, 's') + triad(3, 0o2000, 's') + triad(0, 0o1000, 't')
+}
+
 export function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)

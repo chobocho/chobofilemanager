@@ -2,6 +2,9 @@
 
 > 이전 이력: [history_20261025_215114.md](history_20261025_215114.md) → [history_20261025_103719.md](history_20261025_103719.md) → [history_20261025_073230.md](history_20261025_073230.md) → [history_20261024_235349.md](history_20261024_235349.md) → [history_20261024_233705.md](history_20261024_233705.md)
 
+## 2026-10-26 버전 0.2.14
+- version.go, wails.json, package.json(+lock)의 버전을 0.2.13 → 0.2.14로 올림. GitHub 릴리스 v0.2.14 발행(Windows 실행 파일)
+
 ## 2026-10-26 Todo.md #137-2: 권한 · 소유자 열과 chmod · chown 창 (Alt+A)
 - 목록(`FileInfo`)에 `mode`(chmod 숫자, setuid · setgid · sticky 포함) · `owner` · `group` 추가 — 리눅스 · macOS만 이름(못 찾으면 숫자, id마다 한 번만 찾음), Windows는 비움
 - 패널: '/' 경로(리눅스 · macOS)면 Mode(`-rwsr-xr-x`) · Owner(소유자:그룹) 열, 머리글로 정렬. Windows · FTP는 그대로, 압축 파일 안은 빈 칸
